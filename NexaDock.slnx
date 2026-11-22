@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/NexaDock.App/NexaDock.App.csproj" />
+    <Project Path="src/NexaDock.Core/NexaDock.Core.csproj" />
+    <Project Path="src/NexaDock.Infrastructure/NexaDock.Infrastructure.csproj" />
+    <Project Path="src/NexaDock.UI/NexaDock.UI.csproj" />
+    <Project Path="src/NexaDock.Windows/NexaDock.Windows.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/NexaDock.Tests/NexaDock.Tests.csproj" />
+  </Folder>
+</Solution>
