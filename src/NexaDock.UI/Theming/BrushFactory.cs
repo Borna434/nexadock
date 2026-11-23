@@ -225,18 +225,7 @@ public static class IconImageExtensions
         }
     }
 
-    /// <summary>Picks a shell icon size that renders crisply for the given DIP size and scale.</summary>
-    public static int IconRequestSize(double iconDip, double scale)
-    {
-        var px = iconDip * Math.Max(1, scale);
-        foreach (var bucket in new[] { 32, 48, 64, 96, 128, 256 })
-        {
-            if (bucket >= px)
-            {
-                return bucket;
-            }
-        }
-
-        return 256;
-    }
+    /// <summary>Device pixels an icon of the given DIP size occupies on screen.</summary>
+    public static int IconPixelSize(double iconDip, double scale) =>
+        Math.Clamp((int)Math.Round(iconDip * Math.Max(0.5, scale)), 16, 256);
 }

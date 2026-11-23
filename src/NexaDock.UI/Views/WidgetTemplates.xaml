@@ -209,7 +209,7 @@
                             <Grid Width="{DynamicResource Bar.AppButton}" Height="{DynamicResource Bar.TileHeight}">
                                 <Border x:Name="ActivePlate" CornerRadius="10" Margin="2" Background="{DynamicResource Bar.HoverFill}" Visibility="Collapsed" />
                                 <Grid Width="{DynamicResource Bar.IconSize}" Height="{DynamicResource Bar.IconSize}" Margin="0,0,0,3">
-                                    <Image Source="{Binding Icon}" RenderOptions.BitmapScalingMode="HighQuality" />
+                                    <Image Source="{Binding Icon}" RenderOptions.BitmapScalingMode="HighQuality" SnapsToDevicePixels="True" UseLayoutRounding="True" />
                                     <Border CornerRadius="8" Background="{DynamicResource Bar.Accent}"
                                             Visibility="{Binding HasIcon, Converter={StaticResource InverseBoolToVisibility}}">
                                         <TextBlock Text="{Binding Monogram}" Foreground="White" FontWeight="SemiBold" FontSize="14"

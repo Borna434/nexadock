@@ -27,7 +27,9 @@ public sealed partial class AppsWidget : WidgetViewModel
     private readonly IAppShell _appShell;
     private readonly List<string> _runningOrder = [];
     private IReadOnlyList<DockShortcut> _pinned = [];
-    private int _iconSize = 64;
+    private int _iconSize = 24;
+    private double _iconDip = 24;
+    private double _scale = 1;
 
     public AppsWidget(
         WidgetPlacement placement,
@@ -55,6 +57,8 @@ public sealed partial class AppsWidget : WidgetViewModel
 
     public override void ApplySettings(DockSettings settings)
     {
+        _iconDip = NexaDock.Core.Layout.DockMetrics.For(settings.Size).IconSize;
+        UpdateIconSize();
         if (!settings.Shortcuts.SequenceEqual(_pinned))
         {
             _pinned = settings.Shortcuts;
@@ -64,7 +68,17 @@ public sealed partial class AppsWidget : WidgetViewModel
 
     public override void SetDpiScale(double scale)
     {
-        var size = IconImageExtensions.IconRequestSize(34, scale);
+        _scale = scale > 0 ? scale : 1;
+        UpdateIconSize();
+    }
+
+    /// <summary>
+    /// Icons are extracted at exactly the size they are drawn in device pixels, so the shell picks
+    /// (or renders) the matching icon frame and WPF never has to resample it.
+    /// </summary>
+    private void UpdateIconSize()
+    {
+        var size = IconImageExtensions.IconPixelSize(_iconDip, _scale);
         if (size != _iconSize)
         {
             _iconSize = size;

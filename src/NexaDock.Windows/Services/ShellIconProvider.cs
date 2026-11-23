@@ -44,7 +44,10 @@ public sealed class ShellIconProvider : IIconProvider
 
             try
             {
-                hr = factory.GetImage(new SIZE { cx = size, cy = size }, SIIGBF_ICONONLY | SIIGBF_BIGGERSIZEOK, out var hbitmap);
+                // Exact size (no BIGGERSIZEOK): the shell picks the icon frame designed for this
+                // size, or scales a larger one with its own filter. A bigger bitmap downscaled by
+                // WPF at a non-integer ratio looks soft and blurry.
+                hr = factory.GetImage(new SIZE { cx = size, cy = size }, SIIGBF_ICONONLY, out var hbitmap);
                 if (hr < 0 || hbitmap == IntPtr.Zero)
                 {
                     return null;
