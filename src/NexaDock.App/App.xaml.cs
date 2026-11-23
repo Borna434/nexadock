@@ -29,6 +29,8 @@ public partial class App : Application
     private RegisteredWaitHandle? _showSignalRegistration;
     private EventWaitHandle? _settingsSignal;
     private RegisteredWaitHandle? _settingsSignalRegistration;
+    private EventWaitHandle? _exitSignal;
+    private RegisteredWaitHandle? _exitSignalRegistration;
     private ILogger<App>? _logger;
 
     protected override void OnStartup(StartupEventArgs e)
@@ -36,12 +38,24 @@ public partial class App : Application
         base.OnStartup(e);
 
         _singleInstance = new Mutex(initiallyOwned: true, ProductInfo.SingleInstanceMutexName, out var isFirst);
+        if (isFirst && e.Args.Contains("--exit", StringComparer.OrdinalIgnoreCase))
+        {
+            // Nothing is running; "--exit" must not start the bar.
+            _singleInstance.ReleaseMutex();
+            _singleInstance.Dispose();
+            _singleInstance = null;
+            Shutdown(0);
+            return;
+        }
+
         if (!isFirst)
         {
             // Another instance is running: ask it to show its bar (or Settings), then leave quietly.
-            var eventName = e.Args.Contains("--settings", StringComparer.OrdinalIgnoreCase)
-                ? ProductInfo.ShowSettingsEventName
-                : ProductInfo.ShowDockEventName;
+            var eventName = e.Args.Contains("--exit", StringComparer.OrdinalIgnoreCase)
+                ? ProductInfo.ExitEventName
+                : e.Args.Contains("--settings", StringComparer.OrdinalIgnoreCase)
+                    ? ProductInfo.ShowSettingsEventName
+                    : ProductInfo.ShowDockEventName;
             if (EventWaitHandle.TryOpenExisting(eventName, out var existing))
             {
                 existing.Set();
@@ -72,6 +86,7 @@ public partial class App : Application
         services.AddSingleton<IRadioService, WinRtRadioService>();
         services.AddSingleton<IBrightnessService, BrightnessService>();
         services.AddSingleton<PulseCenter>();
+        services.AddSingleton<NexaDock.Core.Usage.IClaudeUsageSource, NexaDock.Infrastructure.Usage.ClaudeLogReader>();
         services.AddSingleton<ProfileCoordinator>();
         services.AddSingleton<SettingsService>();
         services.AddSingleton<ISettingsService>(sp => sp.GetRequiredService<SettingsService>());
@@ -150,6 +165,15 @@ public partial class App : Application
             null,
             Timeout.Infinite,
             executeOnlyOnce: false);
+
+        // `NexaDock.exe --exit` (used by the installer) closes this instance cleanly.
+        _exitSignal = new EventWaitHandle(false, EventResetMode.AutoReset, ProductInfo.ExitEventName);
+        _exitSignalRegistration = ThreadPool.RegisterWaitForSingleObject(
+            _exitSignal,
+            (_, _) => Dispatcher.BeginInvoke(shell.Exit),
+            null,
+            Timeout.Infinite,
+            executeOnlyOnce: true);
 
         if (e.Args.Contains("--settings", StringComparer.OrdinalIgnoreCase))
         {
@@ -251,6 +275,8 @@ public partial class App : Application
             _showSignal?.Dispose();
             _settingsSignalRegistration?.Unregister(null);
             _settingsSignal?.Dispose();
+            _exitSignalRegistration?.Unregister(null);
+            _exitSignal?.Dispose();
 
             if (_host is not null)
             {

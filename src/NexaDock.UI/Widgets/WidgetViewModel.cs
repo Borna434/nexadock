@@ -12,10 +12,16 @@ namespace NexaDock.UI.Widgets;
 public abstract partial class WidgetViewModel : ObservableObject, IDisposable
 {
     protected WidgetViewModel(WidgetPlacement placement)
+        : this(placement, WidgetCatalog.Get(placement.TypeId)
+            ?? throw new ArgumentException($"Unknown widget type '{placement.TypeId}'.", nameof(placement)))
+    {
+    }
+
+    /// <summary>For built-in helpers that are not in the catalog (e.g. the overflow card).</summary>
+    protected WidgetViewModel(WidgetPlacement placement, WidgetDescriptor descriptor)
     {
         Placement = placement;
-        Descriptor = WidgetCatalog.Get(placement.TypeId)
-            ?? throw new ArgumentException($"Unknown widget type '{placement.TypeId}'.", nameof(placement));
+        Descriptor = descriptor;
     }
 
     public WidgetPlacement Placement { get; }
@@ -127,6 +133,7 @@ public sealed class WidgetFactory(IServiceProvider services)
         [WidgetTypes.Keyboard] = typeof(KeyboardWidget),
         [WidgetTypes.QuickToggles] = typeof(QuickTogglesWidget),
         [WidgetTypes.Brightness] = typeof(BrightnessWidget),
+        [WidgetTypes.Claude] = typeof(ClaudeWidget),
     };
 
     public static bool IsSupported(string typeId) => Types.ContainsKey(typeId);

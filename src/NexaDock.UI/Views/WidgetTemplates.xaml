@@ -1144,4 +1144,138 @@
         </StackPanel>
     </DataTemplate>
 
+
+    <!-- Claude usage =========================================================================== -->
+    <Geometry x:Key="SparkleGeometry">M12,1.5 C12.7,8 16,11.3 22.5,12 C16,12.7 12.7,16 12,22.5 C11.3,16 8,12.7 1.5,12 C8,11.3 11.3,8 12,1.5 Z</Geometry>
+    <LinearGradientBrush x:Key="SparkleBrush" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#FFB48A" Offset="0" />
+        <GradientStop Color="#E5734A" Offset="1" />
+    </LinearGradientBrush>
+
+    <DataTemplate x:Key="ClaudeWidget.Tile" DataType="{x:Type w:ClaudeWidget}">
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+            <Grid Width="30" Height="30">
+                <c:RingGauge Value="{Binding WindowProgress}" StrokeThickness="2.5" Track="{DynamicResource Bar.Track}" Fill="{StaticResource SparkleBrush}" />
+                <Path Data="{StaticResource SparkleGeometry}" Fill="{StaticResource SparkleBrush}" Stretch="Uniform" Width="15" Height="15" />
+            </Grid>
+            <StackPanel Margin="8,0,2,0" VerticalAlignment="Center" MaxWidth="150">
+                <TextBlock Text="{Binding Headline}" Style="{StaticResource Bar.Text}" FontWeight="SemiBold" FontSize="12.5" />
+                <TextBlock Text="{Binding Subline}" Style="{StaticResource Bar.SubText}" />
+            </StackPanel>
+        </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate x:Key="ClaudeWidget.Card" DataType="{x:Type w:ClaudeWidget}">
+        <StackPanel Width="300">
+            <Grid>
+                <StackPanel Orientation="Horizontal">
+                    <Path Data="{StaticResource SparkleGeometry}" Fill="{StaticResource SparkleBrush}" Stretch="Uniform" Width="18" Height="18" VerticalAlignment="Center" />
+                    <TextBlock Text="Claude" Style="{StaticResource Card.Title}" Margin="8,0,0,0" />
+                </StackPanel>
+                <Button Style="{StaticResource Bar.GlyphButton}" Width="26" Height="26" FontSize="11" HorizontalAlignment="Right"
+                        Content="&#xE72C;" Command="{Binding RefreshCommand}" ToolTip="{l:Loc common.refresh}" />
+            </Grid>
+            <TextBlock Text="{Binding StatusText}" Style="{StaticResource Card.Label}" TextWrapping="Wrap" TextTrimming="None" Margin="0,8,0,0"
+                       Visibility="{Binding StatusText, Converter={StaticResource NonEmptyToVisibility}}" />
+
+            <!-- Current 5-hour window -->
+            <Border CornerRadius="12" Padding="14,12" Margin="0,12,0,0" Background="{DynamicResource Bar.TileFill}"
+                    BorderBrush="{DynamicResource Bar.TileRim}" BorderThickness="1">
+                <StackPanel>
+                    <TextBlock Text="{l:Loc claude.session}" Style="{StaticResource Card.Label}" />
+                    <StackPanel Visibility="{Binding HasSession, Converter={StaticResource BoolToVisibility}}">
+                        <Grid Margin="0,4,0,0">
+                            <StackPanel>
+                                <TextBlock Text="{Binding SessionTokens}" Style="{StaticResource Bar.Text}" FontFamily="{StaticResource DisplayFont}" FontSize="30" FontWeight="SemiBold" />
+                                <TextBlock Text="{l:Loc claude.tokens}" Style="{StaticResource Card.Label}" />
+                            </StackPanel>
+                            <Grid Width="58" Height="58" HorizontalAlignment="Right" ToolTip="{l:Loc claude.windowTip}">
+                                <c:RingGauge Value="{Binding WindowProgress}" StrokeThickness="5" Track="{DynamicResource Bar.Track}" Fill="{StaticResource SparkleBrush}" />
+                                <Path Data="{StaticResource SparkleGeometry}" Fill="{StaticResource SparkleBrush}" Stretch="Uniform" Width="20" Height="20" />
+                            </Grid>
+                        </Grid>
+                        <TextBlock Text="{Binding SessionMessages}" Style="{StaticResource Card.Body}" Margin="0,8,0,0" />
+                        <TextBlock Text="{Binding SessionTimes}" Style="{StaticResource Card.Label}" Margin="0,2,0,0" />
+                        <TextBlock Text="{Binding SessionCache}" Style="{StaticResource Card.Label}" FontSize="11" Margin="0,2,0,0" />
+                        <StackPanel Visibility="{Binding HasRecord, Converter={StaticResource BoolToVisibility}}" Margin="0,10,0,0">
+                            <Border Style="{StaticResource Card.Progress}">
+                                <Border CornerRadius="3" Background="{StaticResource SparkleBrush}" RenderTransformOrigin="0,0.5">
+                                    <Border.RenderTransform><ScaleTransform ScaleX="{Binding RecordShare, Converter={StaticResource PercentToScale}}" /></Border.RenderTransform>
+                                </Border>
+                            </Border>
+                            <TextBlock Text="{Binding RecordText}" Style="{StaticResource Card.Label}" FontSize="11" Margin="0,4,0,0" TextWrapping="Wrap" TextTrimming="None" />
+                        </StackPanel>
+                    </StackPanel>
+                    <TextBlock Text="{l:Loc claude.noSession}" Style="{StaticResource Card.Body}" Margin="0,4,0,0"
+                               Visibility="{Binding HasSession, Converter={StaticResource InverseBoolToVisibility}}" />
+                </StackPanel>
+            </Border>
+
+            <!-- Today and the last seven days -->
+            <TextBlock Text="{Binding TodayText}" Style="{StaticResource Card.Body}" Margin="0,14,0,0" />
+            <TextBlock Text="{Binding WeekText}" Style="{StaticResource Card.Label}" Margin="0,2,0,8" />
+            <ItemsControl ItemsSource="{Binding Days}" Height="86">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate><UniformGrid Rows="1" /></ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type w:UsageBar}">
+                        <Grid Margin="4,0" ToolTip="{Binding ToolTip}" Background="Transparent">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Border CornerRadius="4" Background="{DynamicResource Bar.Track}" Opacity="0.3" />
+                            <Border x:Name="Bar" CornerRadius="4" Background="{DynamicResource Bar.Secondary}" VerticalAlignment="Stretch" RenderTransformOrigin="0.5,1">
+                                <Border.RenderTransform><ScaleTransform ScaleY="{Binding HeightPercent, Converter={StaticResource PercentToScale}}" /></Border.RenderTransform>
+                            </Border>
+                            <TextBlock Grid.Row="1" Text="{Binding Label}" Style="{StaticResource Card.Label}" FontSize="10.5" HorizontalAlignment="Center" Margin="0,4,0,0" />
+                        </Grid>
+                        <DataTemplate.Triggers>
+                            <DataTrigger Binding="{Binding IsToday}" Value="True">
+                                <Setter TargetName="Bar" Property="Background" Value="{StaticResource SparkleBrush}" />
+                            </DataTrigger>
+                        </DataTemplate.Triggers>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <TextBlock Text="{l:Loc claude.models}" Style="{StaticResource Card.Label}" FontWeight="SemiBold" Margin="0,14,0,2" />
+            <ItemsControl ItemsSource="{Binding Models}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type w:ModelRow}">
+                        <Grid Margin="0,2">
+                            <TextBlock Text="{Binding Name}" Style="{StaticResource Card.Body}" FontSize="12.5" />
+                            <TextBlock Text="{Binding Detail}" Style="{StaticResource Card.Label}" HorizontalAlignment="Right" />
+                        </Grid>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <TextBlock Text="{l:Loc claude.note}" Style="{StaticResource Card.Label}" FontSize="10.5" Margin="0,12,0,0" TextWrapping="Wrap" TextTrimming="None" />
+        </StackPanel>
+    </DataTemplate>
+
+
+    <!-- Overflow ("»") ========================================================================= -->
+    <DataTemplate x:Key="OverflowWidget.Card" DataType="{x:Type w:OverflowWidget}">
+        <StackPanel MaxWidth="560">
+            <TextBlock Text="{l:Loc bar.moreTitle}" Style="{StaticResource Card.Title}" />
+            <TextBlock Text="{l:Loc bar.moreHint}" Style="{StaticResource Card.Label}" Margin="0,2,0,12" TextWrapping="Wrap" TextTrimming="None" />
+            <ItemsControl ItemsSource="{Binding Hidden}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Height="{DynamicResource Bar.TileHeight}" CornerRadius="{DynamicResource Bar.TileRadius}" Padding="{DynamicResource Bar.TilePadding}"
+                                Background="{DynamicResource Bar.TileFill}" BorderBrush="{DynamicResource Bar.TileRim}" BorderThickness="1" Margin="0,0,8,8">
+                            <ContentPresenter Content="{Binding}" ContentTemplateSelector="{StaticResource TileSelector}" VerticalAlignment="Center" />
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+    </DataTemplate>
+
 </ResourceDictionary>

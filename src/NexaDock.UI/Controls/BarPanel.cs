@@ -47,11 +47,56 @@ public sealed class BarPanel : Panel
         }
 
         width += Math.Max(0, visible - 1) * Gap;
+
+        // Never ask for more than is available: WPF would otherwise arrange (and clip) at the
+        // desired width and the overflow logic in ArrangeOverride would never see the shortage.
+        // With infinite width (compact-mode measuring) the full content width is reported.
+        if (!double.IsInfinity(availableSize.Width))
+        {
+            width = Math.Min(width, availableSize.Width);
+        }
+
         return new Size(width, double.IsInfinity(availableSize.Height) ? height : Math.Min(height, availableSize.Height));
     }
 
+    /// <summary>Width kept free at the end for the overflow button when not everything fits.</summary>
+    public static readonly DependencyProperty OverflowReserveProperty = DependencyProperty.Register(
+        nameof(OverflowReserve), typeof(double), typeof(BarPanel),
+        new FrameworkPropertyMetadata(36.0, FrameworkPropertyMetadataOptions.AffectsArrange));
+
+    public double OverflowReserve
+    {
+        get => (double)GetValue(OverflowReserveProperty);
+        set => SetValue(OverflowReserveProperty, value);
+    }
+
+    /// <summary>Data items of the tiles hidden in the last arrange (empty when everything fits).</summary>
+    public IReadOnlyList<object> HiddenItems { get; private set; } = [];
+
+    /// <summary>Raised when the set of hidden tiles changes.</summary>
+    public event EventHandler? OverflowChanged;
+
     protected override Size ArrangeOverride(Size finalSize)
     {
+        var size = ArrangeTiles(finalSize, reserve: 0, out var hidden);
+        if (hidden.Count > 0)
+        {
+            size = ArrangeTiles(finalSize, OverflowReserve, out hidden);
+        }
+
+        if (!hidden.SequenceEqual(HiddenItems))
+        {
+            HiddenItems = hidden;
+            Dispatcher.BeginInvoke(() => OverflowChanged?.Invoke(this, EventArgs.Empty));
+        }
+
+        return size;
+    }
+
+    private Size ArrangeTiles(Size finalSize, double reserve, out List<object> hidden)
+    {
+        hidden = [];
+        var width = Math.Max(0, finalSize.Width - reserve);
         double fixedWidth = 0;
         var flexible = 0;
         var visible = 0;
@@ -74,10 +119,11 @@ public sealed class BarPanel : Panel
         }
 
         var gaps = Math.Max(0, visible - 1) * Gap;
-        var flexWidth = flexible == 0 ? 0 : Math.Max(MinFlexibleWidth, (finalSize.Width - fixedWidth - gaps) / flexible);
+        var flexWidth = flexible == 0 ? 0 : Math.Max(MinFlexibleWidth, (width - fixedWidth - gaps) / flexible);
 
         // Without flexible space, centre nothing: tiles start at the left like a taskbar.
         double x = 0;
+        var overflowing = false;
         foreach (UIElement child in InternalChildren)
         {
             if (child.Visibility == Visibility.Collapsed)
@@ -88,10 +134,17 @@ public sealed class BarPanel : Panel
             var w = GetIsFlexible(child) ? flexWidth : child.DesiredSize.Width;
             var h = Math.Min(child.DesiredSize.Height, finalSize.Height);
 
-            // A tile that would only partly fit is not shown at all (no tiles cut off at the edge).
-            if (x + w > finalSize.Width + 0.5)
+            // A tile that would only partly fit is not shown at all (no tiles cut off at the edge);
+            // the bar offers it through the overflow button instead.
+            if (overflowing || x + w > width + 0.5)
             {
+                overflowing = true; // keep order: everything after the first misfit goes too
                 child.Arrange(new Rect(finalSize.Width, 0, 0, 0));
+                if (child is FrameworkElement { DataContext: { } item } && !GetIsFlexible(child))
+                {
+                    hidden.Add(item);
+                }
+
                 continue;
             }
 

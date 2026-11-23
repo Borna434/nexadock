@@ -324,8 +324,24 @@ public sealed class Win32WindowTracker : IWindowTracker, IDisposable
         }
 
         var b = monitor.Bounds;
-        return r.Left <= b.X && r.Top <= b.Y && r.Right >= b.Right && r.Bottom >= b.Bottom;
+        var coversMonitor = r.Left <= b.X && r.Top <= b.Y && r.Right >= b.Right && r.Bottom >= b.Bottom;
+        if (!coversMonitor)
+        {
+            return false;
+        }
+
+        // Windows' own verdict (what the taskbar uses): a window that merely covers the screen,
+        // such as a frameless app sized to the monitor, is not "full screen".
+        return SHQueryUserNotificationState(out var state) == 0
+            && state is QunsBusy or QunsRunningD3DFullScreen or QunsPresentationMode;
     }
+
+    private const int QunsBusy = 2;
+    private const int QunsRunningD3DFullScreen = 3;
+    private const int QunsPresentationMode = 4;
+
+    [DllImport("shell32.dll")]
+    private static extern int SHQueryUserNotificationState(out int state);
 
     internal static INPUT Key(ushort vk, bool up) => new()
     {

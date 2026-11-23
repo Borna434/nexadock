@@ -121,6 +121,7 @@ public partial class DockWindow : Window
         _viewModel.LayoutInvalidated += (_, _) => QueueReposition();
         _host.PlacementInvalidated += (_, _) => Reposition();
         _tracker.Changed += (_, _) => UpdateFullscreenState();
+        Loaded += (_, _) => Dispatcher.BeginInvoke(UpdateFullscreenState, DispatcherPriority.Background);
         DpiChanged += (_, _) => QueueReposition();
         IsVisibleChanged += (_, _) =>
         {
@@ -168,6 +169,7 @@ public partial class DockWindow : Window
         _viewModel.Start();
         _contentWatch.Start();
         Reposition();
+        Dispatcher.BeginInvoke(AttachOverflowWatcher, DispatcherPriority.Loaded);
         Dispatcher.BeginInvoke(() =>
         {
             _logger.LogInformation(
@@ -289,7 +291,9 @@ public partial class DockWindow : Window
 
     private void UpdateFullscreenState()
     {
-        if (_monitor is null || UserHidden)
+        // Never Hide()/Show() while the window is still being created: a Hide during Show leaves
+        // Windows showing the window while WPF considers it hidden (glass without content).
+        if (_monitor is null || UserHidden || !IsLoaded)
         {
             return;
         }
@@ -320,7 +324,7 @@ public partial class DockWindow : Window
         _logger.LogDebug("Press at {X:0},{Y:0} on {Target} (source {Source}).",
             _pressPoint.Value.X, _pressPoint.Value.Y, _pressWidget?.GetType().Name ?? "background", e.OriginalSource?.GetType().Name);
 
-        if (_card.Current is { } open && open != _pressWidget)
+        if (_card.Current is { } open && open != _pressWidget && !IsWithin(e.OriginalSource as DependencyObject, OverflowButton))
         {
             _card.CloseCard();
         }
@@ -430,6 +434,76 @@ public partial class DockWindow : Window
             widget.OnWheel(e.Delta);
             e.Handled = true;
         }
+    }
+
+    private void OnOverflowClick(object sender, RoutedEventArgs e)
+    {
+        _logger.LogDebug("Overflow clicked; {Count} hidden, card open: {Open}.", _viewModel.Overflow.Hidden.Count, _card.Current?.TypeId);
+        if (_card.Current == _viewModel.Overflow)
+        {
+            _card.CloseCard();
+            return;
+        }
+
+        HidePreview();
+        _card.Open(_viewModel.Overflow, ScreenRect(OverflowButton), _bounds, _settings.Current.Edge, _monitor?.Bounds ?? _bounds, _monitor?.DpiScale ?? 1);
+    }
+
+    /// <summary>Hooks the tile panel's overflow report once the item panel exists.</summary>
+    private void AttachOverflowWatcher()
+    {
+        if (FindChild<Controls.BarPanel>(WidgetHost) is not { } panel)
+        {
+            Dispatcher.BeginInvoke(AttachOverflowWatcher, DispatcherPriority.Loaded);
+            return;
+        }
+
+        void Sync()
+        {
+            _viewModel.SetOverflow(panel.HiddenItems.OfType<WidgetViewModel>());
+            if (!_viewModel.HasOverflow && _card.Current == _viewModel.Overflow)
+            {
+                _card.CloseCard();
+            }
+        }
+
+        panel.OverflowChanged += (_, _) => Sync();
+        Sync(); // the first layout pass may already have hidden tiles before we subscribed
+    }
+
+    private static T? FindChild<T>(DependencyObject root)
+        where T : DependencyObject
+    {
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)
+        {
+            var child = VisualTreeHelper.GetChild(root, i);
+            if (child is T match)
+            {
+                return match;
+            }
+
+            if (FindChild<T>(child) is { } nested)
+            {
+                return nested;
+            }
+        }
+
+        return null;
+    }
+
+    private static bool IsWithin(DependencyObject? d, DependencyObject container)
+    {
+        while (d is not null)
+        {
+            if (d == container)
+            {
+                return true;
+            }
+
+            d = d is Visual ? VisualTreeHelper.GetParent(d) : LogicalTreeHelper.GetParent(d);
+        }
+
+        return false;
     }
 
     private void OnTileClicked(WidgetViewModel widget, FrameworkElement tile)

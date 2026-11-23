@@ -35,10 +35,21 @@
       complete
 - [x] Settings reorganized into tabs, including a profile editor
 
-## Phase 4: Accounts, AI and developer widgets
+## Phase 3.5: Ready for everyday use ✅
+
+- [x] **Claude widget:** Claude Code usage from local logs. It shows the current 5-hour window and
+      when it resets, today, the last seven days and models, plus a Pulse near your busiest
+      session.
+- [x] Overflow: tiles that don't fit move behind a "›" button and stay usable in its card
+- [x] `tools/install.ps1` and `tools/uninstall.ps1` (per-user Release install with a Start menu
+      shortcut; settings kept)
+- [x] `NexaDock.exe --exit` for clean shutdown by scripts (restores the taskbar)
+- [x] Full-screen detection uses Windows' own notification state; fixed the empty bar shown when
+      a full-screen app was in front during startup
+
+## Phase 4: Accounts and developer widgets
 
 - Calendar events from Outlook and Google (OAuth, read-only), and a meeting-soon Pulse
-- Claude Code and Codex usage and limits, read from local session files (nothing leaves the PC)
 - GitHub notifications and contribution streak; status of the current git repository
 - Stocks and crypto watchlist
 - System tray widget (icons of background apps), if a reliable documented approach exists

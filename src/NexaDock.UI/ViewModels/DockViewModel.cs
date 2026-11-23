@@ -47,6 +47,17 @@ public sealed partial class DockViewModel : ObservableObject, IDisposable
 
     public PulseCenter Pulse => _pulse;
 
+    /// <summary>Card content for the "»" button: tiles that did not fit on the bar.</summary>
+    public OverflowWidget Overflow { get; } = new();
+
+    [ObservableProperty] private bool _hasOverflow;
+
+    public void SetOverflow(IEnumerable<WidgetViewModel> hidden)
+    {
+        Overflow.SetHidden(hidden);
+        HasOverflow = Overflow.Hidden.Count > 0;
+    }
+
     /// <summary>Profiles for the bar's quick menu.</summary>
     public IReadOnlyList<DockProfile> Profiles => _settings.Current.Profiles;
 

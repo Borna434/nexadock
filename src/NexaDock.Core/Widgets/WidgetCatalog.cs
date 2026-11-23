@@ -10,6 +10,7 @@ public enum WidgetCategory
     Media,
     Weather,
     Productivity,
+    AI,
     Smart,
     Layout,
 }
@@ -53,6 +54,9 @@ public static class WidgetTypes
     public const string Keyboard = "keyboard";
     public const string QuickToggles = "quicktoggles";
     public const string Brightness = "brightness";
+
+    // Phase 3.5
+    public const string Claude = "claude";
 }
 
 public static class WidgetCatalog
@@ -115,6 +119,10 @@ public static class WidgetCatalog
             "Display brightness slider (laptop screens and DDC/CI monitors).", Glyph(0xE706)),
         new(WidgetTypes.RecycleBin, "Recycle Bin", WidgetCategory.Apps,
             "What the bin holds; open it or empty it.", Glyph(0xE74D)),
+
+        // AI
+        new(WidgetTypes.Claude, "Claude", WidgetCategory.AI,
+            "Claude Code usage in the current 5-hour session, today and this week, read from local logs.", Glyph(0xE945)),
     ];
 
     /// <summary>Segoe Fluent Icons glyph from its code point.</summary>

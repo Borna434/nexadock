@@ -7,7 +7,8 @@ apps, and live widgets in one glass strip, optionally replacing the Windows task
 
 ![NexaDock bar in Croatian with Phase 3 widgets](docs/images/bar-phase3-hr.jpg)
 
-> **Status:** Phase 3 (productivity and system widgets, profiles, Pulse, Croatian and English).
+> **Status:** Phase 3.5 (Claude usage widget, overflow menu, installer), on top of Phase 3
+> (productivity and system widgets, profiles, Pulse, Croatian and English).
 > See [ROADMAP.md](ROADMAP.md) for what comes next and [ARCHITECTURE.md](ARCHITECTURE.md) for the
 > design.
 
@@ -47,6 +48,7 @@ apps, and live widgets in one glass strip, optionally replacing the Windows task
   | **Keyboard Layout** | Current layout (HR, EN…); click to switch | — |
   | **Quick Toggles** | Wi-Fi and Bluetooth on/off, Quick Settings | — |
   | **Brightness** | Level; scroll the mouse wheel to change it | Slider per display (laptop panel or DDC/CI monitor) |
+  | **Claude** | Tokens in the current 5-hour session and time until it resets | Session details, today, 7-day chart, models |
 
 - **Profiles:** separate widget layouts such as Work, Gaming and Study (built-in templates).
   - Switch from the bar's right-click menu › **Profile**.
@@ -59,6 +61,14 @@ apps, and live widgets in one glass strip, optionally replacing the Windows task
     half a minute, or a finished Focus round or timer (with a sound and a notification).
   - The owning tile glows (steady with Reduced motion), and the Pulse capsule shows the alert.
   - A dismissed alert stays quiet until its condition clears and comes back.
+- **Claude usage** is read from Claude Code's own logs on this PC (`~/.claude/projects`), with no
+  sign-in and nothing sent anywhere.
+  - Shows the current 5-hour session window (when it started and when it resets), today, the last
+    seven days and the models used.
+  - Anthropic does not publish exact plan limits, so the bar compares the session with your
+    busiest session of the last 30 days. Pulse tells you when you pass 90% of that.
+- **Overflow:** widgets that don't fit on the bar move behind a "›" button at its end. They stay
+  live in that card.
 - **Language:** English or Croatian (Hrvatski), or follow Windows. Switches live everywhere: the
   bar, cards, menus, Settings, the picker and the tray.
 
@@ -110,10 +120,30 @@ Release build (framework-dependent, needs the .NET 10 Desktop Runtime):
 dotnet publish src/NexaDock.App -c Release -r win-x64 --self-contained false -o publish
 ```
 
+### Install for everyday use
+
+`tools\install.ps1` installs NexaDock for the current user:
+- builds a Release version into `%LOCALAPPDATA%\Programs\NexaDock`
+- closes a running copy cleanly
+- adds a Start menu shortcut
+- starts it
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools\install.ps1
+```
+
+`tools\uninstall.ps1` removes the program, the shortcut and the startup entry. Settings, to-dos and
+notes are kept unless you add `-RemoveData`.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools\uninstall.ps1
+```
+
 ### Options
 
 | Option | Effect |
 | --- | --- |
+| `NexaDock.exe --exit` | Closes a running NexaDock cleanly (restores the taskbar if it was replaced). |
 | `NexaDock.exe --settings` | Opens Settings. Also works while NexaDock is running: the running instance opens it. |
 | `NEXADOCK_BACKDROP=fallback` | Forces the translucent (no-blur) surface, for testing. |
 | `NEXADOCK_DATA_DIR=<path>` | Stores the database and logs in `<path>` instead of `%LOCALAPPDATA%\NexaDock`. |
@@ -145,8 +175,8 @@ or from the crash handler. NexaDock never modifies Windows files.
 
 ## Known limitations (Phase 3)
 
-- **Crowded bars:** when the widgets don't fit on a full-width bar, the tiles that would be cut off
-  at the right end are hidden. Use the S size, fewer widgets or another profile.
+- **Claude usage:** only Claude Code on this PC is counted. claude.ai in the browser and other
+  devices are not included, because their usage is not stored locally.
 - **Calendar events (Outlook/Google) are not shown yet.** They need an account sign-in (OAuth) and
   are planned for Phase 4.
 - **Audio output device:** the Volume widget changes the default device but cannot switch to

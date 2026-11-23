@@ -193,9 +193,57 @@ field:
 When the widgets don't fit, `BarPanel` hides tiles that would be cut off at the right edge rather
 than clipping them.
 
+## Phase 3.5 additions
+
+### Claude usage
+
+- **Reading (`Infrastructure/Usage/ClaudeLogReader`):**
+  - Reads Claude Code's session logs under `CLAUDE_CONFIG_DIR`, `~/.claude/projects` and
+    `~/.config/claude/projects`.
+  - Reads incrementally: only bytes appended since the last pass, and only complete lines.
+  - Keeps only usage numbers, model and timestamp from lines that carry `message.usage`. Message
+    text is never stored.
+  - A response logged in several lines is deduplicated by message id and request id, keeping the
+    last line.
+  - Entries older than 35 days are dropped.
+- **Calculating (`Core/Usage/ClaudeUsageCalculator`):**
+  - Builds 5-hour windows: each starts at the full hour of its first message and lasts five hours.
+    A message after the window, or after a 5-hour gap, starts a new one.
+  - Also produces today, the last seven days (local time zone), models, and the busiest window of
+    the last 30 days.
+  - "Tokens" means input, output and cache writes; cache reads are shown separately.
+- **Widget (`ClaudeWidget`):** refreshes every 30 s on a background thread.
+  - The tile ring shows how far into the window you are.
+  - The card compares the window with your own busiest window, because plan limits are not public.
+
+### Overflow
+
+`BarPanel` never asks for more width than it gets, so it can detect a shortage. It then reserves
+room for the "›" button and hides whole tiles in order from the first one that doesn't fit, and
+reports them in `HiddenItems`. `DockWindow` shows those same live view models in the overflow card.
+
+### Lifetime and install
+
+- `--exit` signals a named event that the running instance turns into a normal `Exit()`, so the
+  taskbar is restored. With nothing running, it does nothing.
+- `tools/install.ps1` publishes Release (framework-dependent, win-x64) to
+  `%LOCALAPPDATA%\Programs\NexaDock` and creates a Start menu shortcut.
+- `tools/uninstall.ps1` removes the program, the shortcut and the startup entry (only if it points
+  to this install). Data is kept unless `-RemoveData` is given.
+
+### Full-screen detection
+
+A window counts as full screen only when two things hold:
+- the foreground window covers the monitor and is not maximized
+- `SHQueryUserNotificationState` reports busy, Direct3D full screen or presentation mode (the
+  signal the Windows taskbar uses)
+
+The bar is only hidden or shown after it has finished loading. A `Hide()` during the first `Show()`
+used to leave an empty glass window.
+
 ## Tests
 
-`tests/NexaDock.Tests` has 93 tests covering:
+`tests/NexaDock.Tests` has 106 tests covering:
 
 - **Placement:** full width and compact, edges, DPI, monitor bounds vs work area, padding, the
   reserved strip.
@@ -208,4 +256,5 @@ than clipping them.
 - **Pulse rules:** battery, storage and CPU thresholds.
 - **Timers:** Pomodoro cycle with long breaks, pause, countdown, stopwatch laps (with a fake TimeProvider).
 - **Local data:** key/value persistence next to settings.
+- **Claude usage:** 5-hour windows, summary, model names, compact numbers; log parsing, deduplication, incremental reads of partly written lines, retention.
 - **Localization:** both languages complete, placeholders match, and every key used in the source exists.
