@@ -3,16 +3,57 @@ namespace NexaDock.Core.Calendar;
 /// <summary>One occurrence of a calendar event (recurring events are already expanded).</summary>
 /// <param name="Key">Stable identity of this occurrence (event UID plus its start).</param>
 /// <param name="AllDay">All-day events start at local midnight; <paramref name="End"/> is exclusive.</param>
+/// <param name="CalendarName">The calendar it belongs to ("Work", "Uni – exams"…).</param>
+/// <param name="ColorHex">That calendar's colour, e.g. "#4285F4".</param>
 public sealed record CalendarEvent(
     string Key,
     string Title,
     DateTimeOffset Start,
     DateTimeOffset End,
     bool AllDay,
-    string? Location);
+    string? Location,
+    string? CalendarName = null,
+    string? ColorHex = null);
 
 /// <param name="FailedFeeds">How many feeds could not be downloaded or read.</param>
-public sealed record CalendarFetchResult(IReadOnlyList<CalendarEvent> Events, int FailedFeeds, string? Error);
+/// <param name="FeedNames">Calendar name of each feed that loaded (from the feed itself), by link.</param>
+public sealed record CalendarFetchResult(IReadOnlyList<CalendarEvent> Events, int FailedFeeds, string? Error, IReadOnlyDictionary<string, string>? FeedNames = null);
+
+/// <summary>One calendar of the signed-in Google account.</summary>
+/// <param name="ShownInGoogle">Ticked in Google Calendar's own list (used as the default here).</param>
+public sealed record GoogleCalendarInfo(string Id, string Name, string ColorHex, bool ShownInGoogle, bool IsPrimary);
+
+/// <summary>Thrown when Google no longer accepts the saved sign-in (revoked or expired).</summary>
+public sealed class GoogleSignInExpiredException(string message) : Exception(message);
+
+/// <summary>
+/// Google Calendar through the user's own Google account (OAuth 2.0 for desktop apps, read-only
+/// scope). The OAuth client (ID and secret) is the user's own, created once in Google Cloud.
+/// </summary>
+public interface IGoogleCalendarService
+{
+    bool HasClient { get; }
+
+    string? ClientId { get; }
+
+    bool IsSignedIn { get; }
+
+    /// <summary>The account's address (its primary calendar), once known.</summary>
+    string? AccountEmail { get; }
+
+    void SetClient(string clientId, string clientSecret);
+
+    void ClearClient();
+
+    /// <summary>Opens Google's sign-in in the browser and waits for the user to approve.</summary>
+    Task SignInAsync(Action<string> openBrowser, CancellationToken cancellationToken);
+
+    Task SignOutAsync();
+
+    Task<IReadOnlyList<GoogleCalendarInfo>> GetCalendarsAsync(CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<CalendarEvent>> GetEventsAsync(GoogleCalendarInfo calendar, DateTimeOffset from, DateTimeOffset to, CancellationToken cancellationToken);
+}
 
 /// <summary>Reads events from calendar feeds (iCal / .ics links such as Google Calendar's secret address).</summary>
 public interface ICalendarSource

@@ -21,6 +21,24 @@ public partial class SettingsWindow : Window
         Closed += (_, _) => _viewModel.Dispose();
     }
 
+    /// <summary>Shows the tab whose Tag matches (e.g. "calendar"); null leaves the current one.</summary>
+    public void SelectTab(string? tag)
+    {
+        if (tag is null)
+        {
+            return;
+        }
+
+        foreach (var item in Tabs.Items.OfType<System.Windows.Controls.TabItem>())
+        {
+            if (string.Equals(item.Tag as string, tag, StringComparison.OrdinalIgnoreCase))
+            {
+                Tabs.SelectedItem = item;
+                return;
+            }
+        }
+    }
+
     /// <summary>Optional window/header icon supplied by the composition root.</summary>
     public void SetAppIcon(ImageSource? icon)
     {

@@ -251,7 +251,14 @@ public sealed class Win32WindowTracker : IWindowTracker, IDisposable
         }
         finally
         {
-            Marshal.ReleaseComObject(store);
+            try
+            {
+                Marshal.ReleaseComObject(store);
+            }
+            catch (Exception ex) when (ex is NullReferenceException or ArgumentException or InvalidComObjectException)
+            {
+                // Seen with some windows that close while being read: the store is already gone.
+            }
         }
     }
 

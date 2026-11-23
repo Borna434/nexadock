@@ -24,11 +24,13 @@ public sealed class IcsCalendarSource : ICalendarSource
     public async Task<CalendarFetchResult> FetchAsync(IReadOnlyList<string> feedUrls, DateTimeOffset from, DateTimeOffset to, CancellationToken cancellationToken)
     {
         var events = new List<CalendarEvent>();
+        var names = new Dictionary<string, string>(StringComparer.Ordinal);
         var failed = 0;
         string? error = null;
 
-        foreach (var url in feedUrls)
+        for (var index = 0; index < feedUrls.Count; index++)
         {
+            var url = feedUrls[index];
             try
             {
                 using var response = await Http.GetAsync(url, cancellationToken).ConfigureAwait(false);
@@ -41,7 +43,10 @@ public sealed class IcsCalendarSource : ICalendarSource
                 }
 
                 var text = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
-                events.AddRange(Parse(text, from, to));
+                var name = CalendarName(text) ?? CalendarAgenda.DescribeFeed(url);
+                var color = FeedColors[index % FeedColors.Length];
+                names[url] = name;
+                events.AddRange(Parse(text, from, to).Select(e => e with { CalendarName = name, ColorHex = color }));
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -61,7 +66,32 @@ public sealed class IcsCalendarSource : ICalendarSource
             .Select(g => g.First())
             .OrderBy(e => e.Start)
             .ToList();
-        return new CalendarFetchResult(unique, failed, error);
+        return new CalendarFetchResult(unique, failed, error, names);
+    }
+
+    /// <summary>Colours for linked calendars (Google's own calendar palette).</summary>
+    private static readonly string[] FeedColors = ["#039BE5", "#33B679", "#F4511E", "#8E24AA", "#F6BF26", "#E67C73", "#0B8043", "#3F51B5", "#D50000", "#616161"];
+
+    /// <summary>The calendar's own name (X-WR-CALNAME, set by Google, Outlook and Apple).</summary>
+    public static string? CalendarName(string ics)
+    {
+        foreach (var raw in ics.Split((char)10))
+        {
+            var line = raw.TrimEnd((char)13);
+            if (line.StartsWith("X-WR-CALNAME", StringComparison.OrdinalIgnoreCase))
+            {
+                var colon = line.IndexOf(':');
+                var value = colon >= 0 ? line[(colon + 1)..].Replace(@"\,", ",").Replace(@"\;", ";").Trim() : string.Empty;
+                return value.Length > 0 ? value : null;
+            }
+
+            if (line.StartsWith("BEGIN:VEVENT", StringComparison.OrdinalIgnoreCase))
+            {
+                break;
+            }
+        }
+
+        return null;
     }
 
     /// <summary>Expands an iCal document into occurrences that overlap [from, to).</summary>

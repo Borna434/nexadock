@@ -422,7 +422,8 @@ public interface IAppShell
 
     void HideDock();
 
-    void ShowSettings();
+    /// <param name="tab">Settings tab to open ("calendar"); null keeps the last one.</param>
+    void ShowSettings(string? tab = null);
 
     /// <param name="display">The secondary display whose bar to edit; null for the main bar.</param>
     void ShowWidgetPicker(string? display = null);

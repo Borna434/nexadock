@@ -53,15 +53,17 @@ public sealed class AppShell : IAppShell
         Notify(Loc.T("notify.hidden.title"), Loc.T("notify.hidden.body"));
     }
 
-    public void ShowSettings()
+    public void ShowSettings(string? tab = null)
     {
         if (_settingsWindow is { IsLoaded: true })
         {
+            _settingsWindow.SelectTab(tab);
             Bring(_settingsWindow);
             return;
         }
 
         _settingsWindow = _services.GetRequiredService<SettingsWindow>();
+        _settingsWindow.SelectTab(tab);
         _settingsWindow.SetAppIcon(AppIcon);
         _settingsWindow.Closed += (_, _) => _settingsWindow = null; // closing settings never closes the bar
         _settingsWindow.Show();

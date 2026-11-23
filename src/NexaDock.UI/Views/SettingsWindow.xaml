@@ -131,7 +131,7 @@
             </StackPanel>
         </StackPanel>
 
-        <TabControl Grid.Row="1" Margin="24,4,12,0" TabStripPlacement="Left">
+        <TabControl x:Name="Tabs" Grid.Row="1" Margin="24,4,12,0" TabStripPlacement="Left">
             <!-- ================================================================== Appearance -->
             <TabItem Header="{l:Loc settings.tab.appearance}">
                 <ScrollViewer Style="{StaticResource Page}">
@@ -536,6 +536,107 @@
                             </Grid>
                         </Border>
                         <TextBlock Text="{l:Loc pinned.hint}" Style="{StaticResource Hint}" Margin="2,2,0,0" />
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ======================================================================= Calendars -->
+            <TabItem Header="{l:Loc settings.tab.calendar}" Tag="calendar">
+                <ScrollViewer Style="{StaticResource Page}">
+                    <StackPanel DataContext="{Binding Calendar}">
+                        <TextBlock Text="{l:Loc settings.tab.calendar}" Style="{StaticResource SectionTitle}" Margin="0,4,0,8" />
+
+                        <!-- Google account -->
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="{l:Loc google.title}" Style="{StaticResource Label}" />
+                                <TextBlock Text="{l:Loc google.intro}" Style="{StaticResource Hint}" TextWrapping="Wrap" />
+
+                                <!-- 1. One-time setup: the user's own OAuth client -->
+                                <StackPanel Margin="0,12,0,0" Visibility="{Binding HasGoogleClient, Converter={StaticResource InverseBoolToVisibility}}">
+                                    <TextBlock Text="{l:Loc google.setupTitle}" FontWeight="SemiBold" FontSize="13" />
+                                    <TextBlock Text="{l:Loc google.setupSteps}" Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="0,4,0,8" />
+                                    <Button Content="{l:Loc google.openCloud}" Command="{Binding OpenGoogleCloudCommand}" HorizontalAlignment="Left" Margin="0,0,0,10" />
+                                    <TextBlock Text="{l:Loc google.clientId}" FontSize="12" Opacity="0.8" />
+                                    <TextBox Text="{Binding ClientIdInput, UpdateSourceTrigger=PropertyChanged}" Margin="0,2,0,8" />
+                                    <TextBlock Text="{l:Loc google.clientSecret}" FontSize="12" Opacity="0.8" />
+                                    <TextBox Text="{Binding ClientSecretInput, UpdateSourceTrigger=PropertyChanged}" Margin="0,2,0,8" />
+                                    <Button Content="{l:Loc google.saveClient}" Command="{Binding SaveGoogleClientCommand}" HorizontalAlignment="Left"
+                                            Style="{DynamicResource AccentButtonStyle}" />
+                                </StackPanel>
+
+                                <!-- 2. Sign in -->
+                                <StackPanel Margin="0,12,0,0" Visibility="{Binding CanSignIn, Converter={StaticResource BoolToVisibility}}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button Content="{l:Loc google.signIn}" Command="{Binding SignInGoogleCommand}" Style="{DynamicResource AccentButtonStyle}" Padding="16,6" />
+                                        <Button Content="{l:Loc google.cancel}" Command="{Binding CancelSignInCommand}" Margin="8,0,0,0"
+                                                Visibility="{Binding IsSigningIn, Converter={StaticResource BoolToVisibility}}" />
+                                    </StackPanel>
+                                    <Button Content="{l:Loc google.changeClient}" Command="{Binding ChangeGoogleClientCommand}" HorizontalAlignment="Left" Margin="0,10,0,0" />
+                                </StackPanel>
+
+                                <!-- 3. Signed in: choose calendars -->
+                                <StackPanel Margin="0,12,0,0" Visibility="{Binding IsGoogleSignedIn, Converter={StaticResource BoolToVisibility}}">
+                                    <Grid>
+                                        <TextBlock Text="{Binding GoogleAccount}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                        <Button Content="{l:Loc google.signOut}" Command="{Binding SignOutGoogleCommand}" HorizontalAlignment="Right" />
+                                    </Grid>
+                                    <TextBlock Text="{l:Loc google.chooseHint}" Style="{StaticResource Hint}" Margin="0,6,0,6" TextWrapping="Wrap" />
+                                    <ItemsControl ItemsSource="{Binding GoogleCalendars}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <CheckBox IsChecked="{Binding IsEnabled}" Margin="0,3">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Ellipse Width="10" Height="10" Fill="{Binding Color}" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
+                                                    </StackPanel>
+                                                </CheckBox>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+
+                                <TextBlock Text="{Binding GoogleMessage}" Foreground="#FFE0A030" TextWrapping="Wrap" Margin="0,10,0,0" FontSize="12">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Style.Triggers>
+                                                <Trigger Property="Text" Value="">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                </Trigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Calendars linked by iCal address -->
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="{l:Loc ical.title}" Style="{StaticResource Label}" />
+                                <TextBlock Text="{l:Loc ical.intro}" Style="{StaticResource Hint}" TextWrapping="Wrap" />
+                                <ItemsControl ItemsSource="{Binding Feeds}" Margin="0,8,0,0">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Margin="0,3">
+                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <Ellipse Width="10" Height="10" Fill="{Binding Color}" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
+                                                </StackPanel>
+                                                <Button Content="{l:Loc ical.remove}" Command="{Binding Remove}" HorizontalAlignment="Right" />
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <TextBox Text="{Binding InputUrl, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap"
+                                         MinHeight="60" MaxHeight="140" VerticalScrollBarVisibility="Auto" Margin="0,10,0,6" />
+                                <Grid>
+                                    <TextBlock Text="{Binding InputMessage}" FontSize="12" Opacity="0.8" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,120,0" />
+                                    <Button Content="{l:Loc ical.add}" Command="{Binding ConnectCommand}" HorizontalAlignment="Right" />
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+                        <TextBlock Text="{l:Loc calendar.privacySettings}" Style="{StaticResource Hint}" Margin="2,2,0,0" TextWrapping="Wrap" />
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>

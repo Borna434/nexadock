@@ -59,8 +59,10 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         IBackdropService backdrop,
         IStartupRegistration startup,
         IAppShell shell,
-        AppDataLocation dataLocation)
+        AppDataLocation dataLocation,
+        NexaDock.UI.Services.CalendarFeed calendar)
     {
+        Calendar = calendar;
         _settings = settings;
         _monitors = monitors;
         _catalog = catalog;
@@ -225,6 +227,9 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     [ObservableProperty] private bool _reducedMotion;
     [ObservableProperty] private bool _use24HourClock;
     [ObservableProperty] private bool _replaceTaskbar;
+    /// <summary>Google account and linked calendars (the Calendars tab).</summary>
+    public NexaDock.UI.Services.CalendarFeed Calendar { get; }
+
     [ObservableProperty] private bool _hideInFullscreen;
     [ObservableProperty] private bool _showOnAllDisplays;
     [ObservableProperty] private bool _launchAtStartup;

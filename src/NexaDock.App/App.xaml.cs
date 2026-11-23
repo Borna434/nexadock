@@ -90,6 +90,7 @@ public partial class App : Application
         services.AddSingleton<IBrightnessService, BrightnessService>();
         services.AddSingleton<PulseCenter>();
         services.AddSingleton<NexaDock.Core.Calendar.ICalendarSource, NexaDock.Infrastructure.Calendar.IcsCalendarSource>();
+        services.AddSingleton<NexaDock.Core.Calendar.IGoogleCalendarService, NexaDock.Infrastructure.Calendar.GoogleCalendarClient>();
         services.AddSingleton<CalendarFeed>();
         services.AddSingleton<TrayIconHost>();
         services.AddSingleton<NexaDock.Core.Usage.IClaudeUsageSource, NexaDock.Infrastructure.Usage.ClaudeLogReader>();

@@ -1304,24 +1304,34 @@
             <Grid>
                 <StackPanel Orientation="Horizontal">
                     <TextBlock Text="&#xE787;" FontFamily="{StaticResource IconFont}" FontSize="14" Foreground="{DynamicResource Bar.Accent}" VerticalAlignment="Center" />
-                    <TextBlock Text="{l:Loc calendar.googleTitle}" Style="{StaticResource Card.Body}" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center" />
+                    <TextBlock Text="{l:Loc calendar.title}" Style="{StaticResource Card.Body}" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center" />
                 </StackPanel>
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
-                            Visibility="{Binding IsConnected, Converter={StaticResource BoolToVisibility}}">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                     <Button Style="{StaticResource Bar.GlyphButton}" Width="26" Height="26" FontSize="11"
-                            Content="&#xE8A7;" Command="{Binding OpenGoogleCalendarCommand}" ToolTip="{l:Loc calendar.openGoogle}" />
+                            Content="&#xE8A7;" Command="{Binding OpenGoogleCalendarCommand}" ToolTip="{l:Loc calendar.openGoogle}"
+                            Visibility="{Binding IsConnected, Converter={StaticResource BoolToVisibility}}" />
                     <Button Style="{StaticResource Bar.GlyphButton}" Width="26" Height="26" FontSize="11"
-                            Content="&#xE72C;" Command="{Binding RefreshCommand}" ToolTip="{l:Loc common.refresh}" />
+                            Content="&#xE72C;" Command="{Binding RefreshCommand}" ToolTip="{l:Loc common.refresh}"
+                            Visibility="{Binding IsConnected, Converter={StaticResource BoolToVisibility}}" />
+                    <Button Style="{StaticResource Bar.GlyphButton}" Width="26" Height="26" FontSize="11"
+                            Content="&#xE713;" Command="{Binding ManageCommand}" ToolTip="{l:Loc calendar.manage}" />
                 </StackPanel>
             </Grid>
 
-            <!-- Connected: the coming week -->
+            <!-- Nothing connected yet -->
+            <StackPanel Visibility="{Binding IsConnected, Converter={StaticResource InverseBoolToVisibility}}" Margin="0,10,0,0">
+                <TextBlock Text="{l:Loc calendar.connectIntro}" Style="{StaticResource Card.Label}" TextWrapping="Wrap" TextTrimming="None" />
+                <Button Style="{StaticResource Card.Button}" Content="{l:Loc calendar.connectButton}" Margin="0,10,0,0" HorizontalAlignment="Left"
+                        Command="{Binding ManageCommand}" />
+            </StackPanel>
+
+            <!-- The coming week -->
             <StackPanel Visibility="{Binding IsConnected, Converter={StaticResource BoolToVisibility}}">
                 <TextBlock Text="{Binding ErrorText}" Style="{StaticResource Card.Label}" Foreground="#FF8A80" TextWrapping="Wrap" TextTrimming="None" Margin="0,8,0,0"
                            Visibility="{Binding ErrorText, Converter={StaticResource NonEmptyToVisibility}}" />
                 <TextBlock Text="{l:Loc calendar.noEvents}" Style="{StaticResource Card.Label}" Margin="0,10,0,0"
                            Visibility="{Binding HasNoEvents, Converter={StaticResource BoolToVisibility}}" />
-                <ItemsControl ItemsSource="{Binding Days}" MaxHeight="300" Margin="0,6,0,0">
+                <ItemsControl ItemsSource="{Binding Days}" MaxHeight="320" Margin="0,6,0,0">
                     <ItemsControl.Template>
                         <ControlTemplate TargetType="ItemsControl">
                             <ScrollViewer VerticalScrollBarVisibility="Auto"><ItemsPresenter /></ScrollViewer>
@@ -1334,14 +1344,14 @@
                                 <ItemsControl ItemsSource="{Binding Items}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate DataType="{x:Type svc:AgendaItem}">
-                                            <Grid Margin="0,2">
+                                            <Grid Margin="0,2" ToolTip="{Binding CalendarName}" Background="Transparent">
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="3" />
                                                     <ColumnDefinition Width="*" />
                                                 </Grid.ColumnDefinitions>
-                                                <Border x:Name="Stripe" CornerRadius="1.5" Background="{DynamicResource Bar.Secondary}" Opacity="0.6" />
+                                                <Border CornerRadius="1.5" Background="{Binding Color}" />
                                                 <StackPanel Grid.Column="1" Margin="8,1,0,1">
-                                                    <TextBlock Text="{Binding Title}" Style="{StaticResource Card.Body}" FontSize="12.5" />
+                                                    <TextBlock x:Name="Title" Text="{Binding Title}" Style="{StaticResource Card.Body}" FontSize="12.5" />
                                                     <TextBlock Style="{StaticResource Card.Label}" FontSize="11">
                                                         <Run Text="{Binding Time, Mode=OneWay}" /><Run Text="{Binding Location, Mode=OneWay, StringFormat={} · {0}}" />
                                                     </TextBlock>
@@ -1349,8 +1359,7 @@
                                             </Grid>
                                             <DataTemplate.Triggers>
                                                 <DataTrigger Binding="{Binding IsNow}" Value="True">
-                                                    <Setter TargetName="Stripe" Property="Background" Value="{DynamicResource Bar.Accent}" />
-                                                    <Setter TargetName="Stripe" Property="Opacity" Value="1" />
+                                                    <Setter TargetName="Title" Property="FontWeight" Value="SemiBold" />
                                                 </DataTrigger>
                                             </DataTemplate.Triggers>
                                         </DataTemplate>
@@ -1361,33 +1370,6 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
                 <TextBlock Text="{Binding StatusText}" Style="{StaticResource Card.Label}" FontSize="11" Margin="0,10,0,0" />
-                <StackPanel Orientation="Horizontal" Margin="0,8,0,0"
-                            Visibility="{Binding IsAdding, Converter={StaticResource InverseBoolToVisibility}}">
-                    <Button Style="{StaticResource Card.Button}" Content="{l:Loc calendar.addAnother}" Command="{Binding AddAnotherCommand}" />
-                    <Button Style="{StaticResource Card.Button}" Content="{l:Loc calendar.disconnect}" Command="{Binding DisconnectCommand}" Margin="6,0,0,0" />
-                </StackPanel>
-            </StackPanel>
-
-            <!-- Connect form -->
-            <StackPanel Visibility="{Binding ShowConnectForm, Converter={StaticResource BoolToVisibility}}" Margin="0,10,0,0">
-                <TextBlock Text="{l:Loc calendar.connectHelp}" Style="{StaticResource Card.Label}" TextWrapping="Wrap" TextTrimming="None" />
-                <Button Style="{StaticResource Card.Button}" Content="{l:Loc calendar.openSettings}" Margin="0,8,0,0" HorizontalAlignment="Left"
-                        Command="{Binding OpenGoogleSettingsCommand}" />
-                <TextBox Style="{StaticResource Card.TextBox}" Margin="0,10,0,0" Tag="{l:Loc calendar.pasteHint}"
-                         Text="{Binding InputUrl, UpdateSourceTrigger=PropertyChanged}">
-                    <TextBox.InputBindings>
-                        <KeyBinding Key="Enter" Command="{Binding ConnectCommand}" />
-                    </TextBox.InputBindings>
-                </TextBox>
-                <TextBlock Text="{Binding InputMessage}" Style="{StaticResource Card.Label}" FontSize="11" TextWrapping="Wrap" TextTrimming="None" Margin="0,6,0,0"
-                           Visibility="{Binding InputMessage, Converter={StaticResource NonEmptyToVisibility}}" />
-                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                    <Button Style="{StaticResource Card.Button}" Content="{l:Loc calendar.connect}" Command="{Binding ConnectCommand}"
-                            IsEnabled="{Binding IsLoading, Converter={StaticResource InverseBool}}" />
-                    <Button Style="{StaticResource Card.Button}" Content="{l:Loc calendar.cancel}" Command="{Binding CancelAddingCommand}" Margin="6,0,0,0"
-                            Visibility="{Binding IsAdding, Converter={StaticResource BoolToVisibility}}" />
-                </StackPanel>
-                <TextBlock Text="{l:Loc calendar.privacy}" Style="{StaticResource Card.Label}" FontSize="11" TextWrapping="Wrap" TextTrimming="None" Margin="0,10,0,0" Opacity="0.8" />
             </StackPanel>
         </StackPanel>
     </DataTemplate>
