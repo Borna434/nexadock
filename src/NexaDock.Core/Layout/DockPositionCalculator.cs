@@ -41,13 +41,14 @@ public sealed class DockPositionCalculator : IDockPositioner
 
     /// <summary>
     /// The strip an app bar should reserve so maximised windows stop short of the bar
-    /// (bar height plus the gap on both sides of it).
+    /// (the gap at the screen edge plus the bar itself). Maximised windows end exactly where the
+    /// glass begins, with no strip of wallpaper between a window and the bar.
     /// </summary>
     public static PixelRect ReservedStrip(MonitorInfo monitor, DockSettings settings)
     {
         var scale = monitor.DpiScale is > 0 and < 10 ? monitor.DpiScale : 1.0;
         var metrics = DockMetrics.For(settings.Size);
-        var thickness = (int)Math.Round((metrics.Height + Math.Max(0, settings.EdgeOffset) * 2) * scale);
+        var thickness = (int)Math.Round((metrics.Height + Math.Max(0, settings.EdgeOffset)) * scale);
         var b = monitor.Bounds;
         return settings.Edge == DockEdge.Top
             ? new PixelRect(b.X, b.Y, b.Width, thickness)

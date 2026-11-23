@@ -86,6 +86,8 @@ public partial class App : Application
         services.AddSingleton<IRadioService, WinRtRadioService>();
         services.AddSingleton<IBrightnessService, BrightnessService>();
         services.AddSingleton<PulseCenter>();
+        services.AddSingleton<NexaDock.Core.Calendar.ICalendarSource, NexaDock.Infrastructure.Calendar.IcsCalendarSource>();
+        services.AddSingleton<CalendarFeed>();
         services.AddSingleton<NexaDock.Core.Usage.IClaudeUsageSource, NexaDock.Infrastructure.Usage.ClaudeLogReader>();
         services.AddSingleton<ProfileCoordinator>();
         services.AddSingleton<SettingsService>();

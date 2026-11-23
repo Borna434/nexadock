@@ -6,7 +6,9 @@ using CommunityToolkit.Mvvm.Input;
 using NexaDock.Core.Abstractions;
 using NexaDock.Core.Models;
 
+using NexaDock.Core.Widgets;
 using NexaDock.UI.Localization;
+using NexaDock.UI.Services;
 
 namespace NexaDock.UI.Widgets;
 
@@ -43,12 +45,14 @@ internal static class ClockTicker
 public sealed partial class ClockWidget : WidgetViewModel
 {
     private readonly IShellCommands _shell;
+    private readonly CalendarFeed _feed;
     private bool _use24;
 
-    public ClockWidget(WidgetPlacement placement, IShellCommands shell)
+    public ClockWidget(WidgetPlacement placement, IShellCommands shell, CalendarFeed feed)
         : base(placement)
     {
         _shell = shell;
+        _feed = feed;
         Calendar = new MonthCalendar();
     }
 
@@ -72,8 +76,13 @@ public sealed partial class ClockWidget : WidgetViewModel
     public override void Start()
     {
         ClockTicker.Subscribe(OnTick);
+        _feed.Changed += OnFeedChanged;
+        _feed.Attach(TypeId);
+        Calendar.SetEventDays(_feed.EventDays);
         Update();
     }
+
+    private void OnFeedChanged(object? sender, EventArgs e) => Calendar.SetEventDays(_feed.EventDays);
 
     private void OnTick(object? sender, EventArgs e) => Update();
 
@@ -102,11 +111,17 @@ public sealed partial class ClockWidget : WidgetViewModel
         Update();
     }
 
-    public override void OnCardOpened() => Calendar.GoToToday();
+    public override void OnCardOpened()
+    {
+        Calendar.GoToToday();
+        _feed.OnCardOpened();
+    }
 
     public override void Dispose()
     {
         ClockTicker.Unsubscribe(OnTick);
+        _feed.Changed -= OnFeedChanged;
+        _feed.Detach(TypeId);
         base.Dispose();
     }
 }
@@ -114,12 +129,21 @@ public sealed partial class ClockWidget : WidgetViewModel
 /// <summary>"Calendar page" tile: weekday over the day number.</summary>
 public sealed partial class CalendarWidget : WidgetViewModel
 {
-    public CalendarWidget(WidgetPlacement placement)
-        : base(placement) => Calendar = new MonthCalendar();
+    public CalendarWidget(WidgetPlacement placement, CalendarFeed feed)
+        : base(placement)
+    {
+        Feed = feed;
+        Calendar = new MonthCalendar();
+    }
 
     public override bool HasCard => true;
 
+    public override bool WantsKeyboard => true;
+
     public MonthCalendar Calendar { get; }
+
+    /// <summary>Google Calendar (or any iCal link): agenda, connect form and the next event.</summary>
+    public CalendarFeed Feed { get; }
 
     [ObservableProperty] private string _weekday = string.Empty;
     [ObservableProperty] private string _day = string.Empty;
@@ -128,8 +152,13 @@ public sealed partial class CalendarWidget : WidgetViewModel
     public override void Start()
     {
         ClockTicker.Subscribe(OnTick);
+        Feed.Changed += OnFeedChanged;
+        Feed.Attach(TypeId);
+        Calendar.SetEventDays(Feed.EventDays);
         Update();
     }
+
+    private void OnFeedChanged(object? sender, EventArgs e) => Calendar.SetEventDays(Feed.EventDays);
 
     private void OnTick(object? sender, EventArgs e) => Update();
 
@@ -148,14 +177,46 @@ public sealed partial class CalendarWidget : WidgetViewModel
     public override void OnLanguageChanged()
     {
         Calendar.GoToToday();
+        Feed.OnLanguageChanged();
         Update();
     }
 
-    public override void OnCardOpened() => Calendar.GoToToday();
+    public override void OnCardOpened()
+    {
+        Calendar.GoToToday();
+        Feed.OnCardOpened();
+    }
 
     public override void Dispose()
     {
         ClockTicker.Unsubscribe(OnTick);
+        Feed.Changed -= OnFeedChanged;
+        Feed.Detach(TypeId);
+        base.Dispose();
+    }
+}
+
+/// <summary>The next calendar event on the bar; the card shows the coming week.</summary>
+public sealed class AgendaWidget : WidgetViewModel
+{
+    public AgendaWidget(WidgetPlacement placement, CalendarFeed feed)
+        : base(placement) => Feed = feed;
+
+    public override bool HasCard => true;
+
+    public override bool WantsKeyboard => true;
+
+    public CalendarFeed Feed { get; }
+
+    public override void Start() => Feed.Attach(TypeId);
+
+    public override void OnCardOpened() => Feed.OnCardOpened();
+
+    public override void OnLanguageChanged() => Feed.OnLanguageChanged();
+
+    public override void Dispose()
+    {
+        Feed.Detach(TypeId);
         base.Dispose();
     }
 }
@@ -164,8 +225,21 @@ public sealed partial class CalendarWidget : WidgetViewModel
 public sealed partial class MonthCalendar : ObservableObject
 {
     private DateOnly _shown;
+    private IReadOnlySet<DateOnly> _eventDays = new HashSet<DateOnly>();
 
     public MonthCalendar() => GoToToday();
+
+    /// <summary>Days that get a dot under their number (days with calendar events).</summary>
+    public void SetEventDays(IReadOnlySet<DateOnly> days)
+    {
+        if (_eventDays.SetEquals(days))
+        {
+            return;
+        }
+
+        _eventDays = days;
+        Build();
+    }
 
     public DateOnly Today { get; private set; }
 
@@ -213,12 +287,12 @@ public sealed partial class MonthCalendar : ObservableObject
         for (var i = 0; i < 42; i++)
         {
             var d = start.AddDays(i);
-            Days.Add(new CalendarDay(d.Day.ToString(culture), d == Today, d.Month == _shown.Month, d.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday));
+            Days.Add(new CalendarDay(d.Day.ToString(culture), d == Today, d.Month == _shown.Month, d.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday, _eventDays.Contains(d)));
         }
     }
 }
 
-public sealed record CalendarDay(string Text, bool IsToday, bool IsInMonth, bool IsWeekend);
+public sealed record CalendarDay(string Text, bool IsToday, bool IsInMonth, bool IsWeekend, bool HasEvents = false);
 
 /// <summary>How much of the day, week, month and year has passed.</summary>
 public sealed partial class DayProgressWidget : WidgetViewModel

@@ -135,12 +135,17 @@ public class DockPositionCalculatorTests
     }
 
     [Fact]
-    public void Reserved_strip_covers_bar_and_both_gaps()
+    public void Reserved_strip_ends_at_the_top_of_the_glass()
     {
         var settings = new DockSettings { EdgeOffset = 8, Edge = DockEdge.Bottom };
-        var strip = DockPositionCalculator.ReservedStrip(Monitor(scale: 1.25), settings);
+        var monitor = Monitor(scale: 1.25);
+        var strip = DockPositionCalculator.ReservedStrip(monitor, settings);
 
-        Assert.Equal((int)Math.Round((56 + 16) * 1.25), strip.Height);
+        Assert.Equal((int)Math.Round((56 + 8) * 1.25), strip.Height);
+
+        // Maximised windows stop exactly where the glass starts (no gap between window and bar).
+        var bar = new DockPositionCalculator().Calculate(monitor, settings, 400, new PlacementOptions(0, UseMonitorBounds: true));
+        Assert.Equal(bar.Y, strip.Y);
         Assert.Equal(1440, strip.Bottom);
         Assert.Equal(2560, strip.Width);
 

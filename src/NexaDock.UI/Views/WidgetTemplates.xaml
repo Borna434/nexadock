@@ -4,7 +4,8 @@
                     xmlns:c="clr-namespace:NexaDock.UI.Controls"
                     xmlns:conv="clr-namespace:NexaDock.UI.Converters"
                     xmlns:b="clr-namespace:NexaDock.UI.Behaviors"
-                    xmlns:l="clr-namespace:NexaDock.UI.Localization">
+                    xmlns:l="clr-namespace:NexaDock.UI.Localization"
+                    xmlns:svc="clr-namespace:NexaDock.UI.Services">
 
     <!-- Shared resources ===================================================================== -->
     <FontFamily x:Key="IconFont">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
@@ -149,10 +150,16 @@
                             <Border x:Name="Today" CornerRadius="15" Width="28" Height="28" Background="{DynamicResource Bar.Accent}" Visibility="Collapsed" />
                             <TextBlock x:Name="Num" Text="{Binding Text}" Style="{StaticResource Card.Body}" FontSize="12.5"
                                        HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <Ellipse x:Name="Dot" Width="4" Height="4" Fill="{DynamicResource Bar.Accent}" VerticalAlignment="Bottom"
+                                     HorizontalAlignment="Center" Margin="0,0,0,1" Visibility="Collapsed" />
                         </Grid>
                         <DataTemplate.Triggers>
+                            <DataTrigger Binding="{Binding HasEvents}" Value="True">
+                                <Setter TargetName="Dot" Property="Visibility" Value="Visible" />
+                            </DataTrigger>
                             <DataTrigger Binding="{Binding IsInMonth}" Value="False">
                                 <Setter TargetName="Num" Property="Opacity" Value="0.35" />
+                                <Setter TargetName="Dot" Property="Opacity" Value="0.35" />
                             </DataTrigger>
                             <DataTrigger Binding="{Binding IsWeekend}" Value="True">
                                 <Setter TargetName="Num" Property="Foreground" Value="{DynamicResource Bar.Secondary}" />
@@ -161,6 +168,7 @@
                                 <Setter TargetName="Today" Property="Visibility" Value="Visible" />
                                 <Setter TargetName="Num" Property="Foreground" Value="White" />
                                 <Setter TargetName="Num" Property="FontWeight" Value="SemiBold" />
+                                <Setter TargetName="Dot" Property="Fill" Value="White" />
                             </DataTrigger>
                         </DataTemplate.Triggers>
                     </DataTemplate>
@@ -250,19 +258,25 @@
 
     <!-- Day number =========================================================================== -->
     <DataTemplate x:Key="CalendarWidget.Tile" DataType="{x:Type w:CalendarWidget}">
+        <Grid>
+        <Ellipse Width="5" Height="5" Fill="{DynamicResource Bar.Accent}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,2,-4,0"
+                 Visibility="{Binding Feed.HasEventsToday, Converter={StaticResource BoolToVisibility}}" />
         <StackPanel VerticalAlignment="Center" MinWidth="26">
             <TextBlock Text="{Binding Weekday}" Foreground="{DynamicResource Bar.Accent}" FontFamily="{StaticResource UiFont}"
                        FontSize="9.5" FontWeight="Bold" HorizontalAlignment="Center" />
             <TextBlock Text="{Binding Day}" Style="{StaticResource Bar.Text}" FontFamily="{StaticResource DisplayFont}"
                        FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,-3,0,0" />
         </StackPanel>
+        </Grid>
     </DataTemplate>
 
     <DataTemplate x:Key="CalendarWidget.Card" DataType="{x:Type w:CalendarWidget}">
-        <StackPanel Width="250">
+        <StackPanel Width="290">
             <ContentPresenter Content="{Binding Calendar}" ContentTemplate="{StaticResource MonthCalendarView}" />
             <Button Style="{StaticResource Card.Button}" Content="{l:Loc calendar.today}" Margin="0,10,0,0" HorizontalAlignment="Left"
                     Command="{Binding Calendar.GoToTodayCommand}" />
+            <Border Height="1" Background="{DynamicResource Bar.Separator}" Margin="0,14,0,12" />
+            <ContentPresenter Content="{Binding Feed}" ContentTemplate="{DynamicResource AgendaView}" />
         </StackPanel>
     </DataTemplate>
 
@@ -1275,6 +1289,132 @@
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
+        </StackPanel>
+    </DataTemplate>
+
+    <!-- ====================================================================================== -->
+    <!-- Phase 4: calendar (Google Calendar / iCal)                                              -->
+    <!-- ====================================================================================== -->
+
+    <!-- Agenda for the coming week, or the form that connects a calendar. -->
+    <DataTemplate x:Key="AgendaView" DataType="{x:Type svc:CalendarFeed}">
+        <StackPanel>
+            <Grid>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="&#xE787;" FontFamily="{StaticResource IconFont}" FontSize="14" Foreground="{DynamicResource Bar.Accent}" VerticalAlignment="Center" />
+                    <TextBlock Text="{l:Loc calendar.googleTitle}" Style="{StaticResource Card.Body}" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
+                            Visibility="{Binding IsConnected, Converter={StaticResource BoolToVisibility}}">
+                    <Button Style="{StaticResource Bar.GlyphButton}" Width="26" Height="26" FontSize="11"
+                            Content="&#xE8A7;" Command="{Binding OpenGoogleCalendarCommand}" ToolTip="{l:Loc calendar.openGoogle}" />
+                    <Button Style="{StaticResource Bar.GlyphButton}" Width="26" Height="26" FontSize="11"
+                            Content="&#xE72C;" Command="{Binding RefreshCommand}" ToolTip="{l:Loc common.refresh}" />
+                </StackPanel>
+            </Grid>
+
+            <!-- Connected: the coming week -->
+            <StackPanel Visibility="{Binding IsConnected, Converter={StaticResource BoolToVisibility}}">
+                <TextBlock Text="{Binding ErrorText}" Style="{StaticResource Card.Label}" Foreground="#FF8A80" TextWrapping="Wrap" TextTrimming="None" Margin="0,8,0,0"
+                           Visibility="{Binding ErrorText, Converter={StaticResource NonEmptyToVisibility}}" />
+                <TextBlock Text="{l:Loc calendar.noEvents}" Style="{StaticResource Card.Label}" Margin="0,10,0,0"
+                           Visibility="{Binding HasNoEvents, Converter={StaticResource BoolToVisibility}}" />
+                <ItemsControl ItemsSource="{Binding Days}" MaxHeight="300" Margin="0,6,0,0">
+                    <ItemsControl.Template>
+                        <ControlTemplate TargetType="ItemsControl">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto"><ItemsPresenter /></ScrollViewer>
+                        </ControlTemplate>
+                    </ItemsControl.Template>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type svc:AgendaDay}">
+                            <StackPanel Margin="0,6,0,0">
+                                <TextBlock Text="{Binding Header}" Style="{StaticResource Card.Label}" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                <ItemsControl ItemsSource="{Binding Items}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type svc:AgendaItem}">
+                                            <Grid Margin="0,2">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="3" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+                                                <Border x:Name="Stripe" CornerRadius="1.5" Background="{DynamicResource Bar.Secondary}" Opacity="0.6" />
+                                                <StackPanel Grid.Column="1" Margin="8,1,0,1">
+                                                    <TextBlock Text="{Binding Title}" Style="{StaticResource Card.Body}" FontSize="12.5" />
+                                                    <TextBlock Style="{StaticResource Card.Label}" FontSize="11">
+                                                        <Run Text="{Binding Time, Mode=OneWay}" /><Run Text="{Binding Location, Mode=OneWay, StringFormat={} · {0}}" />
+                                                    </TextBlock>
+                                                </StackPanel>
+                                            </Grid>
+                                            <DataTemplate.Triggers>
+                                                <DataTrigger Binding="{Binding IsNow}" Value="True">
+                                                    <Setter TargetName="Stripe" Property="Background" Value="{DynamicResource Bar.Accent}" />
+                                                    <Setter TargetName="Stripe" Property="Opacity" Value="1" />
+                                                </DataTrigger>
+                                            </DataTemplate.Triggers>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock Text="{Binding StatusText}" Style="{StaticResource Card.Label}" FontSize="11" Margin="0,10,0,0" />
+                <StackPanel Orientation="Horizontal" Margin="0,8,0,0"
+                            Visibility="{Binding IsAdding, Converter={StaticResource InverseBoolToVisibility}}">
+                    <Button Style="{StaticResource Card.Button}" Content="{l:Loc calendar.addAnother}" Command="{Binding AddAnotherCommand}" />
+                    <Button Style="{StaticResource Card.Button}" Content="{l:Loc calendar.disconnect}" Command="{Binding DisconnectCommand}" Margin="6,0,0,0" />
+                </StackPanel>
+            </StackPanel>
+
+            <!-- Connect form -->
+            <StackPanel Visibility="{Binding ShowConnectForm, Converter={StaticResource BoolToVisibility}}" Margin="0,10,0,0">
+                <TextBlock Text="{l:Loc calendar.connectHelp}" Style="{StaticResource Card.Label}" TextWrapping="Wrap" TextTrimming="None" />
+                <Button Style="{StaticResource Card.Button}" Content="{l:Loc calendar.openSettings}" Margin="0,8,0,0" HorizontalAlignment="Left"
+                        Command="{Binding OpenGoogleSettingsCommand}" />
+                <TextBox Style="{StaticResource Card.TextBox}" Margin="0,10,0,0" Tag="{l:Loc calendar.pasteHint}"
+                         Text="{Binding InputUrl, UpdateSourceTrigger=PropertyChanged}">
+                    <TextBox.InputBindings>
+                        <KeyBinding Key="Enter" Command="{Binding ConnectCommand}" />
+                    </TextBox.InputBindings>
+                </TextBox>
+                <TextBlock Text="{Binding InputMessage}" Style="{StaticResource Card.Label}" FontSize="11" TextWrapping="Wrap" TextTrimming="None" Margin="0,6,0,0"
+                           Visibility="{Binding InputMessage, Converter={StaticResource NonEmptyToVisibility}}" />
+                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                    <Button Style="{StaticResource Card.Button}" Content="{l:Loc calendar.connect}" Command="{Binding ConnectCommand}"
+                            IsEnabled="{Binding IsLoading, Converter={StaticResource InverseBool}}" />
+                    <Button Style="{StaticResource Card.Button}" Content="{l:Loc calendar.cancel}" Command="{Binding CancelAddingCommand}" Margin="6,0,0,0"
+                            Visibility="{Binding IsAdding, Converter={StaticResource BoolToVisibility}}" />
+                </StackPanel>
+                <TextBlock Text="{l:Loc calendar.privacy}" Style="{StaticResource Card.Label}" FontSize="11" TextWrapping="Wrap" TextTrimming="None" Margin="0,10,0,0" Opacity="0.8" />
+            </StackPanel>
+        </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate x:Key="AgendaWidget.Tile" DataType="{x:Type w:AgendaWidget}">
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+            <Grid Width="26" Height="26">
+                <Border x:Name="Plate" CornerRadius="7" Background="{DynamicResource Bar.Track}" />
+                <TextBlock Text="&#xE787;" FontFamily="{StaticResource IconFont}" FontSize="13" Foreground="{DynamicResource Bar.Accent}"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Grid>
+            <StackPanel Margin="8,0,2,0" VerticalAlignment="Center" MaxWidth="170">
+                <TextBlock Text="{Binding Feed.NextTitle}" Style="{StaticResource Bar.Text}" FontWeight="SemiBold" FontSize="12.5" />
+                <TextBlock x:Name="When" Text="{Binding Feed.NextWhen}" Style="{StaticResource Bar.SubText}"
+                           Visibility="{Binding Feed.NextWhen, Converter={StaticResource NonEmptyToVisibility}}" />
+            </StackPanel>
+        </StackPanel>
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding Feed.IsNextNow}" Value="True">
+                <Setter TargetName="Plate" Property="Background" Value="{DynamicResource Bar.Accent}" />
+                <Setter TargetName="Plate" Property="Opacity" Value="0.35" />
+                <Setter TargetName="When" Property="Foreground" Value="{DynamicResource Bar.Foreground}" />
+            </DataTrigger>
+        </DataTemplate.Triggers>
+    </DataTemplate>
+
+    <DataTemplate x:Key="AgendaWidget.Card" DataType="{x:Type w:AgendaWidget}">
+        <StackPanel Width="300">
+            <ContentPresenter Content="{Binding Feed}" ContentTemplate="{StaticResource AgendaView}" />
         </StackPanel>
     </DataTemplate>
 

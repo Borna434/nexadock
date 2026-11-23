@@ -57,6 +57,9 @@ public static class WidgetTypes
 
     // Phase 3.5
     public const string Claude = "claude";
+
+    // Phase 4
+    public const string Agenda = "agenda";
 }
 
 public static class WidgetCatalog
@@ -71,6 +74,8 @@ public static class WidgetCatalog
             "Large, readable time and the date, in 12- or 24-hour format.", Glyph(0xE823)),
         new(WidgetTypes.Calendar, "Day Number", WidgetCategory.Clocks,
             "Today as a calendar page; opens the month.", Glyph(0xE787)),
+        new(WidgetTypes.Agenda, "Up Next", WidgetCategory.Clocks,
+            "Your next calendar event (Google Calendar or any iCal link); the card shows the coming week.", Glyph(0xE8BF)),
         new(WidgetTypes.DayProgress, "Day Progress", WidgetCategory.Clocks,
             "How much of today, the week and the year is behind you.", Glyph(0xE916)),
         new(WidgetTypes.System, "CPU & Memory", WidgetCategory.System,
