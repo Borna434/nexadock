@@ -28,6 +28,7 @@ public sealed partial class UpdateService : ObservableObject
     private readonly ILogger<UpdateService> _logger;
     private readonly DispatcherTimer _timer;
     private UpdateInfo? _available;
+    private DateTimeOffset? _lastChecked;
 
     public UpdateService(IUpdateSource source, PulseCenter pulse, IAppShell shell, ILogger<UpdateService> logger)
     {
@@ -41,7 +42,16 @@ public sealed partial class UpdateService : ObservableObject
             _timer.Interval = TimeSpan.FromHours(12);
             await CheckAsync(quiet: true);
         };
-        StatusText = Loc.F("update.current", Core.ProductInfo.Version);
+        StatusText = Loc.F("update.notChecked", Core.ProductInfo.Version);
+    }
+
+    /// <summary>Settings opened: check quietly unless that happened in the last 10 minutes.</summary>
+    public async void CheckIfStale()
+    {
+        if (_lastChecked is null || DateTimeOffset.Now - _lastChecked > TimeSpan.FromMinutes(10))
+        {
+            await CheckAsync(quiet: true);
+        }
     }
 
     /// <summary>Updates can be installed only into the per-user install made by install.ps1.</summary>
@@ -80,6 +90,7 @@ public sealed partial class UpdateService : ObservableObject
         try
         {
             var latest = await Task.Run(() => _source.GetLatestAsync(CancellationToken.None));
+            _lastChecked = DateTimeOffset.Now;
             if (latest is not null && UpdateRules.IsNewer(latest.Version, UpdateRules.Current))
             {
                 _available = latest;
@@ -94,7 +105,7 @@ public sealed partial class UpdateService : ObservableObject
                 IsAvailable = false;
                 StatusText = latest is null && !quiet
                     ? Loc.T("update.noReleases")
-                    : Loc.F("update.current", Core.ProductInfo.Version);
+                    : Loc.F("update.current", Core.ProductInfo.Version, _lastChecked.Value.ToString("t", Loc.Instance.Culture));
                 _pulse.Clear(PulseId);
             }
         }

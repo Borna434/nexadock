@@ -65,6 +65,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         NexaDock.UI.Services.UpdateService updates)
     {
         Updates = updates;
+        updates.CheckIfStale();
         Calendar = calendar;
         _store = store;
         _settings = settings;
