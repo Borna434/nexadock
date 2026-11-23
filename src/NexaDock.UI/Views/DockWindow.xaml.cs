@@ -689,6 +689,7 @@ public partial class DockWindow : Window
         menu.Items.Add(profiles);
 
         menu.Items.Add(Item(Loc.T("menu.widgets"), () => _viewModel.OpenWidgetsCommand.Execute(null)));
+        menu.Items.Add(Item(Loc.T("menu.arrange"), _viewModel.ArrangeWidgets));
         menu.Items.Add(Item(Loc.T("menu.settings"), () => _viewModel.OpenSettingsCommand.Execute(null)));
         menu.Items.Add(Item(Loc.T("menu.hide"), () => _viewModel.HideDockCommand.Execute(null)));
         menu.Items.Add(new Separator());

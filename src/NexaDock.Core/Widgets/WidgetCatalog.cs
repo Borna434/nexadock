@@ -136,17 +136,19 @@ public static class WidgetCatalog
     public static WidgetDescriptor? Get(string? typeId) =>
         All.FirstOrDefault(d => string.Equals(d.TypeId, typeId, StringComparison.OrdinalIgnoreCase));
 
-    /// <summary>First-run layout: apps on the left, live widgets on the right.</summary>
+    /// <summary>
+    /// First-run layout, centred like the Windows 11 taskbar: weather and media on the left, the
+    /// apps in the middle, status and the clock on the right (see <see cref="WidgetArranger"/>).
+    /// </summary>
     public static IReadOnlyList<WidgetPlacement> DefaultLayout() =>
-    [
-        WidgetPlacement.Create(WidgetTypes.Apps),
-        WidgetPlacement.Create(WidgetTypes.Spacer),
-        WidgetPlacement.Create(WidgetTypes.Pulse),
-        WidgetPlacement.Create(WidgetTypes.NowPlaying),
-        WidgetPlacement.Create(WidgetTypes.System),
-        WidgetPlacement.Create(WidgetTypes.Weather),
-        WidgetPlacement.Create(WidgetTypes.ControlCenter),
-        WidgetPlacement.Create(WidgetTypes.Calendar),
-        WidgetPlacement.Create(WidgetTypes.Clock),
-    ];
+        WidgetArranger.Arrange(
+        [
+            WidgetPlacement.Create(WidgetTypes.Weather),
+            WidgetPlacement.Create(WidgetTypes.NowPlaying),
+            WidgetPlacement.Create(WidgetTypes.Apps),
+            WidgetPlacement.Create(WidgetTypes.Pulse),
+            WidgetPlacement.Create(WidgetTypes.System),
+            WidgetPlacement.Create(WidgetTypes.ControlCenter),
+            WidgetPlacement.Create(WidgetTypes.Clock),
+        ]);
 }

@@ -7,6 +7,7 @@ using NexaDock.Core.Abstractions;
 using NexaDock.Core.Layout;
 using NexaDock.Core.Models;
 using NexaDock.Core.Theming;
+using NexaDock.Core.Widgets;
 using NexaDock.UI.Services;
 using NexaDock.UI.Theming;
 using NexaDock.UI.Widgets;
@@ -143,6 +144,10 @@ public sealed partial class DockViewModel : ObservableObject, IDisposable
             Widgets = s.Widgets.Where(w => w.Id != widget.InstanceId).ToList(),
             WidgetsInitialized = true,
         });
+
+    /// <summary>Puts the widgets in their logical places around the centred apps.</summary>
+    public void ArrangeWidgets() =>
+        _settings.Update(s => s with { Widgets = WidgetArranger.Arrange(s.Widgets), WidgetsInitialized = true });
 
     public void MoveWidget(WidgetViewModel widget, int newIndex)
     {

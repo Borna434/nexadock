@@ -89,7 +89,8 @@ public sealed partial class WidgetPickerViewModel : ObservableObject, IDisposabl
             }
             else
             {
-                list.Add(WidgetPlacement.Create(type));
+                // A new widget lands where it belongs in the arranged layout, not at the far end.
+                list.Insert(WidgetArranger.InsertIndex(list, type), WidgetPlacement.Create(type));
             }
 
             return s with { Widgets = list, WidgetsInitialized = true };
@@ -97,10 +98,12 @@ public sealed partial class WidgetPickerViewModel : ObservableObject, IDisposabl
     }
 
     private void AddAnother(WidgetOptionViewModel option) =>
-        _settings.Update(s => s with
+        _settings.Update(s =>
         {
-            Widgets = s.Widgets.Append(WidgetPlacement.Create(option.Descriptor.TypeId)).ToList(),
-            WidgetsInitialized = true,
+            var type = option.Descriptor.TypeId;
+            var list = s.Widgets.ToList();
+            list.Insert(WidgetArranger.InsertIndex(list, type), WidgetPlacement.Create(type));
+            return s with { Widgets = list, WidgetsInitialized = true };
         });
 
     [RelayCommand]

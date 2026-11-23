@@ -108,6 +108,7 @@
             <ItemsControl.ItemContainerStyle>
                 <Style TargetType="ContentPresenter">
                     <Setter Property="c:BarPanel.IsFlexible" Value="{Binding IsFlexible}" />
+                    <Setter Property="c:BarPanel.IsCentered" Value="{Binding IsCentered}" />
                     <Setter Property="Visibility" Value="{Binding IsVisibleOnBar, Converter={StaticResource BoolToVisibility}}" />
                 </Style>
             </ItemsControl.ItemContainerStyle>

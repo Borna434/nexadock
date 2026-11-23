@@ -246,13 +246,15 @@
     </DataTemplate>
 
     <DataTemplate x:Key="ClockWidget.Card" DataType="{x:Type w:ClockWidget}">
-        <StackPanel Width="268">
+        <StackPanel Width="290">
             <TextBlock Text="{Binding LongTime}" Style="{StaticResource Bar.Text}" FontFamily="{StaticResource DisplayFont}" FontSize="38" FontWeight="SemiBold" />
             <TextBlock Text="{Binding LongDate}" Style="{StaticResource Card.Body}" Margin="0,2,0,0" />
             <TextBlock Text="{Binding WeekText}" Style="{StaticResource Card.Label}" Margin="0,2,0,14" />
             <ContentPresenter Content="{Binding Calendar}" ContentTemplate="{StaticResource MonthCalendarView}" />
             <Button Style="{StaticResource Card.Button}" Content="{l:Loc clock.settings}" Margin="0,12,0,0"
                     HorizontalAlignment="Left" Command="{Binding OpenDateTimeSettingsCommand}" />
+            <Border Height="1" Background="{DynamicResource Bar.Separator}" Margin="0,14,0,12" />
+            <ContentPresenter Content="{Binding Feed}" ContentTemplate="{DynamicResource AgendaView}" />
         </StackPanel>
     </DataTemplate>
 

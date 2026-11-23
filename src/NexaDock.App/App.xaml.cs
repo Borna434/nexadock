@@ -23,6 +23,8 @@ namespace NexaDock.App;
 /// <summary>Composition root and process lifetime.</summary>
 public partial class App : Application
 {
+    private const string CenteredLayoutKey = "layout.centered.v1";
+
     private IHost? _host;
     private Mutex? _singleInstance;
     private EventWaitHandle? _showSignal;
@@ -216,6 +218,20 @@ public partial class App : Application
             });
             settings.Flush();
             _logger?.LogInformation("Seeded the default widget layout.");
+        }
+
+        // One-time move to the centred layout (Phase 4): every profile gets the logical order.
+        var store = services.GetRequiredService<IKeyValueStore>();
+        if (store.Get(CenteredLayoutKey) is null)
+        {
+            settings.Update(s => s with
+            {
+                Widgets = WidgetArranger.Arrange(s.Widgets),
+                Profiles = s.Profiles.Select(p => p with { Widgets = WidgetArranger.Arrange(p.Widgets) }).ToList(),
+            });
+            settings.Flush();
+            store.Set(CenteredLayoutKey, "1");
+            _logger?.LogInformation("Arranged widgets around the centred apps.");
         }
 
         // The Run key is the source of truth (the user may disable startup in Task Manager).

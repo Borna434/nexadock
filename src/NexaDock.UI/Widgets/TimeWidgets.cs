@@ -58,7 +58,12 @@ public sealed partial class ClockWidget : WidgetViewModel
 
     public override bool HasCard => true;
 
+    public override bool WantsKeyboard => true;
+
     public MonthCalendar Calendar { get; }
+
+    /// <summary>Google Calendar agenda in the clock card (the clock already shows the date).</summary>
+    public CalendarFeed Feed => _feed;
 
     [ObservableProperty] private string _time = string.Empty;
     [ObservableProperty] private string _meridiem = string.Empty;
@@ -108,6 +113,7 @@ public sealed partial class ClockWidget : WidgetViewModel
     public override void OnLanguageChanged()
     {
         Calendar.GoToToday();
+        _feed.OnLanguageChanged();
         Update();
     }
 

@@ -1,15 +1,18 @@
 using System.Windows;
 using System.Windows.Controls;
+using NexaDock.Core.Layout;
 
 namespace NexaDock.UI.Controls;
 
 /// <summary>
 /// Horizontal panel for the bar: fixed tiles keep their natural width, children marked
-/// <see cref="IsFlexibleProperty"/> share whatever width is left (flexible spaces).
+/// <see cref="IsFlexibleProperty"/> share whatever width is left (flexible spaces), and a child
+/// marked <see cref="IsCenteredProperty"/> stays in the middle with the other tiles packed from
+/// both edges towards it. The math lives in <see cref="BarLayout"/>.
 /// </summary>
 public sealed class BarPanel : Panel
 {
-    public const double MinFlexibleWidth = 12;
+    public const double MinFlexibleWidth = BarLayout.MinFlexibleWidth;
 
     public static readonly DependencyProperty IsFlexibleProperty = DependencyProperty.RegisterAttached(
         "IsFlexible", typeof(bool), typeof(BarPanel),
@@ -18,6 +21,15 @@ public sealed class BarPanel : Panel
     public static readonly DependencyProperty GapProperty = DependencyProperty.Register(
         nameof(Gap), typeof(double), typeof(BarPanel),
         new FrameworkPropertyMetadata(6.0, FrameworkPropertyMetadataOptions.AffectsMeasure));
+
+    /// <summary>The tile kept in the middle of the bar (Apps); see <see cref="BarSlotKind.Center"/>.</summary>
+    public static readonly DependencyProperty IsCenteredProperty = DependencyProperty.RegisterAttached(
+        "IsCentered", typeof(bool), typeof(BarPanel),
+        new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.AffectsParentMeasure | FrameworkPropertyMetadataOptions.AffectsParentArrange));
+
+    public static bool GetIsCentered(DependencyObject d) => (bool)d.GetValue(IsCenteredProperty);
+
+    public static void SetIsCentered(DependencyObject d, bool value) => d.SetValue(IsCenteredProperty, value);
 
     public static bool GetIsFlexible(DependencyObject d) => (bool)d.GetValue(IsFlexibleProperty);
 
@@ -96,49 +108,19 @@ public sealed class BarPanel : Panel
     private Size ArrangeTiles(Size finalSize, double reserve, out List<object> hidden)
     {
         hidden = [];
-        var width = Math.Max(0, finalSize.Width - reserve);
-        double fixedWidth = 0;
-        var flexible = 0;
-        var visible = 0;
-        foreach (UIElement child in InternalChildren)
+        var children = InternalChildren.Cast<UIElement>().Where(c => c.Visibility != Visibility.Collapsed).ToList();
+        var slots = children.Select(c => new BarSlot(
+            c.DesiredSize.Width,
+            GetIsCentered(c) ? BarSlotKind.Center : GetIsFlexible(c) ? BarSlotKind.Flexible : BarSlotKind.Fixed)).ToList();
+
+        var placements = BarLayout.Arrange(slots, finalSize.Width, Gap, reserve);
+        for (var i = 0; i < children.Count; i++)
         {
-            if (child.Visibility == Visibility.Collapsed)
+            var child = children[i];
+            var p = placements[i];
+            if (p.Hidden)
             {
-                continue;
-            }
-
-            visible++;
-            if (GetIsFlexible(child))
-            {
-                flexible++;
-            }
-            else
-            {
-                fixedWidth += child.DesiredSize.Width;
-            }
-        }
-
-        var gaps = Math.Max(0, visible - 1) * Gap;
-        var flexWidth = flexible == 0 ? 0 : Math.Max(MinFlexibleWidth, (width - fixedWidth - gaps) / flexible);
-
-        // Without flexible space, centre nothing: tiles start at the left like a taskbar.
-        double x = 0;
-        var overflowing = false;
-        foreach (UIElement child in InternalChildren)
-        {
-            if (child.Visibility == Visibility.Collapsed)
-            {
-                continue;
-            }
-
-            var w = GetIsFlexible(child) ? flexWidth : child.DesiredSize.Width;
-            var h = Math.Min(child.DesiredSize.Height, finalSize.Height);
-
-            // A tile that would only partly fit is not shown at all (no tiles cut off at the edge);
-            // the bar offers it through the overflow button instead.
-            if (overflowing || x + w > width + 0.5)
-            {
-                overflowing = true; // keep order: everything after the first misfit goes too
+                // Not shown at all (no tiles cut off at the edge); offered through the overflow button.
                 child.Arrange(new Rect(finalSize.Width, 0, 0, 0));
                 if (child is FrameworkElement { DataContext: { } item } && !GetIsFlexible(child))
                 {
@@ -148,8 +130,8 @@ public sealed class BarPanel : Panel
                 continue;
             }
 
-            child.Arrange(new Rect(x, (finalSize.Height - h) / 2, w, h));
-            x += w + Gap;
+            var h = Math.Min(child.DesiredSize.Height, finalSize.Height);
+            child.Arrange(new Rect(Math.Round(p.X), (finalSize.Height - h) / 2, p.Width, h));
         }
 
         return finalSize;

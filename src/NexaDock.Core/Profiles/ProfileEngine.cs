@@ -120,5 +120,5 @@ public static class ProfileTemplates
     }
 
     private static IReadOnlyList<WidgetPlacement> Layout(params string[] types) =>
-        types.Select(WidgetPlacement.Create).ToList();
+        WidgetArranger.Arrange(types.Select(WidgetPlacement.Create).ToList());
 }

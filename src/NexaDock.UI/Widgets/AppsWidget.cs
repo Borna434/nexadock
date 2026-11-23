@@ -55,6 +55,9 @@ public sealed partial class AppsWidget : WidgetViewModel
 
     public ObservableCollection<AppItemViewModel> Items { get; } = [];
 
+    /// <summary>Start and the apps stay in the middle of the bar, like the Windows 11 taskbar.</summary>
+    public override bool IsCentered => true;
+
     public override void ApplySettings(DockSettings settings)
     {
         _iconDip = NexaDock.Core.Layout.DockMetrics.For(settings.Size).IconSize;

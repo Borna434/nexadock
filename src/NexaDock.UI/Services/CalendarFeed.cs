@@ -404,7 +404,9 @@ public sealed partial class CalendarFeed : ObservableObject
     /// </summary>
     private void UpdatePulse(DateTimeOffset now, CultureInfo culture)
     {
-        var target = _users.ContainsKey(WidgetTypes.Agenda) ? WidgetTypes.Agenda : WidgetTypes.Calendar;
+        var target = _users.ContainsKey(WidgetTypes.Agenda) ? WidgetTypes.Agenda
+            : _users.ContainsKey(WidgetTypes.Calendar) ? WidgetTypes.Calendar
+            : WidgetTypes.Clock;
         var soon = _events
             .Where(e => !e.AllDay && e.Start > now && e.Start - now <= PulseLead)
             .ToDictionary(e => "calendar:" + e.Key);

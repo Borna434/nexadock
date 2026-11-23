@@ -38,6 +38,12 @@ public abstract partial class WidgetViewModel : ObservableObject, IDisposable
     /// <summary>Whether the tile shares leftover bar width (flexible space).</summary>
     public virtual bool IsFlexible => false;
 
+    /// <summary>
+    /// Whether the tile stays in the middle of the bar, with the tiles before it packed from the
+    /// left edge and the tiles after it from the right edge (the Apps widget).
+    /// </summary>
+    public virtual bool IsCentered => false;
+
     /// <summary>Whether the tile is drawn on its own glass plate.</summary>
     public virtual bool HasPlate => true;
 

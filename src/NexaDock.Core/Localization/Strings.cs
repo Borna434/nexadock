@@ -406,6 +406,7 @@ public static class Strings
         ["calendar.connectFailed"] = "The calendar could not be loaded ({0}). Check that you copied the whole secret address.",
         ["calendar.publicWarning"] = "Connected with the public address: it only works while the calendar is public. The secret address works for private calendars.",
         ["pulse.meeting"] = "{0} starts in {1} min",
+        ["menu.arrange"] = "Arrange widgets",
     };
 
     public static IReadOnlyDictionary<string, string> Croatian { get; } = new Dictionary<string, string>
@@ -788,5 +789,6 @@ public static class Strings
         ["calendar.connectFailed"] = "Kalendar se nije mogao učitati ({0}). Provjerite jeste li kopirali cijelu tajnu adresu.",
         ["calendar.publicWarning"] = "Povezano javnom adresom: radi samo dok je kalendar javan. Tajna adresa radi i za privatne kalendare.",
         ["pulse.meeting"] = "{0} počinje za {1} min",
+        ["menu.arrange"] = "Posloži widgete",
     };
 }

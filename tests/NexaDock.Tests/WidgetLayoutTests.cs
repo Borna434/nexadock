@@ -15,13 +15,13 @@ public class WidgetLayoutTests
     }
 
     [Fact]
-    public void Default_layout_is_valid_and_starts_with_apps()
+    public void Default_layout_is_valid_and_contains_apps()
     {
         var layout = WidgetCatalog.DefaultLayout();
         var normalized = SettingsNormalizer.Normalize(new DockSettings { Widgets = layout }).Widgets;
 
         Assert.Equal(layout, normalized);
-        Assert.Equal(WidgetTypes.Apps, layout[0].TypeId);
+        Assert.Contains(layout, w => w.TypeId == WidgetTypes.Apps);
         Assert.Equal(layout.Count, layout.Select(w => w.Id).Distinct().Count());
     }
 
