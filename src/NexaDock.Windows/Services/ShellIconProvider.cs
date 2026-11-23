@@ -127,7 +127,44 @@ public sealed class ShellIconProvider : IIconProvider
                 pixels[i] = 255;
             }
         }
+        else if (!IsPremultiplied(pixels))
+        {
+            // Icon bitmaps usually come back with straight (unpremultiplied) alpha. Drawn as
+            // premultiplied, their soft edge pixels are far too bright: a white halo.
+            Premultiply(pixels);
+        }
 
         return new IconImage(width, height, pixels);
+    }
+
+    /// <summary>In premultiplied data no colour channel can exceed its pixel's alpha.</summary>
+    internal static bool IsPremultiplied(byte[] bgra)
+    {
+        for (var i = 0; i < bgra.Length; i += 4)
+        {
+            var a = bgra[i + 3];
+            if (bgra[i] > a || bgra[i + 1] > a || bgra[i + 2] > a)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    internal static void Premultiply(byte[] bgra)
+    {
+        for (var i = 0; i < bgra.Length; i += 4)
+        {
+            var a = bgra[i + 3];
+            if (a == 255)
+            {
+                continue;
+            }
+
+            bgra[i] = (byte)((bgra[i] * a + 127) / 255);
+            bgra[i + 1] = (byte)((bgra[i + 1] * a + 127) / 255);
+            bgra[i + 2] = (byte)((bgra[i + 2] * a + 127) / 255);
+        }
     }
 }
