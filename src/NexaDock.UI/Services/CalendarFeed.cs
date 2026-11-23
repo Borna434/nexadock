@@ -71,6 +71,8 @@ public sealed partial class CalendarFeed : ObservableObject
 {
     private const string StoreKey = "calendar.feeds";
     private const string ChoicesKey = "calendar.google.choices";
+    private const string ExpiredKey = "calendar.google.expired";
+    private const string ExpiredPulseId = "google-signin";
     private static readonly TimeSpan RefreshEvery = TimeSpan.FromMinutes(10);
     private static readonly TimeSpan PulseLead = TimeSpan.FromMinutes(10);
     private const int AgendaDays = 7;
@@ -172,6 +174,7 @@ public sealed partial class CalendarFeed : ObservableObject
         _started = true;
         _tick.Start();
         _refresh.Start();
+        UpdateExpiredPulse();
         Present();
         await RefreshAsync();
     }
@@ -265,6 +268,7 @@ public sealed partial class CalendarFeed : ObservableObject
         {
             await Task.Run(() => _google.SignInAsync(OpenUrl, _signInCts.Token));
             GoogleMessage = string.Empty;
+            SetExpired(false);
             SyncGoogleState();
             await RefreshAsync();
         }
@@ -292,6 +296,7 @@ public sealed partial class CalendarFeed : ObservableObject
     private async Task SignOutGoogle()
     {
         await _google.SignOutAsync();
+        SetExpired(false);
         GoogleCalendars.Clear();
         SyncGoogleState();
         await RefreshAsync();
@@ -311,6 +316,31 @@ public sealed partial class CalendarFeed : ObservableObject
         }
 
         IsConnected = _feeds.Count > 0 || IsGoogleSignedIn;
+    }
+
+    /// <summary>
+    /// Remembers that Google dropped the sign-in (apps in "Testing" lose it after 7 days) and asks
+    /// for a new one through Pulse, also after a restart, until the user signs in or out.
+    /// </summary>
+    private void SetExpired(bool expired)
+    {
+        _store.Set(ExpiredKey, expired ? "1" : null);
+        UpdateExpiredPulse();
+    }
+
+    private void UpdateExpiredPulse()
+    {
+        if (_store.Get(ExpiredKey) is not null && !_google.IsSignedIn && _google.HasClient)
+        {
+            var target = _users.ContainsKey(WidgetTypes.Agenda) ? WidgetTypes.Agenda
+                : _users.ContainsKey(WidgetTypes.Calendar) ? WidgetTypes.Calendar
+                : WidgetTypes.Clock;
+            _pulse.Raise(new PulseAlert(ExpiredPulseId, target, PulseSeverity.Warning, "pulse.googleExpired", [], 0xE787));
+        }
+        else
+        {
+            _pulse.Clear(ExpiredPulseId);
+        }
     }
 
     private void OnChoiceChanged(CalendarChoice choice)
@@ -533,6 +563,7 @@ public sealed partial class CalendarFeed : ObservableObject
                 {
                     _logger.LogWarning("Google sign-in expired or was revoked.");
                     GoogleMessage = Loc.T("google.expired");
+                    SetExpired(true);
                     GoogleCalendars.Clear();
                     SyncGoogleState();
                 }

@@ -60,9 +60,13 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         IStartupRegistration startup,
         IAppShell shell,
         AppDataLocation dataLocation,
-        NexaDock.UI.Services.CalendarFeed calendar)
+        NexaDock.UI.Services.CalendarFeed calendar,
+        IKeyValueStore store,
+        NexaDock.UI.Services.UpdateService updates)
     {
+        Updates = updates;
         Calendar = calendar;
+        _store = store;
         _settings = settings;
         _monitors = monitors;
         _catalog = catalog;
@@ -225,8 +229,12 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     [ObservableProperty] private double _opacity;
     [ObservableProperty] private double _edgeOffset;
     [ObservableProperty] private bool _reducedMotion;
+    [ObservableProperty] private bool _liquidRefraction;
     [ObservableProperty] private bool _use24HourClock;
     [ObservableProperty] private bool _replaceTaskbar;
+    /// <summary>Update check and install (the About tab).</summary>
+    public NexaDock.UI.Services.UpdateService Updates { get; }
+
     /// <summary>Google account and linked calendars (the Calendars tab).</summary>
     public NexaDock.UI.Services.CalendarFeed Calendar { get; }
 
@@ -262,6 +270,8 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     partial void OnOpacityChanged(double value) => Apply(s => s with { Opacity = Math.Round(value, 2) });
     partial void OnEdgeOffsetChanged(double value) => Apply(s => s with { EdgeOffset = Math.Round(value) });
     partial void OnReducedMotionChanged(bool value) => Apply(s => s with { ReducedMotion = value });
+
+    partial void OnLiquidRefractionChanged(bool value) => Apply(s => s with { LiquidRefraction = value });
     partial void OnUse24HourClockChanged(bool value) => Apply(s => s with { Use24HourClock = value });
     partial void OnReplaceTaskbarChanged(bool value) => Apply(s => s with { ReplaceTaskbar = value });
     partial void OnHideInFullscreenChanged(bool value) => Apply(s => s with { HideInFullscreen = value });
@@ -327,6 +337,74 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
 
     [RelayCommand]
     private void OpenWidgetPicker() => _shell.ShowWidgetPicker();
+
+    // ---- Backup ------------------------------------------------------------------------------------
+    private readonly IKeyValueStore _store;
+
+    /// <summary>Set by the view: asks where to save a backup (null = cancelled).</summary>
+    public Func<string?>? PickBackupSaveFile { get; set; }
+
+    /// <summary>Set by the view: asks which backup to restore (null = cancelled).</summary>
+    public Func<string?>? PickBackupOpenFile { get; set; }
+
+    /// <summary>Set by the view: asks a yes/no question.</summary>
+    public Func<string, bool>? Confirm { get; set; }
+
+    [ObservableProperty] private string _backupMessage = string.Empty;
+
+    [RelayCommand]
+    private void ExportBackup()
+    {
+        if (PickBackupSaveFile?.Invoke() is not { } path)
+        {
+            return;
+        }
+
+        try
+        {
+            _settings.Flush();
+            System.IO.File.WriteAllText(path, Core.Settings.SettingsBackup.Create(_settings.Current, _store.GetAll(), DateTimeOffset.Now));
+            BackupMessage = Loc.F("backup.saved", System.IO.Path.GetFileName(path));
+        }
+        catch (Exception ex) when (ex is System.IO.IOException or UnauthorizedAccessException)
+        {
+            BackupMessage = Loc.F("backup.failed", ex.Message);
+        }
+    }
+
+    [RelayCommand]
+    private void ImportBackup()
+    {
+        if (PickBackupOpenFile?.Invoke() is not { } path)
+        {
+            return;
+        }
+
+        Core.Settings.BackupContents contents;
+        try
+        {
+            contents = Core.Settings.SettingsBackup.Parse(System.IO.File.ReadAllText(path), _settings.Current);
+        }
+        catch (Exception ex) when (ex is FormatException or System.IO.IOException or UnauthorizedAccessException)
+        {
+            BackupMessage = Loc.F("backup.failed", ex.Message);
+            return;
+        }
+
+        if (Confirm?.Invoke(Loc.T("backup.confirm")) != true)
+        {
+            return;
+        }
+
+        foreach (var (key, value) in contents.Data)
+        {
+            _store.Set(key, value);
+        }
+
+        _settings.Update(_ => contents.Settings);
+        _settings.Flush();
+        _shell.Restart(); // widgets read their content when they start
+    }
 
     // ---- Pinned apps -----------------------------------------------------------------------------
     /// <summary>Set by the view: shows a file picker and returns the chosen paths.</summary>
@@ -420,6 +498,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
             Edge = d.Edge,
             MonitorDeviceName = d.MonitorDeviceName,
             ReducedMotion = d.ReducedMotion,
+            LiquidRefraction = d.LiquidRefraction,
         });
         RefreshMonitors();
         StatusText = Loc.T("settings.resetDone");
@@ -460,6 +539,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
             Opacity = s.Opacity;
             EdgeOffset = s.EdgeOffset;
             ReducedMotion = s.ReducedMotion;
+            LiquidRefraction = s.LiquidRefraction;
             Use24HourClock = s.Use24HourClock;
             ReplaceTaskbar = s.ReplaceTaskbar;
             HideInFullscreen = s.HideInFullscreen;

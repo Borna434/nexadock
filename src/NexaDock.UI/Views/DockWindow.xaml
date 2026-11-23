@@ -108,6 +108,24 @@
                 </RadialGradientBrush>
             </Border.Background>
         </Border>
+        <!-- Liquid refraction (opt-in): what lies just beyond the edge, mirrored and squeezed into the rim. -->
+        <Border x:Name="RefractionRim" Height="12" VerticalAlignment="Top" IsHitTestVisible="False" Visibility="Collapsed" Opacity="0.6"
+                CornerRadius="{Binding CornerRadius}">
+            <Border.Background>
+                <ImageBrush x:Name="RefractionBrush" Stretch="Fill">
+                    <ImageBrush.RelativeTransform>
+                        <ScaleTransform x:Name="RefractionFlip" ScaleY="-1" CenterY="0.5" />
+                    </ImageBrush.RelativeTransform>
+                </ImageBrush>
+            </Border.Background>
+            <Border.OpacityMask>
+                <LinearGradientBrush x:Name="RefractionMask" StartPoint="0,0" EndPoint="0,1">
+                    <GradientStop Color="#FF000000" Offset="0" />
+                    <GradientStop Color="#99000000" Offset="0.35" />
+                    <GradientStop Color="#00000000" Offset="1" />
+                </LinearGradientBrush>
+            </Border.OpacityMask>
+        </Border>
         <Border Height="1" VerticalAlignment="Top" Margin="{Binding SpecularMargin}" Background="{Binding Brushes.Specular}" IsHitTestVisible="False" />
         <Border CornerRadius="{Binding CornerRadius}" BorderThickness="{Binding RimThickness}" IsHitTestVisible="False">
             <Border.Style>

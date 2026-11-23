@@ -59,6 +59,7 @@ public static class SettingsSerializer
                 Opacity = ReadDouble(root, nameof(DockSettings.Opacity)) ?? d.Opacity,
                 EdgeOffset = ReadDouble(root, nameof(DockSettings.EdgeOffset)) ?? d.EdgeOffset,
                 ReducedMotion = ReadBool(root, nameof(DockSettings.ReducedMotion)) ?? d.ReducedMotion,
+                LiquidRefraction = ReadBool(root, nameof(DockSettings.LiquidRefraction)) ?? d.LiquidRefraction,
                 Use24HourClock = ReadBool(root, nameof(DockSettings.Use24HourClock)) ?? d.Use24HourClock,
                 ReplaceTaskbar = ReadBool(root, nameof(DockSettings.ReplaceTaskbar)) ?? d.ReplaceTaskbar,
                 HideInFullscreen = ReadBool(root, nameof(DockSettings.HideInFullscreen)) ?? d.HideInFullscreen,

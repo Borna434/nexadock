@@ -37,27 +37,34 @@
 
 ## Phase 3.5: Ready for everyday use ✅
 
-- [x] **Claude widget:** Claude Code usage from local logs. It shows the current 5-hour window and
-      when it resets, today, the last seven days and models, plus a Pulse near your busiest
-      session.
+- [x] **Claude widget:** Claude Code usage from local logs (5-hour window, today, 7 days, models)
 - [x] Overflow: tiles that don't fit move behind a "›" button and stay usable in its card
-- [x] `tools/install.ps1` and `tools/uninstall.ps1` (per-user Release install with a Start menu
-      shortcut; settings kept)
-- [x] `NexaDock.exe --exit` for clean shutdown by scripts (restores the taskbar)
-- [x] Full-screen detection uses Windows' own notification state; fixed the empty bar shown when
-      a full-screen app was in front during startup
+- [x] `tools/install.ps1` and `tools/uninstall.ps1`; `NexaDock.exe --exit`
+- [x] Full-screen detection uses Windows' own notification state
 
-## Phase 4: Accounts and developer widgets
+## Phase 4: A real taskbar replacement ✅
 
-- Calendar events from Outlook and Google (OAuth, read-only), and a meeting-soon Pulse
-- GitHub notifications and contribution streak; status of the current git repository
-- Stocks and crypto watchlist
-- System tray widget (icons of background apps), if a reliable documented approach exists
+- [x] **Centred like Windows 11:** the apps stay in the middle; widgets before them start at the
+      left edge, widgets after them end at the right edge; overflow hides outer tiles first
+- [x] **Automatic arrangement** in a logical order (right-click › Arrange widgets); new widgets
+      land in their place; Day Number is dropped when the Clock already shows the date
+- [x] **Edge to edge:** flush with the screen edge by default (square corners, single rim line);
+      maximised windows stop exactly at the glass
+- [x] **Notification icons** of background apps (via ManagedShell): pinned icons on the bar, the
+      rest in a card; clicks and right-clicks go to the apps
+- [x] **A bar on every display**, each with its own layout; its apps show that display's windows
+- [x] **Calendars:** Google account sign-in (OAuth with PKCE, read-only), every calendar in its
+      own colour with a tick to show it; iCal links (several at once); agenda in the Clock card;
+      Up Next widget; Pulse before meetings and when the Google sign-in expires
+- [x] **Liquid glass:** specular hairline, lens depth, edge light, pointer-following light, and
+      opt-in refraction of what lies just beyond the edge (redrawn only when it changes)
+- [x] **Backup:** export and import of layout, profiles, pinned apps, look and widget content
+- [x] **Updates** from GitHub releases with a SHA-256 check (`tools/package.ps1` builds the package)
+- [x] Sharp app icons at their exact pixel size, with correct alpha (no white halo)
 
 ## Phase 5: Polish and distribution
 
-- A bar on every display, with per-display layouts
-- Auto-hide with reveal at the screen edge
-- Overflow menu for widgets that don't fit
-- Refractive "liquid" glass through a GPU shader path
-- MSIX installer, auto-update, and settings import/export
+- Show the notification area's own flyouts (Wi-Fi, volume, battery) without Quick Settings
+- Per-display edge and size for extra bars
+- MSIX package and signed releases
+- More calendar sources (Outlook via Microsoft account)

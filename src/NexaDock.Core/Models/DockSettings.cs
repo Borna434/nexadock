@@ -99,6 +99,12 @@ public sealed record DockSettings
 
     public bool ReducedMotion { get; init; }
 
+    /// <summary>
+    /// Liquid refraction: the glass edge shows, bent and mirrored, what lies just beyond it. Reads
+    /// a thin strip of the screen ten times a second while the bar is visible, so it is opt-in.
+    /// </summary>
+    public bool LiquidRefraction { get; init; }
+
     public bool Use24HourClock { get; init; } = true;
 
     public AppLanguage Language { get; init; } = AppLanguage.System;
@@ -174,6 +180,7 @@ public sealed record DockSettings
         && Spacing.Equals(other.Spacing)
         && Opacity.Equals(other.Opacity)
         && ReducedMotion == other.ReducedMotion
+        && LiquidRefraction == other.LiquidRefraction
         && Use24HourClock == other.Use24HourClock
         && Language == other.Language
         && ReplaceTaskbar == other.ReplaceTaskbar

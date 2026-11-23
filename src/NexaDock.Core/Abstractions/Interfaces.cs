@@ -89,6 +89,13 @@ public interface IBackdropService
     void SetRoundedCorners(IntPtr hwnd, bool rounded);
 }
 
+/// <summary>Copies a small region of the screen (for the refraction rim).</summary>
+public interface IScreenStripCapture
+{
+    /// <summary>Fills <paramref name="bgra"/> (width × height × 4, top-down) from the screen; false on failure.</summary>
+    bool Capture(PixelRect region, byte[] bgra);
+}
+
 /// <summary>Native window behaviour for the bar and its pop-ups.</summary>
 public interface IDockWindowHost
 {
@@ -337,6 +344,9 @@ public interface IKeyValueStore
     string? Get(string key);
 
     void Set(string key, string? value);
+
+    /// <summary>Every stored value, by key (for backups).</summary>
+    IReadOnlyDictionary<string, string> GetAll();
 }
 
 public sealed record AudioEndpointState(bool Available, string DeviceName, double Volume, bool Muted);
@@ -424,6 +434,9 @@ public interface IAppShell
 
     /// <param name="tab">Settings tab to open ("calendar"); null keeps the last one.</param>
     void ShowSettings(string? tab = null);
+
+    /// <summary>Closes NexaDock cleanly and starts it again (after a restore or an update).</summary>
+    void Restart();
 
     /// <param name="display">The secondary display whose bar to edit; null for the main bar.</param>
     void ShowWidgetPicker(string? display = null);

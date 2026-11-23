@@ -231,6 +231,20 @@
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="{l:Loc appearance.refraction}" Style="{StaticResource Label}" />
+                                    <TextBlock Text="{l:Loc appearance.refractionHint}" Style="{StaticResource Hint}" TextWrapping="Wrap" />
+                                </StackPanel>
+                                <CheckBox Grid.Column="1" Style="{StaticResource Toggle}" IsChecked="{Binding LiquidRefraction}" AutomationProperties.Name="{l:Loc appearance.refraction}" />
+                            </Grid>
+                        </Border>
+
+                        <Border Style="{StaticResource Card}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
                                     <RowDefinition Height="Auto" />
@@ -656,6 +670,24 @@
                                     <Button Content="{l:Loc about.openData}" Command="{Binding OpenDataFolderCommand}" Margin="0,0,8,0" />
                                     <Button Content="{l:Loc about.reset}" Command="{Binding ResetAppearanceCommand}" />
                                 </StackPanel>
+                                <TextBlock Text="{l:Loc update.title}" FontSize="14" FontWeight="SemiBold" Margin="0,18,0,0" />
+                                <StackPanel DataContext="{Binding Updates}">
+                                    <TextBlock Text="{Binding StatusText}" Style="{StaticResource Hint}" Margin="0,4,0,8" TextWrapping="Wrap" />
+                                    <ProgressBar Height="4" Maximum="100" Value="{Binding Progress}" Margin="0,0,0,8"
+                                                 Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}" />
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button Content="{l:Loc update.check}" Command="{Binding CheckCommand}" Margin="0,0,8,0" />
+                                        <Button Content="{l:Loc update.install}" Command="{Binding InstallCommand}" Style="{DynamicResource AccentButtonStyle}"
+                                                Visibility="{Binding IsAvailable, Converter={StaticResource BoolToVisibility}}" />
+                                    </StackPanel>
+                                </StackPanel>
+                                <TextBlock Text="{l:Loc backup.title}" FontSize="14" FontWeight="SemiBold" Margin="0,18,0,0" />
+                                <TextBlock Text="{l:Loc backup.hint}" Style="{StaticResource Hint}" Margin="0,4,0,8" TextWrapping="Wrap" />
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Content="{l:Loc backup.export}" Command="{Binding ExportBackupCommand}" Margin="0,0,8,0" />
+                                    <Button Content="{l:Loc backup.import}" Command="{Binding ImportBackupCommand}" />
+                                </StackPanel>
+                                <TextBlock Text="{Binding BackupMessage}" Style="{StaticResource Hint}" Margin="0,6,0,0" TextWrapping="Wrap" />
                             </StackPanel>
                         </Border>
                     </StackPanel>

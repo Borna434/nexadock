@@ -35,6 +35,11 @@ public partial class DockWindow : Window
     private readonly ILogger<DockWindow> _logger;
     private readonly NexaDock.UI.Services.TrayIconHost _trayHost;
     private readonly BarTarget _target;
+    private readonly IScreenStripCapture _stripCapture;
+    private readonly DispatcherTimer _refractionTimer;
+    private System.Windows.Media.Imaging.WriteableBitmap? _refractionBitmap;
+    private byte[] _refractionPixels = [];
+    private byte[] _refractionShown = [];
     private readonly CardWindow _card;
     private readonly PreviewWindow _preview;
     private readonly DispatcherTimer _hoverTimer;
@@ -80,8 +85,12 @@ public partial class DockWindow : Window
         IThumbnailService thumbnails,
         NexaDock.UI.Services.TrayIconHost trayHost,
         BarTarget target,
+        IScreenStripCapture stripCapture,
         ILogger<DockWindow> logger)
     {
+        _stripCapture = stripCapture;
+        _refractionTimer = new DispatcherTimer(DispatcherPriority.Render) { Interval = TimeSpan.FromMilliseconds(100) };
+        _refractionTimer.Tick += (_, _) => UpdateRefraction();
         _target = target;
         _trayHost = trayHost;
         _viewModel = viewModel;
@@ -132,6 +141,7 @@ public partial class DockWindow : Window
         DpiChanged += (_, _) => QueueReposition();
         IsVisibleChanged += (_, _) =>
         {
+            UpdateRefractionTimer();
             if (IsVisible)
             {
                 QueueReposition();
@@ -202,6 +212,8 @@ public partial class DockWindow : Window
 
     protected override void OnClosed(EventArgs e)
     {
+        _refractionTimer.Stop();
+        (_stripCapture as IDisposable)?.Dispose();
         _host.PlacementInvalidated -= OnPlacementInvalidated;
         _tracker.Changed -= OnWindowsChanged;
         _contentWatch.Stop();
@@ -290,6 +302,7 @@ public partial class DockWindow : Window
         }
 
         var top = settings.Edge == DockEdge.Top;
+        ConfigureRefraction(settings, top);
         Resources["DockToolTipPlacement"] = top ? PlacementMode.Bottom : PlacementMode.Top;
         Resources["DockToolTipOffset"] = top ? 8.0 : -8.0;
         UpdateFullscreenState();
@@ -789,6 +802,80 @@ public partial class DockWindow : Window
         else if (item.IsRunning)
         {
             _hoverTimer.Start();
+        }
+    }
+
+    // ---- Liquid refraction --------------------------------------------------------------------------
+
+    private const int RefractionSourcePixels = 16;
+
+    /// <summary>Shows the rim on the inner edge (top for a bottom bar) and runs it only while useful.</summary>
+    private void ConfigureRefraction(DockSettings settings, bool topEdge)
+    {
+        var on = settings.LiquidRefraction && _viewModel.Backdrop == BackdropKind.NativeAcrylic;
+        RefractionRim.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
+        RefractionRim.VerticalAlignment = topEdge ? VerticalAlignment.Bottom : VerticalAlignment.Top;
+        RefractionMask.StartPoint = topEdge ? new Point(0, 1) : new Point(0, 0);
+        RefractionMask.EndPoint = topEdge ? new Point(0, 0) : new Point(0, 1);
+        UpdateRefractionTimer();
+    }
+
+    private void UpdateRefractionTimer()
+    {
+        var run = RefractionRim.Visibility == Visibility.Visible && IsVisible && !_fullscreenHidden && _bounds.Width > 0;
+        if (run && !_refractionTimer.IsEnabled)
+        {
+            _refractionTimer.Start();
+        }
+        else if (!run && _refractionTimer.IsEnabled)
+        {
+            _refractionTimer.Stop();
+        }
+    }
+
+    /// <summary>
+    /// Copies the strip of screen just beyond the bar's inner edge (never the bar itself) and shows
+    /// it mirrored in the rim, squeezed from 16 px into 12: the bend of light at a curved edge.
+    /// </summary>
+    private void UpdateRefraction()
+    {
+        if (!IsVisible || _fullscreenHidden || _monitor is null)
+        {
+            UpdateRefractionTimer();
+            return;
+        }
+
+        var glass = Root.TransformToAncestor(this).TransformBounds(new Rect(0, 0, Root.ActualWidth, Root.ActualHeight));
+        var scale = _monitor.DpiScale > 0 ? _monitor.DpiScale : 1;
+        var x = _bounds.X + (int)Math.Round(glass.X * scale);
+        var width = Math.Max(1, (int)Math.Round(glass.Width * scale));
+        var topEdge = _settings.Current.Edge == DockEdge.Top;
+        var y = topEdge
+            ? _bounds.Y + (int)Math.Round(glass.Bottom * scale)
+            : _bounds.Y + (int)Math.Round(glass.Y * scale) - RefractionSourcePixels;
+        var region = new PixelRect(x, y, width, RefractionSourcePixels);
+
+        // Nothing beyond the screen edge to bend (e.g. a bar at the very top).
+        var screen = _monitor.Bounds;
+        if (region.Y < screen.Y || region.Bottom > screen.Bottom)
+        {
+            return;
+        }
+
+        var size = width * RefractionSourcePixels * 4;
+        if (_refractionPixels.Length != size)
+        {
+            _refractionPixels = new byte[size];
+            _refractionShown = new byte[size];
+            _refractionBitmap = new System.Windows.Media.Imaging.WriteableBitmap(width, RefractionSourcePixels, 96, 96, PixelFormats.Bgr32, null);
+            RefractionBrush.ImageSource = _refractionBitmap;
+        }
+
+        // Only touch the bitmap when the strip changed: an unchanged screen costs no re-render.
+        if (_stripCapture.Capture(region, _refractionPixels) && !_refractionPixels.AsSpan().SequenceEqual(_refractionShown))
+        {
+            _refractionBitmap!.WritePixels(new Int32Rect(0, 0, width, RefractionSourcePixels), _refractionPixels, width * 4, 0);
+            (_refractionShown, _refractionPixels) = (_refractionPixels, _refractionShown);
         }
     }
 

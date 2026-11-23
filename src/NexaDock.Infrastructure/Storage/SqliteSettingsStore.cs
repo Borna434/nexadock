@@ -124,6 +124,37 @@ public sealed class SqliteSettingsStore : ISettingsStore, IKeyValueStore
         }
     }
 
+    public IReadOnlyDictionary<string, string> GetAll()
+    {
+        var result = new Dictionary<string, string>(StringComparer.Ordinal);
+        lock (_gate)
+        {
+            if (!File.Exists(_databasePath))
+            {
+                return result;
+            }
+
+            try
+            {
+                using var connection = Open();
+                EnsureSchema(connection);
+                using var cmd = connection.CreateCommand();
+                cmd.CommandText = "SELECT key, value FROM settings WHERE key LIKE 'data.%';";
+                using var reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    result[reader.GetString(0)[DataKeyPrefix.Length..]] = reader.GetString(1);
+                }
+            }
+            catch (SqliteException ex)
+            {
+                _logger.LogWarning(ex, "Reading stored data failed.");
+            }
+        }
+
+        return result;
+    }
+
     /// <summary>Stores (or with <c>null</c> deletes) widget content under <c>data.{key}</c>.</summary>
     public void Set(string key, string? value)
     {

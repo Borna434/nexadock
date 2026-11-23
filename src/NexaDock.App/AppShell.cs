@@ -103,6 +103,18 @@ public sealed class AppShell : IAppShell
     public void Notify(string title, string message) =>
         _services.GetRequiredService<TrayIconService>().ShowNotification(title, message, isError: false);
 
+    public void Restart()
+    {
+        _logger.LogInformation("Restart requested.");
+        var exe = Environment.ProcessPath;
+        if (exe is not null)
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(exe, $"--wait-for {Environment.ProcessId}") { UseShellExecute = false });
+        }
+
+        Exit();
+    }
+
     public void Exit()
     {
         _logger.LogInformation("Exit requested.");

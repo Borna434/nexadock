@@ -40,6 +40,21 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
+        // Restart (after a restore or an update): wait until the previous instance has gone.
+        var waitIndex = Array.FindIndex(e.Args, a => string.Equals(a, "--wait-for", StringComparison.OrdinalIgnoreCase));
+        if (waitIndex >= 0 && waitIndex + 1 < e.Args.Length && int.TryParse(e.Args[waitIndex + 1], out var previousPid))
+        {
+            try
+            {
+                using var previous = System.Diagnostics.Process.GetProcessById(previousPid);
+                previous.WaitForExit(20_000);
+            }
+            catch (ArgumentException)
+            {
+                // Already gone.
+            }
+        }
+
         _singleInstance = new Mutex(initiallyOwned: true, ProductInfo.SingleInstanceMutexName, out var isFirst);
         if (isFirst && e.Args.Contains("--exit", StringComparer.OrdinalIgnoreCase))
         {
@@ -92,6 +107,8 @@ public partial class App : Application
         services.AddSingleton<NexaDock.Core.Calendar.ICalendarSource, NexaDock.Infrastructure.Calendar.IcsCalendarSource>();
         services.AddSingleton<NexaDock.Core.Calendar.IGoogleCalendarService, NexaDock.Infrastructure.Calendar.GoogleCalendarClient>();
         services.AddSingleton<CalendarFeed>();
+        services.AddSingleton<NexaDock.Core.Updates.IUpdateSource, NexaDock.Infrastructure.Updates.GitHubUpdateSource>();
+        services.AddSingleton<UpdateService>();
         services.AddSingleton<TrayIconHost>();
         services.AddSingleton<NexaDock.Core.Usage.IClaudeUsageSource, NexaDock.Infrastructure.Usage.ClaudeLogReader>();
         services.AddSingleton<ProfileCoordinator>();
@@ -101,6 +118,7 @@ public partial class App : Application
         services.AddSingleton<IMonitorProvider, Win32MonitorProvider>();
         services.AddSingleton<IBackdropService, DwmBackdropService>();
         services.AddSingleton<IDockWindowHost, Win32DockWindowHost>();
+        services.AddTransient<IScreenStripCapture, ScreenStripCapture>();
         services.AddSingleton<IIconProvider, ShellIconProvider>();
         services.AddSingleton<IAppLauncher, ShellAppLauncher>();
         services.AddSingleton<IShortcutCatalog, ShortcutCatalog>();
@@ -156,6 +174,7 @@ public partial class App : Application
         var shell = _host.Services.GetRequiredService<AppShell>();
         shell.ShowDock();
         _host.Services.GetRequiredService<BarManager>().Start();
+        _host.Services.GetRequiredService<UpdateService>().Start();
         _host.Services.GetRequiredService<TrayIconService>().Show();
         ApplyTrayTexts();
         _host.Services.GetRequiredService<ProfileCoordinator>().Start();

@@ -18,6 +18,30 @@ public partial class SettingsWindow : Window
         // Show as much as possible without scrolling, but never exceed the work area.
         Height = Math.Min(Height, SystemParameters.WorkArea.Height - 48);
         viewModel.PickFiles = PickFiles;
+        viewModel.PickBackupSaveFile = () =>
+        {
+            var dialog = new SaveFileDialog
+            {
+                Title = Localization.Loc.T("backup.export"),
+                Filter = Localization.Loc.T("backup.filter"),
+                FileName = $"NexaDock-{DateTime.Now:yyyy-MM-dd}.nexadock",
+                DefaultExt = ".nexadock",
+                InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+            };
+            return dialog.ShowDialog(this) == true ? dialog.FileName : null;
+        };
+        viewModel.PickBackupOpenFile = () =>
+        {
+            var dialog = new OpenFileDialog
+            {
+                Title = Localization.Loc.T("backup.import"),
+                Filter = Localization.Loc.T("backup.filter"),
+                CheckFileExists = true,
+                InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+            };
+            return dialog.ShowDialog(this) == true ? dialog.FileName : null;
+        };
+        viewModel.Confirm = text => MessageBox.Show(this, text, Title, MessageBoxButton.OKCancel, MessageBoxImage.Question) == MessageBoxResult.OK;
         Closed += (_, _) => _viewModel.Dispose();
     }
 

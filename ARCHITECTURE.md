@@ -5,7 +5,7 @@
 ```
 NexaDock.slnx
 ├─ src/NexaDock.Core            net10.0                    Models, interfaces, widget catalog, pure logic
-├─ src/NexaDock.Infrastructure  net10.0                    SQLite settings store, file logger, data paths
+├─ src/NexaDock.Infrastructure  net10.0                    SQLite store, logger, calendars (iCal, Google), GitHub updates
 ├─ src/NexaDock.Windows         net10.0-windows10.0.19041  Win32/DWM/shell/WinRT integration, tray icon
 ├─ src/NexaDock.UI              net10.0-windows10.0.19041  WPF views, widgets, view models (CommunityToolkit.Mvvm)
 ├─ src/NexaDock.App             net10.0-windows10.0.19041  Composition root and lifetime (Microsoft.Extensions.Hosting)
@@ -241,9 +241,89 @@ A window counts as full screen only when two things hold:
 The bar is only hidden or shown after it has finished loading. A `Hide()` during the first `Show()`
 used to leave an empty glass window.
 
+## Phase 4 additions
+
+### Layout around the centred apps
+
+- **Placement math (`Core/Layout/BarLayout`):**
+  - The Apps tile (`IsCentered`) is centred on the full bar width.
+  - Tiles before it are packed from the left edge, tiles after it are packed to the right edge.
+  - A flexible space takes its side's free width.
+  - A long side moves the apps over just enough to fit.
+  - When everything still doesn't fit, tiles are hidden from the outer ends (right side first). The apps are never hidden.
+  - `BarPanel` only applies the result.
+- **Widget order (`Core/Widgets/WidgetArranger`):**
+  - Left of the apps: glance and productivity widgets, with Now Playing nearest the apps because its width changes.
+  - Right of the apps: Pulse first (it comes and goes), then status, the clock and Show Desktop.
+  - Used for the default layout, the profile templates and "Arrange widgets", and to place newly added widgets.
+  - Existing layouts were arranged once on upgrade.
+- **Edge to edge:** with full width and no gap the bar is "flush".
+  - DWM corners are set to square.
+  - The rim becomes a single line on the inner side.
+  - The app bar reserves exactly the edge gap plus the glass, so maximised windows end where the glass begins.
+
+### Several bars
+
+- `BarTarget` says which bar a `DockWindow` and `DockViewModel` are: the main bar (null display) or one secondary display.
+- **`BarManager` (App):**
+  - Creates one extra bar per non-main display while `ShowOnAllDisplays` is on.
+  - Adds and removes bars when displays change.
+  - Hides and shows them with the main bar.
+- **Layouts:** extra bars read and write their own layout through `Core/Layout/BarLayouts` (`DisplayLayouts` in settings). The default is the apps and the clock.
+- **Apps on extra bars:** the Apps widget lists only windows on its display (`IWindowTracker.GetMonitorDeviceName`). It re-checks every 1.5 s because windows can move without an event.
+- **App bars:** `Win32DockWindowHost` keeps one app bar registration per bar window.
+
+### Notification icons
+
+- **Hosting:** `TrayIconHost` hosts the notification area with ManagedShell (`TrayService`, `NotificationArea`, `ExplorerTrayService`).
+  - Its own `Shell_TrayWnd` stays first in z-order so `Shell_NotifyIcon` reaches it.
+  - Windows keeps its own copy of every icon, so nothing is lost if NexaDock stops.
+- **Input:** `TrayIconButton` forwards hover, clicks and right-clicks to the owning app. It sets the icon's screen rectangle and allows the app to take the foreground.
+- **App bar messages.** `SHAppBarMessage` talks to the first `Shell_TrayWnd`, which is ours while icons are hosted, and Windows ignores app bar messages that loop back into the sending process. So that the reservation still reaches Windows:
+  - For each app bar call, our tray window steps below Explorer's and is raised again afterwards.
+  - Positions are sent only when they change.
+  - Icon hosting starts 1.5 s after the bars settle, so icons that apps re-add at startup are not missed.
+
+### Calendars
+
+- **Model:** `Core/Calendar` holds `CalendarEvent` (with calendar name and colour), the agenda logic, `ICalendarSource` (iCal links) and `IGoogleCalendarService`.
+- **`IcsCalendarSource`:** Ical.Net expands recurring events and time zones. The calendar name comes from `X-WR-CALNAME`, and each link gets a colour.
+- **`GoogleCalendarClient`:**
+  - Signs in with OAuth 2.0 for installed apps, using PKCE and a loopback redirect in the user's browser, with the `calendar.readonly` scope.
+  - The OAuth client is the user's own, created once in Google Cloud.
+  - The refresh token and client secret are stored with DPAPI for the current Windows user. Sign-out revokes the token.
+  - It reads the calendar list (names, colours, Google's own visibility) and events with `singleEvents=true`.
+  - An expired or revoked sign-in raises `GoogleSignInExpiredException`. The feed remembers that and raises a Pulse until the user signs in again.
+- **`CalendarFeed` (UI):** combines both sources and refreshes every 10 minutes. It drives the agenda in the Clock and Day Number cards, the Up Next widget, the month dots, the meeting Pulse and Settings › Calendars.
+
+### Liquid glass
+
+- **Static layers:** these are plain WPF brushes over the DWM blur, so nothing renders while the bar is idle:
+  - a specular hairline
+  - lens depth (a darker lower inner edge)
+  - diagonal edge light on the floating bar and on tiles
+- **Pointer light:** a radial light that follows the pointer while it is over the bar.
+- **Refraction (opt-in, `LiquidRefraction`):**
+  - Ten times a second `ScreenStripCapture` BitBlts the 16-pixel strip just beyond the inner edge. It never captures the bar itself, so the bar stays visible in screenshots.
+  - The strip is shown mirrored and squeezed into the rim.
+  - The bitmap is updated only when the strip changed, and the timer runs only while the bar is visible.
+  - Measured: about 0.16 % CPU and 0.01 % GPU.
+
+### Backup, restart and updates
+
+- **Backup:** `Core/Settings/SettingsBackup` writes a JSON file with the settings and widget data.
+  - Google sign-ins are left out.
+  - On restore, machine-specific values (startup, saved taskbar state) are kept from this PC.
+  - NexaDock restarts after a restore (`IAppShell.Restart`, which starts `NexaDock.exe --wait-for <pid>`).
+- **Updates:**
+  - `GitHubUpdateSource` reads the latest release of `ProductInfo.UpdateRepository` and offers it only with `NexaDock-win-x64.zip` and its SHA-256 (GitHub's asset digest or a `.sha256` file).
+  - `UpdateService` checks 2 minutes after start and then every 12 hours, and tells the user through Pulse.
+  - To install, it downloads the package, checks the hash and unpacks it. A small PowerShell script waits for NexaDock to exit, copies the files over `%LOCALAPPDATA%\Programs\NexaDock` and starts it again. Data in `%LOCALAPPDATA%\NexaDock` is untouched.
+  - `tools/package.ps1` builds the package and the hash file.
+
 ## Tests
 
-`tests/NexaDock.Tests` has 106 tests covering:
+`tests/NexaDock.Tests` has 165 tests covering:
 
 - **Placement:** full width and compact, edges, DPI, monitor bounds vs work area, padding, the
   reserved strip.
@@ -258,3 +338,9 @@ used to leave an empty glass window.
 - **Local data:** key/value persistence next to settings.
 - **Claude usage:** 5-hour windows, summary, model names, compact numbers; log parsing, deduplication, incremental reads of partly written lines, retention.
 - **Localization:** both languages complete, placeholders match, and every key used in the source exists.
+- **Bar layout:** centred apps for any width, both edges, a long side, overflow from the outer ends.
+- **Widget arrangement:** the old layout, idempotence, insert positions, the default layout.
+- **Displays:** default and own layouts per display, saving, old settings.
+- **Calendars:** iCal recurrence, time zones, exclusions, all-day and cancelled events, feed names; Google event mapping; agenda, next event and day dots.
+- **Backup:** round trip without sign-ins, machine values kept, invalid files rejected.
+- **Updates:** release tags, pre-releases, version comparison.
