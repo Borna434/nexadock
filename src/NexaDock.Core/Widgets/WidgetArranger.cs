@@ -32,6 +32,7 @@ public static class WidgetArranger
         WidgetTypes.Stopwatch,
         WidgetTypes.Todos,
         WidgetTypes.Notes,
+        WidgetTypes.Clipboard,
         WidgetTypes.DayProgress,
         WidgetTypes.NowPlaying,
     ];

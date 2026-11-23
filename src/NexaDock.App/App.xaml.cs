@@ -25,6 +25,7 @@ public partial class App : Application
 {
     private const string CenteredLayoutKey = "layout.centered.v1";
     private const string TrayAddedKey = "layout.tray.v1";
+    private const string ClipboardAddedKey = "layout.clipboard.v1";
 
     private IHost? _host;
     private Mutex? _singleInstance;
@@ -110,6 +111,8 @@ public partial class App : Application
         services.AddSingleton<NexaDock.Core.Launcher.IAppIndex, ShellAppIndex>();
         services.AddSingleton<NexaDock.Core.Launcher.IFileSearch, WindowsFileSearch>();
         services.AddSingleton<IGlobalHotkey, GlobalHotkeyService>();
+        services.AddSingleton<IClipboardMonitor, ClipboardMonitor>();
+        services.AddSingleton<ClipboardService>();
         services.AddSingleton<LauncherViewModel>();
         services.AddSingleton<LauncherWindow>();
         services.AddSingleton<NexaDock.Core.Updates.IUpdateSource, NexaDock.Infrastructure.Updates.GitHubUpdateSource>();
@@ -290,6 +293,29 @@ public partial class App : Application
             _logger?.LogInformation("Added the notification icons widget.");
         }
 
+        if (store.Get(ClipboardAddedKey) is null)
+        {
+            static IReadOnlyList<Core.Models.WidgetPlacement> WithClipboard(IReadOnlyList<Core.Models.WidgetPlacement> widgets)
+            {
+                if (widgets.Any(w => w.TypeId == WidgetTypes.Clipboard) || !widgets.Any(w => w.TypeId == WidgetTypes.Apps))
+                {
+                    return widgets;
+                }
+
+                var list = widgets.ToList();
+                list.Insert(WidgetArranger.InsertIndex(list, WidgetTypes.Clipboard), Core.Models.WidgetPlacement.Create(WidgetTypes.Clipboard));
+                return list;
+            }
+
+            settings.Update(s => s with
+            {
+                Widgets = WithClipboard(s.Widgets),
+                Profiles = s.Profiles.Select(p => p with { Widgets = WithClipboard(p.Widgets) }).ToList(),
+            });
+            settings.Flush();
+            store.Set(ClipboardAddedKey, "1");
+        }
+
         // The Run key is the source of truth (the user may disable startup in Task Manager).
         var startup = services.GetRequiredService<IStartupRegistration>().IsEnabled;
         if (startup != settings.Current.LaunchAtStartup)
@@ -347,11 +373,27 @@ public partial class App : Application
         var hotkey = _host!.Services.GetRequiredService<IGlobalHotkey>();
         hotkey.Pressed += (_, _) => shell.ToggleLauncher();
         hotkey.Register(settings.Current.LauncherHotkey);
+
+        // Clipboard history and its shortcut follow their settings too.
+        var clipboard = _host.Services.GetRequiredService<ClipboardService>();
+        hotkey.ClipboardPressed += (_, _) => shell.ToggleClipboard();
+        clipboard.SetEnabled(settings.Current.ClipboardHistory);
+        hotkey.RegisterClipboard(settings.Current.ClipboardHotkey);
         settings.Changed += (_, args) =>
         {
             if (args.Previous.LauncherHotkey != args.Current.LauncherHotkey)
             {
                 hotkey.Register(args.Current.LauncherHotkey);
+            }
+
+            if (args.Previous.ClipboardHistory != args.Current.ClipboardHistory)
+            {
+                clipboard.SetEnabled(args.Current.ClipboardHistory);
+            }
+
+            if (args.Previous.ClipboardHotkey != args.Current.ClipboardHotkey)
+            {
+                hotkey.RegisterClipboard(args.Current.ClipboardHotkey);
             }
         };
     }

@@ -63,8 +63,19 @@ public sealed partial class LauncherViewModel : ObservableObject
     private CancellationTokenSource? _fileCts;
     private int _iconSize = 32;
 
-    public LauncherViewModel(IAppIndex apps, IFileSearch files, IIconProvider icons, IAppLauncher launcher, IKeyValueStore store, ILogger<LauncherViewModel> logger)
+    private readonly Services.ClipboardService _clipboard;
+    private IntPtr _pasteTarget;
+
+    public LauncherViewModel(IAppIndex apps, IFileSearch files, IIconProvider icons, IAppLauncher launcher, IKeyValueStore store, Services.ClipboardService clipboard, ILogger<LauncherViewModel> logger)
     {
+        _clipboard = clipboard;
+        _clipboard.Changed += (_, _) =>
+        {
+            if (IsClipboardMode)
+            {
+                Update();
+            }
+        };
         _apps = apps;
         _files = files;
         _icons = icons;
@@ -86,18 +97,34 @@ public sealed partial class LauncherViewModel : ObservableObject
     [ObservableProperty] private string _hint = string.Empty;
     [ObservableProperty] private bool _hasRows;
 
+    /// <summary>Win+Alt+V: the same window lists the clipboard history instead.</summary>
+    [ObservableProperty] private bool _isClipboardMode;
+
+    [ObservableProperty] private string _placeholder = string.Empty;
+
     /// <summary>Raised when the launcher should close (after running something).</summary>
     public event EventHandler? Done;
 
     public void SetDpiScale(double scale) => _iconSize = Math.Clamp((int)Math.Round(24 * scale), 16, 64);
 
     /// <summary>Called when the window opens: start fresh and make sure the app list is loaded.</summary>
-    public async void Open()
+    /// <param name="clipboard">Open the clipboard history instead of search.</param>
+    /// <param name="pasteTarget">The window that was in front; clipboard entries are pasted there.</param>
+    public async void Open(bool clipboard = false, IntPtr pasteTarget = default)
     {
+        IsClipboardMode = clipboard;
+        _pasteTarget = pasteTarget;
+        Placeholder = Loc.T(clipboard ? "clipboard.placeholder" : "launcher.placeholder");
         Query = string.Empty;
-        Hint = Loc.T("launcher.hint");
+        Hint = Loc.T(clipboard ? "clipboard.hint" : "launcher.hint");
         Rows.Clear();
         HasRows = false;
+        if (clipboard)
+        {
+            Update();
+            return;
+        }
+
         try
         {
             _appList = await _apps.GetAppsAsync(CancellationToken.None);
@@ -112,6 +139,11 @@ public sealed partial class LauncherViewModel : ObservableObject
     partial void OnQueryChanged(string value)
     {
         Update();
+        if (IsClipboardMode)
+        {
+            return;
+        }
+
         _fileCts?.Cancel();
         _fileDelay.Stop();
         if (value.Trim().Length >= 2)
@@ -122,6 +154,27 @@ public sealed partial class LauncherViewModel : ObservableObject
 
     private void Update()
     {
+        if (IsClipboardMode)
+        {
+            var selectedId = Selected?.Result.Target;
+            Rows.Clear();
+            foreach (var clip in _clipboard.View(Query))
+            {
+                var result = new LauncherResult(clip.Preview, clip.Detail, LauncherItemKind.Clip, clip.Id, 0);
+                var glyph = Core.Widgets.WidgetCatalog.Glyph(clip.IsPinned ? 0xE718 : 0xE77F);
+                Rows.Add(new LauncherRow(result, clip.Thumbnail, glyph, clip.IsPinned ? Loc.F("clipboard.pinnedDetail", clip.Detail) : clip.Detail));
+            }
+
+            Select(Math.Max(0, Rows.ToList().FindIndex(r => r.Result.Target == selectedId)));
+            HasRows = Rows.Count > 0;
+            if (Rows.Count == 0)
+            {
+                Hint = Loc.T(_clipboard.IsEnabled ? "clipboard.empty" : "clipboard.off");
+            }
+
+            return;
+        }
+
         var results = LauncherEngine.Query(Query, _appList, _usage, Loc.Instance.Culture);
         var keepFiles = Rows.Where(r => r.Result.Kind is LauncherItemKind.File or LauncherItemKind.Folder).ToList();
         Rows.Clear();
@@ -250,6 +303,13 @@ public sealed partial class LauncherViewModel : ObservableObject
         }
 
         var r = row.Result;
+        if (r.Kind == LauncherItemKind.Clip)
+        {
+            Done?.Invoke(this, EventArgs.Empty); // hide first, so the paste lands in the app
+            _clipboard.Paste(r.Target!, _pasteTarget);
+            return;
+        }
+
         try
         {
             switch (r.Kind)
@@ -279,6 +339,23 @@ public sealed partial class LauncherViewModel : ObservableObject
         }
 
         Done?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>Clipboard mode: pin or delete the selected entry (Ctrl+P, Shift+Delete).</summary>
+    public void PinSelected()
+    {
+        if (IsClipboardMode && Selected?.Result.Target is { } id)
+        {
+            _clipboard.TogglePin(_clipboard.View(null).FirstOrDefault(c => c.Id == id));
+        }
+    }
+
+    public void DeleteSelected()
+    {
+        if (IsClipboardMode && Selected?.Result.Target is { } id)
+        {
+            _clipboard.Delete(_clipboard.View(null).FirstOrDefault(c => c.Id == id));
+        }
     }
 
     private void Count(string target)

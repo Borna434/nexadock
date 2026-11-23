@@ -61,6 +61,7 @@ public static class WidgetTypes
     // Phase 4
     public const string Agenda = "agenda";
     public const string Tray = "tray";
+    public const string Clipboard = "clipboard";
 }
 
 public static class WidgetCatalog
@@ -105,6 +106,8 @@ public static class WidgetCatalog
             "Your next open task with a progress ring; tick it off from the bar.", Glyph(0xE9D5)),
         new(WidgetTypes.Notes, "Notes", WidgetCategory.Productivity,
             "A quick note, one click from editing.", Glyph(0xE70B)),
+        new(WidgetTypes.Clipboard, "Clipboard", WidgetCategory.Productivity,
+            "What you copied lately, text and images; click to paste, pin what you reuse.", Glyph(0xE77F)),
 
         // Media
         new(WidgetTypes.Volume, "Volume", WidgetCategory.Media,

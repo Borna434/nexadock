@@ -89,10 +89,33 @@ public interface IBackdropService
     void SetRoundedCorners(IntPtr hwnd, bool rounded);
 }
 
-/// <summary>The system-wide shortcut that opens the launcher.</summary>
+/// <summary>Text or an image that was copied.</summary>
+public sealed record ClipCapture(string? Text, byte[]? Png, int Width, int Height);
+
+/// <summary>Watches the clipboard and puts entries back on it.</summary>
+public interface IClipboardMonitor
+{
+    event EventHandler<ClipCapture>? Captured;
+
+    void Start();
+
+    void Stop();
+
+    /// <summary>Puts text on the clipboard without recording it as a new copy.</summary>
+    void SetText(string text);
+
+    void SetImage(byte[] png);
+}
+
+/// <summary>The system-wide shortcuts: the launcher and the clipboard history.</summary>
 public interface IGlobalHotkey
 {
     event EventHandler? Pressed;
+
+    event EventHandler? ClipboardPressed;
+
+    /// <summary>Win+Alt+V for the clipboard history; false when another app has it.</summary>
+    bool RegisterClipboard(bool enabled);
 
     /// <summary>False when another app already uses the combination.</summary>
     bool Register(LauncherHotkey hotkey);
@@ -198,6 +221,9 @@ public interface IShellCommands
     void OpenTaskManager();
 
     void OpenDateTimeSettings();
+
+    /// <summary>Brings a window to the front and presses Ctrl+V in it.</summary>
+    void PasteInto(IntPtr window);
 }
 
 /// <summary>Raw 32-bit BGRA (premultiplied) pixels for an icon.</summary>
@@ -451,6 +477,9 @@ public interface IAppShell
 
     /// <summary>Opens (or closes) the launcher: search apps, files and quick answers.</summary>
     void ToggleLauncher();
+
+    /// <summary>Opens (or closes) the clipboard history window.</summary>
+    void ToggleClipboard();
 
     /// <summary>Closes NexaDock cleanly and starts it again (after a restore or an update).</summary>
     void Restart();

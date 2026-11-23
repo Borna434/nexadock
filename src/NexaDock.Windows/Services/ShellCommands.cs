@@ -39,6 +39,21 @@ public sealed class ShellCommands : IShellCommands
         }
     }
 
+    public void PasteInto(IntPtr window)
+    {
+        if (window != IntPtr.Zero)
+        {
+            SetForegroundWindow(window);
+        }
+
+        // Give the target a moment to take focus before the keys arrive.
+        System.Threading.Thread.Sleep(80);
+        Chord(0x11 /* VK_CONTROL */, (ushort)'V');
+    }
+
+    [DllImport("user32.dll")]
+    private static extern bool SetForegroundWindow(IntPtr hwnd);
+
     /// <summary>Presses the keys in order, then releases them in reverse order.</summary>
     private void Chord(params ushort[] keys)
     {

@@ -231,6 +231,12 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     [ObservableProperty] private double _edgeOffset;
     [ObservableProperty] private bool _reducedMotion;
     [ObservableProperty] private bool _liquidRefraction;
+    [ObservableProperty] private bool _clipboardHistory;
+    [ObservableProperty] private bool _clipboardHotkey;
+
+    partial void OnClipboardHistoryChanged(bool value) => Apply(s => s with { ClipboardHistory = value });
+
+    partial void OnClipboardHotkeyChanged(bool value) => Apply(s => s with { ClipboardHotkey = value });
     [ObservableProperty] private LauncherHotkeyOption? _selectedLauncherHotkey;
 
     /// <summary>Shortcuts the launcher can use.</summary>
@@ -554,6 +560,8 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
             EdgeOffset = s.EdgeOffset;
             ReducedMotion = s.ReducedMotion;
             LiquidRefraction = s.LiquidRefraction;
+            ClipboardHistory = s.ClipboardHistory;
+            ClipboardHotkey = s.ClipboardHotkey;
             SelectedLauncherHotkey = LauncherHotkeys.FirstOrDefault(h => h.Value == s.LauncherHotkey);
             Use24HourClock = s.Use24HourClock;
             ReplaceTaskbar = s.ReplaceTaskbar;

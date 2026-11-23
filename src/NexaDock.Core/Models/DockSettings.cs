@@ -108,6 +108,12 @@ public sealed record DockSettings
     /// <summary>Shortcut for the launcher (apps, files, calculator, unit conversion, web).</summary>
     public LauncherHotkey LauncherHotkey { get; init; } = LauncherHotkey.AltSpace;
 
+    /// <summary>Remember what is copied (text across restarts, images for the session).</summary>
+    public bool ClipboardHistory { get; init; } = true;
+
+    /// <summary>Win+Alt+V opens the clipboard history.</summary>
+    public bool ClipboardHotkey { get; init; } = true;
+
     public bool Use24HourClock { get; init; } = true;
 
     public AppLanguage Language { get; init; } = AppLanguage.System;
@@ -185,6 +191,8 @@ public sealed record DockSettings
         && ReducedMotion == other.ReducedMotion
         && LiquidRefraction == other.LiquidRefraction
         && LauncherHotkey == other.LauncherHotkey
+        && ClipboardHistory == other.ClipboardHistory
+        && ClipboardHotkey == other.ClipboardHotkey
         && Use24HourClock == other.Use24HourClock
         && Language == other.Language
         && ReplaceTaskbar == other.ReplaceTaskbar

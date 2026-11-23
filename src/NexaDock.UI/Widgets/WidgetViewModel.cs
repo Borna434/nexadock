@@ -77,6 +77,11 @@ public abstract partial class WidgetViewModel : ObservableObject, IDisposable
     /// <summary>The secondary display this widget's bar is on; null on the main bar.</summary>
     public string? Display { get; private set; }
 
+    /// <summary>The widget asks the bar to close its card (e.g. after pasting).</summary>
+    public event EventHandler? CloseCardRequested;
+
+    protected void RequestCloseCard() => CloseCardRequested?.Invoke(this, EventArgs.Empty);
+
     /// <summary>Set by the bar before <see cref="Start"/>.</summary>
     public void SetDisplay(string? display) => Display = display;
 
@@ -148,6 +153,7 @@ public sealed class WidgetFactory(IServiceProvider services)
         [WidgetTypes.Claude] = typeof(ClaudeWidget),
         [WidgetTypes.Agenda] = typeof(AgendaWidget),
         [WidgetTypes.Tray] = typeof(TrayWidget),
+        [WidgetTypes.Clipboard] = typeof(ClipboardWidget),
     };
 
     public static bool IsSupported(string typeId) => Types.ContainsKey(typeId);

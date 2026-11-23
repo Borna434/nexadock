@@ -26,6 +26,35 @@ public sealed class GlobalHotkeyService : IGlobalHotkey, IDisposable
 
     public event EventHandler? Pressed;
 
+    public event EventHandler? ClipboardPressed;
+
+    private const int ClipboardId = 0x4E45;
+    private const uint VK_V = 0x56;
+    private bool _clipboardRegistered;
+
+    public bool RegisterClipboard(bool enabled)
+    {
+        _window ??= CreateWindow();
+        if (_clipboardRegistered)
+        {
+            UnregisterHotKey(_window.Handle, ClipboardId);
+            _clipboardRegistered = false;
+        }
+
+        if (!enabled)
+        {
+            return true;
+        }
+
+        _clipboardRegistered = RegisterHotKey(_window.Handle, ClipboardId, MOD_WIN | MOD_ALT | MOD_NOREPEAT, VK_V);
+        if (!_clipboardRegistered)
+        {
+            _logger.LogWarning("Clipboard shortcut Win+Alt+V is taken by another app (error {Error}).", Marshal.GetLastWin32Error());
+        }
+
+        return _clipboardRegistered;
+    }
+
     public bool IsRegistered => _registered;
 
     public bool Register(LauncherHotkey hotkey)
@@ -77,6 +106,11 @@ public sealed class GlobalHotkeyService : IGlobalHotkey, IDisposable
             {
                 handled = true;
                 Pressed?.Invoke(this, EventArgs.Empty);
+            }
+            else if (msg == WM_HOTKEY && wParam.ToInt32() == ClipboardId)
+            {
+                handled = true;
+                ClipboardPressed?.Invoke(this, EventArgs.Empty);
             }
 
             return IntPtr.Zero;

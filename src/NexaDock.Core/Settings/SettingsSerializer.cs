@@ -61,6 +61,8 @@ public static class SettingsSerializer
                 ReducedMotion = ReadBool(root, nameof(DockSettings.ReducedMotion)) ?? d.ReducedMotion,
                 LiquidRefraction = ReadBool(root, nameof(DockSettings.LiquidRefraction)) ?? d.LiquidRefraction,
                 LauncherHotkey = ReadEnum(root, nameof(DockSettings.LauncherHotkey), d.LauncherHotkey),
+                ClipboardHistory = ReadBool(root, nameof(DockSettings.ClipboardHistory)) ?? d.ClipboardHistory,
+                ClipboardHotkey = ReadBool(root, nameof(DockSettings.ClipboardHotkey)) ?? d.ClipboardHotkey,
                 Use24HourClock = ReadBool(root, nameof(DockSettings.Use24HourClock)) ?? d.Use24HourClock,
                 ReplaceTaskbar = ReadBool(root, nameof(DockSettings.ReplaceTaskbar)) ?? d.ReplaceTaskbar,
                 HideInFullscreen = ReadBool(root, nameof(DockSettings.HideInFullscreen)) ?? d.HideInFullscreen,

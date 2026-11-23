@@ -490,6 +490,30 @@
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="{l:Loc behavior.clipboard}" Style="{StaticResource Label}" />
+                                    <TextBlock Text="{l:Loc behavior.clipboardHint}" Style="{StaticResource Hint}" TextWrapping="Wrap" />
+                                </StackPanel>
+                                <CheckBox Grid.Column="1" Style="{StaticResource Toggle}" IsChecked="{Binding ClipboardHistory}" AutomationProperties.Name="{l:Loc behavior.clipboard}" />
+                                <StackPanel Grid.Row="1" Margin="0,14,0,0">
+                                    <TextBlock Text="{l:Loc behavior.clipboardKey}" Style="{StaticResource Label}" />
+                                    <TextBlock Text="{l:Loc behavior.clipboardKeyHint}" Style="{StaticResource Hint}" TextWrapping="Wrap" />
+                                </StackPanel>
+                                <CheckBox Grid.Row="1" Grid.Column="1" Style="{StaticResource Toggle}" IsChecked="{Binding ClipboardHotkey}" Margin="0,14,0,0"
+                                          AutomationProperties.Name="{l:Loc behavior.clipboardKey}" />
+                            </Grid>
+                        </Border>
+
+                        <Border Style="{StaticResource Card}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
                                 <StackPanel>
                                     <TextBlock Text="{l:Loc behavior.allDisplays}" Style="{StaticResource Label}" />
                                     <TextBlock Text="{l:Loc behavior.allDisplaysHint}" Style="{StaticResource Hint}" />

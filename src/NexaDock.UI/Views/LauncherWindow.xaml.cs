@@ -67,19 +67,28 @@ public partial class LauncherWindow : Window
     }
 
     /// <summary>Opens on the display under the pointer, a fifth of the way down; closes if already open.</summary>
-    public void Toggle()
+    public void Toggle() => Toggle(clipboard: false);
+
+    /// <summary>Opens search, or the clipboard history; the same shortcut again closes it.</summary>
+    public void Toggle(bool clipboard)
     {
         if (IsVisible)
         {
+            var sameMode = _viewModel.IsClipboardMode == clipboard;
             Hide();
-            return;
+            if (sameMode)
+            {
+                return;
+            }
         }
+
+        var previous = GetForegroundWindow();
 
         GetCursorPos(out var p);
         var monitor = Core.Layout.MonitorSelector.FromPoint(_monitors.GetMonitors(), p.X, p.Y);
         var scale = monitor?.DpiScale > 0 ? monitor.DpiScale : 1;
         _viewModel.SetDpiScale(scale);
-        _viewModel.Open();
+        _viewModel.Open(clipboard, previous);
         if (monitor is not null)
         {
             var work = monitor.WorkArea;
@@ -123,6 +132,14 @@ public partial class LauncherWindow : Window
                 _viewModel.Activate(null, openFolder: Keyboard.Modifiers.HasFlag(ModifierKeys.Control));
                 e.Handled = true;
                 break;
+            case Key.P when Keyboard.Modifiers == ModifierKeys.Control && _viewModel.IsClipboardMode:
+                _viewModel.PinSelected();
+                e.Handled = true;
+                break;
+            case Key.Delete when Keyboard.Modifiers == ModifierKeys.Shift && _viewModel.IsClipboardMode:
+                _viewModel.DeleteSelected();
+                e.Handled = true;
+                break;
         }
     }
 
@@ -151,6 +168,7 @@ public partial class LauncherWindow : Window
 
     [DllImport("user32.dll")] private static extern bool GetCursorPos(out POINT p);
     [DllImport("user32.dll")] private static extern bool SetForegroundWindow(IntPtr hwnd);
+    [DllImport("user32.dll")] private static extern IntPtr GetForegroundWindow();
     [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")] private static extern IntPtr GetWindowLongPtr(IntPtr hwnd, int index);
     [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW")] private static extern IntPtr SetWindowLongPtr(IntPtr hwnd, int index, IntPtr value);
 }

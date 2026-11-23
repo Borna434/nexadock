@@ -1486,4 +1486,67 @@
         </DataTemplate.Triggers>
     </DataTemplate>
 
+    <!-- ====================================================================================== -->
+    <!-- Clipboard history                                                                       -->
+    <!-- ====================================================================================== -->
+
+    <DataTemplate x:Key="ClipboardWidget.Tile" DataType="{x:Type w:ClipboardWidget}">
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+            <TextBlock Text="&#xE77F;" FontFamily="{StaticResource IconFont}" FontSize="15" Foreground="{DynamicResource Bar.Accent}" VerticalAlignment="Center" />
+            <TextBlock Text="{Binding Clipboard.Count}" Style="{StaticResource Bar.Text}" FontSize="12.5" Margin="7,0,0,0" VerticalAlignment="Center" />
+        </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate x:Key="ClipboardWidget.Card" DataType="{x:Type w:ClipboardWidget}">
+        <StackPanel Width="340" DataContext="{Binding Clipboard}">
+            <Grid>
+                <TextBlock Text="{l:Loc widget.clipboard.name}" Style="{StaticResource Card.Title}" />
+                <Button Style="{StaticResource Card.Button}" Content="{l:Loc clipboard.clear}" HorizontalAlignment="Right" Command="{Binding ClearAllCommand}" />
+            </Grid>
+            <TextBlock Text="{l:Loc clipboard.off}" Style="{StaticResource Card.Label}" TextWrapping="Wrap" TextTrimming="None" Margin="0,8,0,0"
+                       Visibility="{Binding IsEnabled, Converter={StaticResource InverseBoolToVisibility}}" />
+            <TextBox Style="{StaticResource Card.TextBox}" Margin="0,10,0,8" Tag="{l:Loc clipboard.search}"
+                     Text="{Binding Query, UpdateSourceTrigger=PropertyChanged}" />
+            <ItemsControl ItemsSource="{Binding Items}" MaxHeight="380">
+                <ItemsControl.Template>
+                    <ControlTemplate TargetType="ItemsControl">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto"><ItemsPresenter /></ScrollViewer>
+                    </ControlTemplate>
+                </ItemsControl.Template>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type svc:ClipRow}">
+                        <Grid Margin="0,2">
+                            <Button Style="{StaticResource Bar.PlainButton}" HorizontalContentAlignment="Stretch" Padding="8,6" Margin="0,0,56,0"
+                                    Command="{Binding DataContext.PasteRowCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                    CommandParameter="{Binding}" ToolTip="{l:Loc clipboard.pasteTip}">
+                                <StackPanel HorizontalAlignment="Left">
+                                    <Image Source="{Binding Thumbnail}" MaxHeight="64" MaxWidth="200" HorizontalAlignment="Left" Stretch="Uniform"
+                                           RenderOptions.BitmapScalingMode="HighQuality"
+                                           Visibility="{Binding IsImage, Converter={StaticResource BoolToVisibility}}" />
+                                    <TextBlock Text="{Binding Preview}" Style="{StaticResource Card.Body}" FontSize="12.5" TextWrapping="Wrap" MaxHeight="52" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{Binding Detail}" Style="{StaticResource Card.Label}" FontSize="10.5" />
+                                </StackPanel>
+                            </Button>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                <Button x:Name="Pin" Style="{StaticResource Bar.GlyphButton}" Width="26" Height="26" FontSize="11" Content="&#xE718;" Opacity="0.55"
+                                        Command="{Binding DataContext.TogglePinCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}"
+                                        ToolTip="{l:Loc clipboard.pin}" />
+                                <Button Style="{StaticResource Bar.GlyphButton}" Width="26" Height="26" FontSize="10" Content="&#xE74D;" Opacity="0.55"
+                                        Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}"
+                                        ToolTip="{l:Loc common.delete}" />
+                            </StackPanel>
+                        </Grid>
+                        <DataTemplate.Triggers>
+                            <DataTrigger Binding="{Binding IsPinned}" Value="True">
+                                <Setter TargetName="Pin" Property="Opacity" Value="1" />
+                                <Setter TargetName="Pin" Property="Foreground" Value="{DynamicResource Bar.Accent}" />
+                            </DataTrigger>
+                        </DataTemplate.Triggers>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <TextBlock Text="{l:Loc clipboard.cardHint}" Style="{StaticResource Card.Label}" FontSize="11" TextWrapping="Wrap" TextTrimming="None" Margin="0,8,0,0" />
+        </StackPanel>
+    </DataTemplate>
+
 </ResourceDictionary>

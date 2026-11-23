@@ -103,7 +103,9 @@ public sealed class AppShell : IAppShell
     public void Notify(string title, string message) =>
         _services.GetRequiredService<TrayIconService>().ShowNotification(title, message, isError: false);
 
-    public void ToggleLauncher() => _services.GetRequiredService<LauncherWindow>().Toggle();
+    public void ToggleLauncher() => _services.GetRequiredService<LauncherWindow>().Toggle(clipboard: false);
+
+    public void ToggleClipboard() => _services.GetRequiredService<LauncherWindow>().Toggle(clipboard: true);
 
     public void Restart()
     {

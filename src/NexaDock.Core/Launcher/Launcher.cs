@@ -11,6 +11,9 @@ public enum LauncherItemKind
     Calculation,
     Conversion,
     Web,
+
+    /// <summary>A clipboard history entry (Target holds its ID).</summary>
+    Clip,
 }
 
 /// <summary>One line in the launcher's results.</summary>

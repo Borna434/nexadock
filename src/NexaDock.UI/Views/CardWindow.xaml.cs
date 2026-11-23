@@ -85,6 +85,12 @@ public partial class CardWindow : Window
         {
             Current.IsCardOpen = false;
             Current.OnCardClosed();
+            Current.CloseCardRequested -= OnCloseRequested;
+        }
+
+        if (Current != widget)
+        {
+            widget.CloseCardRequested += OnCloseRequested;
         }
 
         Current = widget;
@@ -161,6 +167,8 @@ public partial class CardWindow : Window
         return null;
     }
 
+    private void OnCloseRequested(object? sender, EventArgs e) => CloseCard();
+
     public void CloseCard()
     {
         if (_keyboard)
@@ -173,6 +181,7 @@ public partial class CardWindow : Window
         _outsideClicks = null;
         if (Current is { } widget)
         {
+            widget.CloseCardRequested -= OnCloseRequested;
             widget.IsCardOpen = false;
             widget.OnCardClosed();
         }
