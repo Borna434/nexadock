@@ -179,8 +179,11 @@ powershell -ExecutionPolicy Bypass -File tools\uninstall.ps1
 powershell -ExecutionPolicy Bypass -File tools\package.ps1
 ```
 
-Publish them on GitHub as a release tagged `v<version>`, for example `v0.4.0`, matching
-`ProductInfo.Version`. Installed copies find the release, verify the SHA-256 and update themselves.
+Releases are automated: push a tag `v<version>` (for example `v0.4.1`) that matches
+`ProductInfo.Version` and `Directory.Build.props`. The **Release** workflow
+(`.github/workflows/release.yml`) tests, packages and publishes it, with notes from
+`docs/releases/v<version>.md`. Installed copies find the release, verify the SHA-256 and update
+themselves.
 
 GitHub only serves releases of a **public** repository without signing in. While the repository is
 private, update with `tools\install.ps1` instead.

@@ -1,0 +1,48 @@
+# Builds and publishes a NexaDock release when a version tag (v1.2.3) is pushed.
+# Installed copies find the release, check its SHA-256 and offer the update.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Check the tag matches the app version
+        shell: pwsh
+        run: |
+          $tag = '${{ github.ref_name }}'.TrimStart('v')
+          $app = (Select-String -Path src/NexaDock.Core/ProductInfo.cs -Pattern 'Version = "([^"]+)"').Matches[0].Groups[1].Value
+          $props = ([xml](Get-Content Directory.Build.props)).Project.PropertyGroup.Version
+          if ($tag -ne $app -or $tag -ne $props) {
+            throw "Tag v$tag does not match ProductInfo.Version ($app) and Directory.Build.props ($props)."
+          }
+
+      - name: Test
+        run: dotnet test tests/NexaDock.Tests/NexaDock.Tests.csproj -c Release
+
+      - name: Package
+        shell: pwsh
+        run: ./tools/package.ps1
+
+      - name: Publish the release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = '${{ github.ref_name }}'
+          $notes = "docs/releases/$tag.md"
+          $args = @($tag, 'dist/NexaDock-win-x64.zip', 'dist/NexaDock-win-x64.zip.sha256', '--title', "NexaDock $($tag.TrimStart('v'))")
+          if (Test-Path $notes) { $args += @('--notes-file', $notes) } else { $args += '--generate-notes' }
+          gh release create @args

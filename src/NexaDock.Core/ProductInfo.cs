@@ -5,7 +5,7 @@ public static class ProductInfo
 {
     public const string Name = "NexaDock";
     public const string Tagline = "Smart Liquid Glass bar for Windows";
-    public const string Version = "0.4.0";
+    public const string Version = "0.4.1";
     public const string Phase = "Phase 4";
 
     /// <summary>Folder under %LOCALAPPDATA% that holds the database and logs.</summary>
