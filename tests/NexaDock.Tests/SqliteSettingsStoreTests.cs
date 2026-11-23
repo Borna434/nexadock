@@ -28,9 +28,9 @@ public sealed class SqliteSettingsStoreTests : IDisposable
     {
         var saved = new DockSettings
         {
-            Theme = DockThemeId.Sage,
+            Theme = DockThemeId.Pearl,
             Edge = DockEdge.Top,
-            Width = 1111,
+            EdgeOffset = 0,
             ShortcutsInitialized = true,
             Shortcuts = [new DockShortcut("n", "Notepad", @"C:\Windows\notepad.exe")],
         };
@@ -73,8 +73,8 @@ public sealed class SqliteSettingsStoreTests : IDisposable
         Assert.Single(Directory.GetFiles(_dir, "settings.db.corrupt-*"));
 
         // The store is usable again afterwards.
-        store.Save(new DockSettings { Theme = DockThemeId.Ember });
-        Assert.Equal(DockThemeId.Ember, store.Load().Settings.Theme);
+        store.Save(new DockSettings { Theme = DockThemeId.Onyx });
+        Assert.Equal(DockThemeId.Onyx, store.Load().Settings.Theme);
     }
 
     [Fact]

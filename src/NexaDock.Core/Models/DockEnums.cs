@@ -15,14 +15,14 @@ public enum DockSizePreset
 
 public enum DockThemeId
 {
-    Frost = 0,
+    Glass = 0,
     Midnight = 1,
     Aurora = 2,
-    Ember = 3,
-    Sage = 4,
+    Onyx = 3,
+    Pearl = 4,
 }
 
-/// <summary>How the dock surface is rendered.</summary>
+/// <summary>How the bar surface is rendered.</summary>
 public enum BackdropKind
 {
     /// <summary>DWM system backdrop (acrylic blur) behind a translucent tint.</summary>

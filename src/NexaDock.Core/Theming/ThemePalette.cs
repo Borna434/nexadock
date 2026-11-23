@@ -3,6 +3,8 @@ using NexaDock.Core.Models;
 namespace NexaDock.Core.Theming;
 
 /// <summary>Framework-neutral colour palette (#RRGGBB / #AARRGGBB strings).</summary>
+/// <param name="TintStrength">Multiplier applied to the user's opacity for the base tint.</param>
+/// <param name="TileStrength">How strongly widget tiles stand out from the bar (0..1).</param>
 public sealed record ThemePalette(
     DockThemeId Id,
     string DisplayName,
@@ -14,38 +16,45 @@ public sealed record ThemePalette(
     string SecondaryForeground,
     string Accent,
     string Highlight,
-    string Glow);
+    string Glow,
+    double TintStrength,
+    double TileStrength);
 
 public static class ThemePalettes
 {
     public static IReadOnlyList<ThemePalette> All { get; } =
     [
-        new(DockThemeId.Frost, "Frost", "Cool, bright glass", false,
-            TintTop: "#FFFDFEFF", TintBottom: "#FFD9E4F2",
-            Foreground: "#FF141B28", SecondaryForeground: "#FF4A5669",
-            Accent: "#FF2F7CF6", Highlight: "#FFFFFFFF", Glow: "#FF8FB8FF"),
+        new(DockThemeId.Glass, "Liquid Glass", "Clear glass that lets the wallpaper through", true,
+            TintTop: "#FF5A6478", TintBottom: "#FF1C2230",
+            Foreground: "#FFFFFFFF", SecondaryForeground: "#FFD3DAE6",
+            Accent: "#FF8AB4FF", Highlight: "#FFFFFFFF", Glow: "#FFB9D2FF",
+            TintStrength: 0.55, TileStrength: 0.9),
 
-        new(DockThemeId.Midnight, "Midnight", "Deep neutral dark glass", true,
-            TintTop: "#FF2C3446", TintBottom: "#FF0B0F1A",
-            Foreground: "#FFF4F6FB", SecondaryForeground: "#FFA7B0C4",
-            Accent: "#FF7FA9FF", Highlight: "#FFFFFFFF", Glow: "#FF5B7FD6"),
+        new(DockThemeId.Onyx, "Onyx", "Deep black, quiet and focused", true,
+            TintTop: "#FF16171B", TintBottom: "#FF050506",
+            Foreground: "#FFF5F5F7", SecondaryForeground: "#FF9A9CA5",
+            Accent: "#FF4CD964", Highlight: "#FFFFFFFF", Glow: "#FF3A3D46",
+            TintStrength: 1.35, TileStrength: 0.75),
+
+        new(DockThemeId.Pearl, "Pearl", "Bright frosted white", false,
+            TintTop: "#FFFFFFFF", TintBottom: "#FFE3E8F0",
+            Foreground: "#FF12161F", SecondaryForeground: "#FF56606F",
+            Accent: "#FF2F6FEB", Highlight: "#FFFFFFFF", Glow: "#FFB8CCF5",
+            TintStrength: 1.25, TileStrength: 1.0),
+
+        new(DockThemeId.Midnight, "Midnight", "Navy dusk with a cool rim", true,
+            TintTop: "#FF243050", TintBottom: "#FF0A0F1E",
+            Foreground: "#FFF2F5FC", SecondaryForeground: "#FFA2AECA",
+            Accent: "#FF7FA9FF", Highlight: "#FFDCE6FF", Glow: "#FF4C6FD0",
+            TintStrength: 1.2, TileStrength: 0.8),
 
         new(DockThemeId.Aurora, "Aurora", "Teal to violet shimmer", true,
-            TintTop: "#FF16606F", TintBottom: "#FF3A1C6B",
+            TintTop: "#FF125B6A", TintBottom: "#FF35196A",
             Foreground: "#FFF1FCFF", SecondaryForeground: "#FFB5DCE8",
-            Accent: "#FF5EF2D6", Highlight: "#FFD9FFF8", Glow: "#FF6CE6FF"),
-
-        new(DockThemeId.Ember, "Ember", "Warm sunset glow", true,
-            TintTop: "#FFE9875F", TintBottom: "#FF8E2550",
-            Foreground: "#FFFFF8F3", SecondaryForeground: "#FFFFDCCB",
-            Accent: "#FFFFD166", Highlight: "#FFFFF1E6", Glow: "#FFFF9F6B"),
-
-        new(DockThemeId.Sage, "Sage", "Soft botanical light glass", false,
-            TintTop: "#FFF4F8F1", TintBottom: "#FFC3D8BF",
-            Foreground: "#FF18261B", SecondaryForeground: "#FF4B5E4E",
-            Accent: "#FF2F8A55", Highlight: "#FFFFFFFF", Glow: "#FF9ED6A8"),
+            Accent: "#FF5EF2D6", Highlight: "#FFD9FFF8", Glow: "#FF6CE6FF",
+            TintStrength: 1.15, TileStrength: 0.85),
     ];
 
     public static ThemePalette Get(DockThemeId id) =>
-        All.FirstOrDefault(p => p.Id == id) ?? All[1];
+        All.FirstOrDefault(p => p.Id == id) ?? All[0];
 }

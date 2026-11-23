@@ -9,9 +9,8 @@ public class SettingsNormalizerTests
     [Fact]
     public void Out_of_range_numbers_are_clamped()
     {
-        var s = SettingsNormalizer.Normalize(new DockSettings { Width = 10, Spacing = 99, Opacity = 5, EdgeOffset = -4 });
+        var s = SettingsNormalizer.Normalize(new DockSettings { Spacing = 99, Opacity = 5, EdgeOffset = -4 });
 
-        Assert.Equal(SettingsLimits.MinWidth, s.Width);
         Assert.Equal(SettingsLimits.MaxSpacing, s.Spacing);
         Assert.Equal(SettingsLimits.MaxOpacity, s.Opacity);
         Assert.Equal(SettingsLimits.MinEdgeOffset, s.EdgeOffset);
@@ -20,9 +19,9 @@ public class SettingsNormalizerTests
     [Fact]
     public void Non_finite_numbers_fall_back_to_defaults()
     {
-        var s = SettingsNormalizer.Normalize(new DockSettings { Width = double.NaN, Opacity = double.PositiveInfinity });
+        var s = SettingsNormalizer.Normalize(new DockSettings { Spacing = double.NaN, Opacity = double.PositiveInfinity });
 
-        Assert.Equal(DockSettings.Default.Width, s.Width);
+        Assert.Equal(DockSettings.Default.Spacing, s.Spacing);
         Assert.Equal(DockSettings.Default.Opacity, s.Opacity);
     }
 
@@ -81,7 +80,13 @@ public class SettingsSerializerTests
             MonitorDeviceName = @"\\.\DISPLAY2",
             Size = DockSizePreset.Large,
             Theme = DockThemeId.Aurora,
-            Width = 1000,
+            FullWidth = false,
+            Use24HourClock = false,
+            ReplaceTaskbar = true,
+            TaskbarStateBeforeReplace = 2,
+            WeatherCity = "Zagreb",
+            WidgetsInitialized = true,
+            Widgets = [new WidgetPlacement("w1", "clock"), new WidgetPlacement("w2", "spacer")],
             Spacing = 12,
             Opacity = 0.7,
             EdgeOffset = 20,
@@ -112,7 +117,7 @@ public class SettingsSerializerTests
               "Theme": "Plasma",
               "Size": 99,
               "Edge": "top",
-              "Width": "wide",
+              "Spacing": "wide",
               "Opacity": 0.8,
               "ReducedMotion": "yes",
               "Shortcuts": [ { "Id": "k", "Name": "Keep", "Target": "C:\\keep.exe" }, 5, { "Name": "NoTarget" } ]
@@ -124,7 +129,7 @@ public class SettingsSerializerTests
         Assert.Equal(DockSettings.Default.Theme, s.Theme);
         Assert.Equal(DockSettings.Default.Size, s.Size);
         Assert.Equal(DockEdge.Top, s.Edge);
-        Assert.Equal(DockSettings.Default.Width, s.Width);
+        Assert.Equal(DockSettings.Default.Spacing, s.Spacing);
         Assert.Equal(0.8, s.Opacity);
         Assert.False(s.ReducedMotion);
         Assert.Single(s.Shortcuts);
@@ -170,15 +175,15 @@ public class SettingsServiceTests
         SettingsChangedEventArgs? args = null;
         service.Changed += (_, e) => args = e;
 
-        service.Update(s => s with { Width = 5 });
+        service.Update(s => s with { Spacing = 500 });
 
-        Assert.Equal(SettingsLimits.MinWidth, service.Current.Width);
+        Assert.Equal(SettingsLimits.MaxSpacing, service.Current.Spacing);
         Assert.NotNull(args);
-        Assert.Equal(DockSettings.Default.Width, args!.Previous.Width);
+        Assert.Equal(DockSettings.Default.Spacing, args!.Previous.Spacing);
         Assert.Null(store.Saved); // debounced
 
         service.Flush();
-        Assert.Equal(SettingsLimits.MinWidth, store.Saved!.Width);
+        Assert.Equal(SettingsLimits.MaxSpacing, store.Saved!.Spacing);
     }
 
     [Fact]
@@ -202,7 +207,7 @@ public class SettingsServiceTests
         var store = new FakeStore();
         using var service = new SettingsService(store, TimeSpan.FromMilliseconds(20));
 
-        service.Update(s => s with { Theme = DockThemeId.Ember });
+        service.Update(s => s with { Theme = DockThemeId.Onyx });
 
         var deadline = DateTime.UtcNow.AddSeconds(5);
         while (store.Saved is null && DateTime.UtcNow < deadline)
@@ -210,7 +215,7 @@ public class SettingsServiceTests
             Thread.Sleep(10);
         }
 
-        Assert.Equal(DockThemeId.Ember, store.Saved?.Theme);
+        Assert.Equal(DockThemeId.Onyx, store.Saved?.Theme);
     }
 
     [Fact]

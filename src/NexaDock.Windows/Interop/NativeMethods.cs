@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace NexaDock.Windows.Interop;
 
-internal static class NativeMethods
+internal static partial class NativeMethods
 {
     // ---- Window styles / messages -------------------------------------------------------------
     public const int GWL_EXSTYLE = -20;

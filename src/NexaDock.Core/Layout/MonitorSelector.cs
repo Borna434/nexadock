@@ -28,4 +28,16 @@ public static class MonitorSelector
 
         return monitors.FirstOrDefault(m => m.IsPrimary) ?? monitors[0];
     }
+
+    /// <summary>The monitor whose bounds contain the point (physical pixels), else the primary.</summary>
+    public static MonitorInfo? FromPoint(IReadOnlyList<MonitorInfo>? monitors, int x, int y)
+    {
+        if (monitors is null || monitors.Count == 0)
+        {
+            return null;
+        }
+
+        return monitors.FirstOrDefault(m => x >= m.Bounds.X && x < m.Bounds.Right && y >= m.Bounds.Y && y < m.Bounds.Bottom)
+            ?? Select(monitors, null);
+    }
 }

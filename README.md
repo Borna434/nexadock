@@ -1,23 +1,59 @@
 # NexaDock
 
-A Liquid Glass–style application dock for Windows 11, built with .NET 10 and WPF.
+A smart Liquid Glass bar for Windows 11, built with .NET 10 and WPF: Start, your pinned and running
+apps, and live widgets in one glass strip, optionally replacing the Windows taskbar.
 
-NexaDock sits at the bottom (or top) of any display as an always-on-top, non-activating glass bar.
-It shows real application icons, a live clock and date, and Settings and Exit controls. It never
-takes keyboard focus and leaves the Windows taskbar untouched.
+![NexaDock bar](docs/images/bar-liquid-glass.jpg)
 
-> **Status:** Phase 1, the working dock. See [ROADMAP.md](ROADMAP.md) for later phases and
-> [ARCHITECTURE.md](ARCHITECTURE.md) for the design.
+> **Status:** Phase 2 (the bar and widget system). See [ROADMAP.md](ROADMAP.md) for what comes
+> next and [ARCHITECTURE.md](ARCHITECTURE.md) for the design.
+
+## What it does
+
+- **Apps widget:** a Start button, pinned apps and every open window, merged like a taskbar.
+  - A pinned app lights up while it runs; other running apps appear after the pinned ones.
+  - Click to launch, switch to, minimize or cycle through an app's windows.
+  - **Hover a running app for live window previews** (DWM thumbnails); click a preview to switch
+    to that window, or press × to close it.
+  - Right-click an app to pin or unpin it, open a new window, or close its windows.
+- **Live widgets.** Each widget is a glass tile on the bar; clicking a tile opens a card with
+  details.
+
+  | Widget | Tile | Card |
+  | --- | --- | --- |
+  | Clock | Time and date (12/24 h) | Seconds, week number, month calendar, Date & time settings |
+  | Day Number | Calendar page | Month calendar with navigation |
+  | Day Progress | Ring with today's progress | Day, week, month and year progress |
+  | CPU & Memory | Two rings | Busiest apps by CPU and memory, uptime, Task Manager |
+  | Weather | Icon and temperature | Conditions, feels-like, humidity, wind, 4-day forecast |
+  | Now Playing | Cover art, title, play/pause | Large art, progress, previous/play/next |
+  | Control Center | Network, sound, battery | Opens Quick Settings; the bell opens notifications |
+  | Show Desktop | — | Hides or restores all windows |
+  | Flexible Space | — | Pushes the following widgets to the far end of the bar |
+
+- **Widget picker:** right-click the bar › **Widgets…** to browse by category or search, and add or
+  remove widgets. Changes apply instantly.
+- **Arrange:**
+  - Drag a tile along the bar to reorder it.
+  - Right-click a tile › **Remove**.
+  - Drag the bar by an empty spot to the top or bottom edge, or onto another display.
+- **Styles:** Liquid Glass, Onyx, Pearl, Midnight and Aurora, on a native acrylic blur.
+- **Sizes and layout:** S, M or L sizes. Full width (like a taskbar) or compact (fits the widgets).
+  Adjustable spacing, opacity and edge gap, plus reduced motion.
+- **Behavior:**
+  - **Replace the Windows taskbar** (opt-in).
+  - Hide during full-screen apps.
+  - Start with Windows.
 
 ## Requirements
 
-- Windows 11 build 22621 (22H2) or newer for the native acrylic backdrop. Older builds get the
-  translucent fallback automatically.
+- Windows 11 build 22621 (22H2) or newer for the native acrylic backdrop. Older builds get a
+  translucent fallback.
 - .NET SDK 10.0 (verified with 10.0.404) on x64.
 
 ## Build, test, run
 
-From the repository root (`E:\00_Codex\Projects\Lumabar`):
+From the repository root:
 
 ```powershell
 dotnet build NexaDock.slnx
@@ -31,13 +67,13 @@ dotnet test tests/NexaDock.Tests/NexaDock.Tests.csproj
 dotnet run --project src/NexaDock.App
 ```
 
-Or start the built executable directly:
+Or start the built executable:
 
 ```powershell
-.\src\NexaDock.App\bin\Debug\net10.0-windows\NexaDock.exe
+.\src\NexaDock.App\bin\Debug\net10.0-windows10.0.19041.0\NexaDock.exe
 ```
 
-### Release build (framework-dependent, needs the .NET 10 Desktop Runtime)
+Release build (framework-dependent, needs the .NET 10 Desktop Runtime):
 
 ```powershell
 dotnet publish src/NexaDock.App -c Release -r win-x64 --self-contained false -o publish
@@ -47,60 +83,46 @@ dotnet publish src/NexaDock.App -c Release -r win-x64 --self-contained false -o 
 
 | Option | Effect |
 | --- | --- |
-| `NexaDock.exe --settings` | Opens Settings at startup. |
-| `NEXADOCK_BACKDROP=fallback` | Forces the translucent (no-blur) fallback surface, for testing. |
+| `NexaDock.exe --settings` | Opens Settings. Also works while NexaDock is running: the running instance opens it. |
+| `NEXADOCK_BACKDROP=fallback` | Forces the translucent (no-blur) surface, for testing. |
 | `NEXADOCK_DATA_DIR=<path>` | Stores the database and logs in `<path>` instead of `%LOCALAPPDATA%\NexaDock`. |
+| `NEXADOCK_LOG=debug` | Writes verbose diagnostics to the log. |
 
-Starting a second instance does not open a second dock. It tells the running instance to show its
-dock.
+Starting NexaDock again while it runs only brings its bar back.
 
-## Using the dock
+## Replacing the Windows taskbar
 
-- **Click an icon** to launch the app. The app comes to the front; the dock never takes focus.
-- **Hover** over an icon to lift and scale it and show its name.
-- **⚙ / ⏻** open Settings / exit NexaDock.
-- **Right-click the dock** for Settings…, Hide dock and Exit NexaDock.
-- **Tray icon:** left-click shows the dock, double-click opens Settings, and right-click opens a
-  menu with Show Dock, Settings… and Exit.
+Settings › Behavior › **Replace the Windows taskbar**. While it is on:
 
-### Settings (changes apply immediately and save automatically)
+- The Windows taskbar is set to auto-hide and its windows are hidden.
+- NexaDock registers as an *app bar*, so maximized windows stop above it.
+- The Windows key still opens Start.
 
-- **Theme:** Frost, Midnight, Aurora, Ember, Sage
-- **Size:** Small, Medium, Large
-- **Width, icon spacing, glass opacity, reduce motion**
-- **Screen edge:** bottom or top; **Display:** primary or a specific monitor; **distance from edge**
-- **Shortcuts:** add (`.exe`, `.lnk`, `.url`, scripts, documents), remove, reorder, restore defaults
-- **Reset appearance** and **Open data folder**
+When you turn it off or quit NexaDock, the taskbar's previous state is restored exactly. That state
+is saved before anything changes, so the taskbar is also restored after a crash: on the next start,
+or from the crash handler. NexaDock never modifies Windows files.
 
-On first run, NexaDock seeds shortcuts **only for apps that exist on the machine**. Candidates
-include File Explorer, Edge, Chrome, Firefox, Terminal, Notepad, Calculator, Paint, Windows
-Settings and Task Manager. If Windows animations are turned off, Reduce motion is enabled on first
-run.
+## Privacy
 
-## Data
+- **Weather:** only the city name you enter, and its coordinates, are sent to
+  [Open-Meteo](https://open-meteo.com) (free, no account).
+- **Everything else is read locally:** the window list, media sessions, CPU, memory and battery.
+- No telemetry and no account. Settings live in
+  `%LOCALAPPDATA%\NexaDock\nexadock.db` (SQLite) and logs in `%LOCALAPPDATA%\NexaDock\logs\`.
 
-- Settings: `%LOCALAPPDATA%\NexaDock\nexadock.db` (SQLite, one JSON document in a key/value table)
-- Log: `%LOCALAPPDATA%\NexaDock\logs\nexadock.log` (rolls over at 1 MB)
+## Known limitations (Phase 2)
 
-If the database is unreadable, NexaDock moves it aside as `nexadock.db.corrupt-<timestamp>`, starts
-with defaults and shows a tray notification. Invalid individual values (such as an unknown theme or
-an out-of-range width) are corrected one field at a time, and the rest of the configuration is kept.
-
-## Known limitations (Phase 1)
-
-- **Corner radius in native mode is fixed at the DWM value (~8 px).** Windows clips system-backdrop
-  windows to its own rounded corners. The fully rounded pill shape is only available in the
-  translucent fallback, which has no blur.
-- **Keeping the acrylic active** relies on making DWM draw the frame as active (`WM_NCACTIVATE`),
-  because the dock is never activated. This is documented window-message behavior, but it is not a
-  dedicated backdrop API.
-- If **Transparency effects** are turned off in Windows settings, DWM draws the backdrop as solid.
-  This follows the system setting.
-- Packaged Store apps can be added through their Start menu shortcut. Browsing the Apps folder
-  directly is not supported yet.
-- No auto-hide, running-app indicators, drag-and-drop reordering on the dock, or start-with-Windows
-  option yet (see the roadmap).
-- Tested on one machine: Windows 11 build 26300, a 2560×1440 primary display and a 1920×1080
-  secondary display to its left, **both at 100% scaling**. Mixed-DPI and high-DPI setups, monitor
-  hot-unplug while running, vertical taskbars and touch/pen input have **not** been tested on
-  hardware (the placement math for them is unit-tested).
+- **Native corners:** with the native blur, the bar uses the DWM corner radius (~8 px). The fully
+  rounded pill shape exists only in the translucent fallback.
+- **Notification-area icons:** the classic system tray (icons of background apps) is not shown on
+  the bar yet. With the taskbar replaced, reach them through the Control Center or Quick Settings.
+- **One bar:** a bar appears on one display only. Replacing the taskbar hides it on every display.
+- **Untested on hardware:**
+  - mixed-DPI and high-DPI displays (both test displays were at 100%)
+  - unplugging a monitor while the bar runs
+  - touch and pen input
+  - battery display (no battery on the test machine)
+  - the **Replace the Windows taskbar** switch itself: it changes a Windows setting, so it was left
+    for you to try
+- **Store apps:** they are pinned through their Start menu shortcut, or by right-clicking a running
+  app › **Pin to bar**.

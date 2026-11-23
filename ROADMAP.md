@@ -1,42 +1,50 @@
 # NexaDock roadmap
 
-## Phase 1: Working Liquid Glass dock ✅
+## Phase 1: Liquid Glass foundation ✅
 
-- [x] Layered solution (Core, Infrastructure, Windows, UI, App) plus a test project, .NET 10, x64
-- [x] Native DWM acrylic backdrop on build 22621+, kept vivid while inactive; translucent fallback
-- [x] Bottom-centered, always-on-top, non-activating dock with layered highlights and hover motion
-- [x] Real shell icons, working launches (with foreground hand-off), live clock and date, Settings, Exit
-- [x] Top/bottom edge, monitor selection, Per-Monitor-V2 DPI placement, fallback when a monitor is missing
-- [x] Five themes, three sizes, width, spacing, opacity, edge distance, reduced motion
-- [x] Shortcut management (add, remove, reorder, restore defaults)
-- [x] Tray icon (Show Dock, Settings, Exit), single instance, clean shutdown
-- [x] SQLite persistence with corruption recovery; Windows taskbar untouched
-- [x] Unit tests for placement, settings recovery and persistence
+- [x] Layered solution (Core, Infrastructure, Windows, UI, App) and a test project; .NET 10, x64
+- [x] Native DWM acrylic that stays vivid while the window is inactive, with a translucent fallback
+- [x] Per-Monitor-V2 placement and a fallback when the chosen monitor is missing
+- [x] SQLite settings with corruption recovery
+- [x] Tray icon, single instance, clean shutdown
 
-## Phase 2: Dock behavior
+## Phase 2: Smart bar and widgets ✅
 
-- Auto-hide with reveal on edge hover, plus intelligent hide when a window overlaps the dock
-- Running-app indicators and clicking to activate an existing window
-- Drag-and-drop reordering on the dock; dropping files or shortcuts onto it to pin them
-- Packaged app picker (Apps folder browser)
-- Start with Windows (per-user Run key or startup task)
-- Global hotkey to show or focus the dock
-- Hands-on testing on mixed-DPI, high-DPI and hot-plug monitor setups
+- [x] Bar layout: full width or compact, with glass tiles and flexible space
+- [x] Apps widget: Start, pinned and running apps merged, running and active indicators,
+      click to switch, minimize or cycle windows
+- [x] **Live window previews** on hover (DWM thumbnails) with click-to-switch and close
+- [x] Widget framework: tiles plus pop-up cards; picker with categories and search; drag to
+      reorder; right-click to remove
+- [x] Widgets: Clock, Day Number, Day Progress, CPU & Memory, Weather (Open-Meteo), Now Playing
+      (Windows media sessions), Control Center, Show Desktop, Flexible Space
+- [x] Drag the bar to the top or bottom edge, or to another display
+- [x] Styles: Liquid Glass, Onyx, Pearl, Midnight, Aurora; S/M/L sizes; 12/24-hour clock
+- [x] Opt-in taskbar replacement (app bar, crash-safe restore); hide in full screen; start with Windows
 
-## Phase 3: Widget framework
+## Phase 3: More widgets and NexaDock originals
 
-- Widget host slots (left, center, right) with a small plugin contract
-- Built-in widgets: media controls, calendar peek, system stats, weather
-- Per-widget settings persisted alongside dock settings
+- **Context profiles:** separate widget sets for Work, Gaming and Study that switch by time of day
+  or by the app in front (a game makes the bar minimal)
+- **Pulse:** the bar raises a tile when something needs you: a meeting in 10 minutes, battery at
+  15%, a finished timer, an almost full disk, an AI limit running out
+- **Productivity:** Pomodoro, timer, stopwatch, todos, notes
+- **Calendar events:** Outlook and Google
+- **System:** volume slider, brightness, network speed, storage, Quick Toggles, Recycle Bin,
+  keyboard layout
+- **Media:** audio output and microphone mute
+- **Language:** Croatian and English user interface
+- **System tray widget:** icons of background apps
 
-## Phase 4: Advanced glass
+## Phase 4: AI and developer widgets
 
-- Refractive and "liquid" lensing via a GPU shader path (Direct3D or Windows.UI.Composition)
-- Edge lighting that follows the cursor; adaptive tint from the wallpaper's average colour
-- Larger native corner radius using a composition-based surface instead of DWM clipping
+- Claude Code and Codex usage and limits, read from local session files (nothing leaves the PC)
+- GitHub notifications and contribution streak; status of the current git repository
+- Stocks and crypto watchlist
 
-## Phase 5: Integrations and taskbar options
+## Phase 5: Polish and distribution
 
-- Optional taskbar replacement modes (opt-in only, fully reversible)
-- Notifications badge integration, jump lists, recent files
-- Import and export of settings; installer (MSIX) and auto-update
+- A bar on every display, with per-display layouts
+- Auto-hide with reveal at the screen edge
+- Refractive "liquid" glass through a GPU shader path
+- MSIX installer, auto-update, and settings import/export

@@ -1,0 +1,93 @@
+<Window x:Class="NexaDock.UI.Views.WidgetPickerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:NexaDock.UI.ViewModels"
+        mc:Ignorable="d"
+        d:DataContext="{d:DesignInstance vm:WidgetPickerViewModel}"
+        Title="NexaDock Widgets"
+        ThemeMode="System"
+        Width="900" Height="660" MinWidth="680" MinHeight="420"
+        WindowStartupLocation="CenterScreen"
+        FontFamily="Segoe UI Variable Text, Segoe UI">
+    <Grid Margin="24,16,24,20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="150" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <StackPanel Grid.ColumnSpan="2">
+            <TextBlock Text="Widgets" FontSize="26" FontWeight="SemiBold" />
+            <TextBlock Text="Pick what lives on your bar. Changes apply instantly; drag tiles on the bar to reorder them."
+                       Opacity="0.72" FontSize="13" Margin="0,2,0,14" TextWrapping="Wrap" />
+        </StackPanel>
+
+        <TextBox Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,14"
+                 AutomationProperties.Name="Search widgets" Tag="Search widgets" />
+
+        <ListBox Grid.Row="2" ItemsSource="{Binding Categories}" SelectedItem="{Binding SelectedCategory}" Margin="0,0,16,0"
+                 AutomationProperties.Name="Categories" />
+
+        <ScrollViewer Grid.Row="2" Grid.Column="1" VerticalScrollBarVisibility="Auto">
+            <ItemsControl ItemsSource="{Binding Visible}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type vm:WidgetOptionViewModel}">
+                        <Border x:Name="Card" Width="300" Margin="0,0,10,10" Padding="14,12" CornerRadius="8" BorderThickness="1"
+                                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Border Width="40" Height="40" CornerRadius="10" VerticalAlignment="Top"
+                                        Background="{DynamicResource SubtleFillColorSecondaryBrush}">
+                                    <TextBlock Text="{Binding Glyph}" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="18"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                                <StackPanel Grid.Column="1" Margin="12,0,0,0">
+                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="14" />
+                                    <TextBlock Text="{Binding Description}" Opacity="0.72" FontSize="12" TextWrapping="Wrap" Margin="0,2,0,10" MinHeight="32" />
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button x:Name="Action" Content="{Binding ActionText}" Command="{Binding ToggleCommand}" MinWidth="84" />
+                                        <Button Content="Add another" Command="{Binding AddAnotherCommand}" Margin="8,0,0,0" x:Name="Another" Visibility="Collapsed" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                        <DataTemplate.Triggers>
+                            <DataTrigger Binding="{Binding IsAdded}" Value="False">
+                                <Setter TargetName="Action" Property="Style" Value="{DynamicResource AccentButtonStyle}" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding IsAdded}" Value="True">
+                                <Setter TargetName="Card" Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+                            </DataTrigger>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding AllowMultiple}" Value="True" />
+                                    <Condition Binding="{Binding IsAdded}" Value="True" />
+                                </MultiDataTrigger.Conditions>
+                                <Setter TargetName="Another" Property="Visibility" Value="Visible" />
+                            </MultiDataTrigger>
+                        </DataTemplate.Triggers>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
+        <Grid Grid.Row="3" Grid.ColumnSpan="2" Margin="0,14,0,0">
+            <Button Content="Restore default layout" Command="{Binding RestoreDefaultLayoutCommand}" HorizontalAlignment="Left" />
+            <Button Content="Done" MinWidth="96" HorizontalAlignment="Right" IsCancel="True" Click="OnDoneClick" Style="{DynamicResource AccentButtonStyle}" />
+        </Grid>
+    </Grid>
+</Window>

@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:NexaDock.UI.ViewModels"
         xmlns:b="clr-namespace:NexaDock.UI.Behaviors"
-        xmlns:c="clr-namespace:NexaDock.UI.Converters"
+        xmlns:c="clr-namespace:NexaDock.UI.Controls"
         xmlns:sys="clr-namespace:System;assembly=System.Runtime"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance vm:DockViewModel}"
@@ -20,199 +20,116 @@
         UseLayoutRounding="True"
         SnapsToDevicePixels="True"
         TextOptions.TextFormattingMode="Ideal"
-        TextOptions.TextRenderingMode="ClearType"
-        FontFamily="Segoe UI Variable Display, Segoe UI"
+        FontFamily="Segoe UI Variable Text, Segoe UI"
         b:HoverMotion.ReducedMotion="{Binding ReducedMotion}">
 
     <Window.Resources>
-        <FontFamily x:Key="IconFont">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
-        <c:BoolToVisibilityConverter x:Key="BoolToVisibility" />
-        <c:BoolToVisibilityConverter x:Key="InverseBoolToVisibility" Invert="True" />
-        <PlacementMode x:Key="DockToolTipPlacement">Top</PlacementMode>
-        <sys:Double x:Key="DockToolTipOffset">-6</sys:Double>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="WidgetTemplates.xaml" />
+            </ResourceDictionary.MergedDictionaries>
 
-        <!-- Tile that hosts an application icon. -->
-        <Style x:Key="DockTileButton" TargetType="Button">
-            <Setter Property="Focusable" Value="False" />
-            <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="b:HoverMotion.IsEnabled" Value="True" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Grid Background="Transparent">
-                            <Border x:Name="Plate"
-                                    Opacity="0"
-                                    CornerRadius="{Binding DataContext.TileCornerRadius, RelativeSource={RelativeSource AncestorType=Window}}"
-                                    Background="{Binding DataContext.Brushes.HoverFill, RelativeSource={RelativeSource AncestorType=Window}}"
-                                    BorderBrush="{Binding DataContext.Brushes.HoverRim, RelativeSource={RelativeSource AncestorType=Window}}"
-                                    BorderThickness="1" />
-                            <ContentPresenter x:Name="Content" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                        </Grid>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
+            <PlacementMode x:Key="DockToolTipPlacement">Top</PlacementMode>
+            <sys:Double x:Key="DockToolTipOffset">-8</sys:Double>
 
-        <!-- Small glyph button for Settings / Exit. -->
-        <Style x:Key="DockGlyphButton" TargetType="Button">
-            <Setter Property="Focusable" Value="False" />
-            <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="FontFamily" Value="{StaticResource IconFont}" />
-            <Setter Property="Foreground" Value="{Binding Brushes.Foreground}" />
-            <Setter Property="Width" Value="{Binding Metrics.ControlButtonSize}" />
-            <Setter Property="Height" Value="{Binding Metrics.ControlButtonSize}" />
-            <Setter Property="Margin" Value="2,0" />
-            <Setter Property="b:HoverMotion.IsEnabled" Value="True" />
-            <Setter Property="b:HoverMotion.HoverScale" Value="1.06" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Grid Background="Transparent">
-                            <Border x:Name="Plate"
-                                    Opacity="0"
-                                    CornerRadius="9"
-                                    Background="{Binding DataContext.Brushes.HoverFill, RelativeSource={RelativeSource AncestorType=Window}}"
-                                    BorderBrush="{Binding DataContext.Brushes.HoverRim, RelativeSource={RelativeSource AncestorType=Window}}"
-                                    BorderThickness="1" />
-                            <ContentPresenter x:Name="Content" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                        </Grid>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
+            <Style TargetType="ToolTip">
+                <Setter Property="Placement" Value="{DynamicResource DockToolTipPlacement}" />
+                <Setter Property="VerticalOffset" Value="{DynamicResource DockToolTipOffset}" />
+                <Setter Property="HasDropShadow" Value="True" />
+                <Setter Property="Padding" Value="10,5" />
+                <Setter Property="FontFamily" Value="Segoe UI Variable Text, Segoe UI" />
+                <Setter Property="FontSize" Value="12" />
+                <Setter Property="Foreground" Value="#F4F6FB" />
+                <Setter Property="Background" Value="#EE161A24" />
+                <Setter Property="BorderBrush" Value="#33FFFFFF" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ToolTip">
+                            <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="1" CornerRadius="7" Padding="{TemplateBinding Padding}">
+                                <ContentPresenter />
+                            </Border>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
 
-        <Style TargetType="ToolTip">
-            <Setter Property="Placement" Value="{DynamicResource DockToolTipPlacement}" />
-            <Setter Property="VerticalOffset" Value="{DynamicResource DockToolTipOffset}" />
-            <Setter Property="HasDropShadow" Value="True" />
-            <Setter Property="Padding" Value="10,5" />
-            <Setter Property="FontFamily" Value="Segoe UI Variable Text, Segoe UI" />
-            <Setter Property="FontSize" Value="12" />
-            <Setter Property="Foreground" Value="#F4F6FB" />
-            <Setter Property="Background" Value="#E6161A24" />
-            <Setter Property="BorderBrush" Value="#33FFFFFF" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ToolTip">
-                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="1" CornerRadius="7" Padding="{TemplateBinding Padding}">
-                            <ContentPresenter />
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
+            <!-- The plate every widget tile sits on. -->
+            <Style x:Key="TileHost" TargetType="Border">
+                <Setter Property="Height" Value="{DynamicResource Bar.TileHeight}" />
+                <Setter Property="CornerRadius" Value="{DynamicResource Bar.TileRadius}" />
+                <Setter Property="Padding" Value="{DynamicResource Bar.TilePadding}" />
+                <Setter Property="Background" Value="{DynamicResource Bar.TileFill}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource Bar.TileRim}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Style.Triggers>
+                    <MultiDataTrigger>
+                        <MultiDataTrigger.Conditions>
+                            <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource Self}}" Value="True" />
+                            <Condition Binding="{Binding HasPlate}" Value="True" />
+                        </MultiDataTrigger.Conditions>
+                        <Setter Property="Background" Value="{DynamicResource Bar.TileHover}" />
+                    </MultiDataTrigger>
+                    <DataTrigger Binding="{Binding IsCardOpen}" Value="True">
+                        <Setter Property="Background" Value="{DynamicResource Bar.TileHover}" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding HasPlate}" Value="False">
+                        <Setter Property="Background" Value="Transparent" />
+                        <Setter Property="BorderThickness" Value="0" />
+                        <Setter Property="Padding" Value="0" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+        </ResourceDictionary>
     </Window.Resources>
 
-    <Window.ContextMenu>
-        <ContextMenu>
-            <MenuItem Header="Settings…" Command="{Binding OpenSettingsCommand}" />
-            <MenuItem Header="Hide dock" Command="{Binding HideDockCommand}" />
-            <Separator />
-            <MenuItem Header="Exit NexaDock" Command="{Binding ExitCommand}" />
-        </ContextMenu>
-    </Window.ContextMenu>
-
-    <Grid Margin="{Binding WindowPadding}">
-        <!-- Soft shadow, only used by the translucent fallback (DWM supplies none for layered windows). -->
-        <Border x:Name="ShadowCaster"
-                CornerRadius="{Binding CornerRadius}"
-                Background="{Binding Brushes.Tint}"
+    <Grid x:Name="Root" Margin="{Binding WindowPadding}">
+        <!-- Soft shadow, only for the translucent fallback (DWM supplies none for layered windows). -->
+        <Border CornerRadius="{Binding CornerRadius}" Background="{Binding Brushes.Tint}"
                 Visibility="{Binding IsFallbackBackdrop, Converter={StaticResource BoolToVisibility}}">
             <Border.Effect>
-                <DropShadowEffect BlurRadius="22" ShadowDepth="4" Direction="270" Opacity="0.35"
-                                  Color="{Binding Brushes.ShadowColor}" />
+                <DropShadowEffect BlurRadius="20" ShadowDepth="3" Direction="270" Opacity="0.35" Color="{Binding Brushes.ShadowColor}" />
             </Border.Effect>
         </Border>
 
-        <!-- Layer 1: tinted glass body. -->
-        <Border CornerRadius="{Binding CornerRadius}" Background="{Binding Brushes.Tint}" />
-        <!-- Layer 2: inner glow rising from the bottom edge. -->
+        <!-- Layered glass: tint, rising glow, sheen, rim. -->
+        <Border x:Name="Glass" CornerRadius="{Binding CornerRadius}" Background="{Binding Brushes.Tint}" />
         <Border CornerRadius="{Binding CornerRadius}" Background="{Binding Brushes.InnerGlow}" IsHitTestVisible="False" />
-        <!-- Layer 3: specular sheen on the upper half. -->
         <Border CornerRadius="{Binding CornerRadius}" Background="{Binding Brushes.Sheen}" IsHitTestVisible="False" />
-        <!-- Layer 4: light-catching rim. -->
         <Border CornerRadius="{Binding CornerRadius}" BorderBrush="{Binding Brushes.Rim}" BorderThickness="1" IsHitTestVisible="False" />
 
-        <Grid Margin="{Binding ContentPadding}">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
+        <ItemsControl x:Name="WidgetHost" ItemsSource="{Binding Widgets}" Margin="{Binding ContentPadding}" Focusable="False">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <c:BarPanel Gap="{Binding DataContext.Spacing, RelativeSource={RelativeSource AncestorType=Window}}" />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemContainerStyle>
+                <Style TargetType="ContentPresenter">
+                    <Setter Property="c:BarPanel.IsFlexible" Value="{Binding IsFlexible}" />
+                </Style>
+            </ItemsControl.ItemContainerStyle>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Border Tag="TileHost" Style="{StaticResource TileHost}" ToolTipService.InitialShowDelay="700">
+                        <ContentPresenter Content="{Binding}" ContentTemplateSelector="{StaticResource TileSelector}" VerticalAlignment="Center" />
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
 
-            <ItemsControl Grid.Column="0"
-                          ItemsSource="{Binding Shortcuts}"
-                          HorizontalAlignment="Center"
-                          VerticalAlignment="Center"
-                          Focusable="False">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <StackPanel Orientation="Horizontal" />
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate DataType="{x:Type vm:ShortcutItemViewModel}">
-                        <Button Style="{StaticResource DockTileButton}"
-                                Command="{Binding LaunchCommand}"
-                                ToolTip="{Binding Name}"
-                                AutomationProperties.Name="{Binding Name}"
-                                Width="{Binding DataContext.Metrics.TileSize, RelativeSource={RelativeSource AncestorType=Window}}"
-                                Height="{Binding DataContext.Metrics.TileSize, RelativeSource={RelativeSource AncestorType=Window}}"
-                                Margin="{Binding DataContext.ItemMargin, RelativeSource={RelativeSource AncestorType=Window}}">
-                            <Grid Width="{Binding DataContext.Metrics.IconSize, RelativeSource={RelativeSource AncestorType=Window}}"
-                                  Height="{Binding DataContext.Metrics.IconSize, RelativeSource={RelativeSource AncestorType=Window}}">
-                                <Image Source="{Binding Icon}"
-                                       RenderOptions.BitmapScalingMode="HighQuality"
-                                       Visibility="{Binding HasIcon, Converter={StaticResource BoolToVisibility}}" />
-                                <Border CornerRadius="9"
-                                        Background="{Binding DataContext.Brushes.Accent, RelativeSource={RelativeSource AncestorType=Window}}"
-                                        Visibility="{Binding HasIcon, Converter={StaticResource InverseBoolToVisibility}}">
-                                    <TextBlock Text="{Binding Monogram}" Foreground="White" FontWeight="SemiBold"
-                                               FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                </Border>
-                            </Grid>
-                        </Button>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-
-            <TextBlock Grid.Column="0"
-                       Text="No shortcuts yet — right-click › Settings to add apps"
-                       Foreground="{Binding Brushes.SecondaryForeground}"
-                       FontSize="13"
-                       HorizontalAlignment="Center" VerticalAlignment="Center"
-                       Visibility="{Binding HasShortcuts, Converter={StaticResource InverseBoolToVisibility}}" />
-
-            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                <Rectangle Width="1" Margin="10,6,14,6" Fill="{Binding Brushes.Separator}"
-                           Height="{Binding Metrics.TileSize}" />
-
-                <StackPanel VerticalAlignment="Center" Margin="0,0,10,0" ToolTip="{Binding DateTimeToolTip}" Background="Transparent">
-                    <TextBlock Text="{Binding TimeText}"
-                               FontSize="{Binding Metrics.ClockFontSize}"
-                               FontWeight="SemiBold"
-                               Foreground="{Binding Brushes.Foreground}"
-                               HorizontalAlignment="Right" />
-                    <TextBlock Text="{Binding DateText}"
-                               FontSize="{Binding Metrics.DateFontSize}"
-                               Foreground="{Binding Brushes.SecondaryForeground}"
-                               HorizontalAlignment="Right" />
-                </StackPanel>
-
-                <Button Style="{StaticResource DockGlyphButton}"
-                        Command="{Binding OpenSettingsCommand}"
-                        ToolTip="Settings"
-                        AutomationProperties.Name="Settings">
-                    <TextBlock Text="&#xE713;" FontSize="15" />
-                </Button>
-                <Button Style="{StaticResource DockGlyphButton}"
-                        Command="{Binding ExitCommand}"
-                        ToolTip="Exit NexaDock"
-                        AutomationProperties.Name="Exit NexaDock">
-                    <TextBlock Text="&#xE7E8;" FontSize="15" />
-                </Button>
-            </StackPanel>
-        </Grid>
+        <TextBlock Text="Right-click › Widgets… to add widgets" Foreground="{Binding Brushes.SecondaryForeground}"
+                   FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False">
+            <TextBlock.Style>
+                <Style TargetType="TextBlock">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding Widgets.Count}" Value="0">
+                            <Setter Property="Visibility" Value="Visible" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </TextBlock.Style>
+        </TextBlock>
     </Grid>
 </Window>

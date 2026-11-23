@@ -15,6 +15,7 @@ public sealed class AppShell : IAppShell
     private readonly IServiceProvider _services;
     private readonly ILogger<AppShell> _logger;
     private SettingsWindow? _settingsWindow;
+    private WidgetPickerWindow? _pickerWindow;
     private ImageSource? _appIcon;
 
     public AppShell(IServiceProvider services, ILogger<AppShell> logger)
@@ -28,6 +29,7 @@ public sealed class AppShell : IAppShell
     public void ShowDock()
     {
         var dock = Dock;
+        dock.UserHidden = false;
         if (!dock.IsVisible)
         {
             dock.Show();
@@ -40,28 +42,50 @@ public sealed class AppShell : IAppShell
 
     public void HideDock()
     {
-        Dock.Hide();
-        NotifyInfo("Dock hidden", "Use the NexaDock tray icon › Show Dock to bring it back.");
+        var dock = Dock;
+        dock.UserHidden = true;
+        dock.Hide();
+        NotifyInfo("Bar hidden", "Use the NexaDock tray icon › Show Dock to bring it back.");
     }
 
     public void ShowSettings()
     {
         if (_settingsWindow is { IsLoaded: true })
         {
-            if (_settingsWindow.WindowState == WindowState.Minimized)
-            {
-                _settingsWindow.WindowState = WindowState.Normal;
-            }
-
-            _settingsWindow.Activate();
+            Bring(_settingsWindow);
             return;
         }
 
         _settingsWindow = _services.GetRequiredService<SettingsWindow>();
         _settingsWindow.SetAppIcon(AppIcon);
-        _settingsWindow.Closed += (_, _) => _settingsWindow = null; // closing settings never closes the dock
+        _settingsWindow.Closed += (_, _) => _settingsWindow = null; // closing settings never closes the bar
         _settingsWindow.Show();
         _settingsWindow.Activate();
+    }
+
+    public void ShowWidgetPicker()
+    {
+        if (_pickerWindow is { IsLoaded: true })
+        {
+            Bring(_pickerWindow);
+            return;
+        }
+
+        _pickerWindow = _services.GetRequiredService<WidgetPickerWindow>();
+        _pickerWindow.SetAppIcon(AppIcon);
+        _pickerWindow.Closed += (_, _) => _pickerWindow = null;
+        _pickerWindow.Show();
+        _pickerWindow.Activate();
+    }
+
+    private static void Bring(Window window)
+    {
+        if (window.WindowState == WindowState.Minimized)
+        {
+            window.WindowState = WindowState.Normal;
+        }
+
+        window.Activate();
     }
 
     public void NotifyError(string title, string message) =>
@@ -74,6 +98,7 @@ public sealed class AppShell : IAppShell
     {
         _logger.LogInformation("Exit requested.");
         _settingsWindow?.Close();
+        _pickerWindow?.Close();
         Application.Current.Shutdown(0);
     }
 

@@ -1,3 +1,4 @@
+using NexaDock.Core.Abstractions;
 using NexaDock.Core.Layout;
 using NexaDock.Core.Models;
 
@@ -11,21 +12,50 @@ public class DockPositionCalculatorTests
         new(name, new PixelRect(x, y, w, h), new PixelRect(x, y, w, h - taskbar), scale, primary);
 
     [Fact]
-    public void Bottom_edge_is_centered_above_the_taskbar()
+    public void Full_width_bar_spans_the_work_area_minus_margins()
     {
-        var settings = new DockSettings { Width = 800, EdgeOffset = 10, Size = DockSizePreset.Medium, Edge = DockEdge.Bottom };
-        var r = Calc.Calculate(Monitor(), settings, requiredContentWidth: 0);
+        var settings = new DockSettings { FullWidth = true, EdgeOffset = 8, Size = DockSizePreset.Medium };
+        var r = Calc.Calculate(Monitor(), settings, contentWidth: 300);
 
-        Assert.Equal(800, r.Width);
-        Assert.Equal(68, r.Height);
-        Assert.Equal((2560 - 800) / 2, r.X);
-        Assert.Equal(1392 - 10 - 68, r.Y); // work area bottom − offset − height
+        Assert.Equal(2560 - 16, r.Width);
+        Assert.Equal(8, r.X);
+        Assert.Equal(56, r.Height);
+        Assert.Equal(1392 - 8 - 56, r.Y);
     }
 
     [Fact]
-    public void Top_edge_sits_below_the_work_area_top()
+    public void Flush_bar_with_zero_offset_touches_the_edges()
     {
-        var settings = new DockSettings { Width = 800, EdgeOffset = 12, Edge = DockEdge.Top };
+        var settings = new DockSettings { FullWidth = true, EdgeOffset = 0 };
+        var r = Calc.Calculate(Monitor(), settings, 0);
+
+        Assert.Equal(new PixelRect(0, 1392 - 56, 2560, 56), r);
+    }
+
+    [Fact]
+    public void Compact_bar_fits_content_and_is_centered()
+    {
+        var settings = new DockSettings { FullWidth = false, EdgeOffset = 10 };
+        var r = Calc.Calculate(Monitor(), settings, contentWidth: 900);
+
+        Assert.Equal(900, r.Width);
+        Assert.Equal((2560 - 900) / 2, r.X);
+    }
+
+    [Fact]
+    public void Compact_bar_is_clamped_to_the_area()
+    {
+        var settings = new DockSettings { FullWidth = false, EdgeOffset = 10 };
+        var r = Calc.Calculate(Monitor(w: 1280, h: 720), settings, contentWidth: 5000);
+
+        Assert.Equal(1280 - 20, r.Width);
+        Assert.Equal(10, r.X);
+    }
+
+    [Fact]
+    public void Top_edge_sits_below_the_area_top()
+    {
+        var settings = new DockSettings { EdgeOffset = 12, Edge = DockEdge.Top };
         var r = Calc.Calculate(Monitor(), settings, 0);
 
         Assert.Equal(12, r.Y);
@@ -34,51 +64,40 @@ public class DockPositionCalculatorTests
     [Fact]
     public void Dimensions_scale_with_monitor_dpi()
     {
-        var settings = new DockSettings { Width = 800, EdgeOffset = 10, Size = DockSizePreset.Medium };
-        var r = Calc.Calculate(Monitor(w: 3840, h: 2160, taskbar: 72, scale: 1.5), settings, 0);
+        var settings = new DockSettings { FullWidth = false, EdgeOffset = 10, Size = DockSizePreset.Medium };
+        var r = Calc.Calculate(Monitor(w: 3840, h: 2160, taskbar: 72, scale: 1.5), settings, contentWidth: 800);
 
         Assert.Equal(1200, r.Width);
-        Assert.Equal(102, r.Height);
+        Assert.Equal(84, r.Height);
         Assert.Equal((3840 - 1200) / 2, r.X);
-        Assert.Equal(2088 - 15 - 102, r.Y);
+        Assert.Equal(2088 - 15 - 84, r.Y);
     }
 
     [Fact]
-    public void Width_grows_to_fit_required_content()
+    public void Monitor_bounds_are_used_when_the_taskbar_is_replaced()
     {
-        var settings = new DockSettings { Width = 400 };
-        var r = Calc.Calculate(Monitor(), settings, requiredContentWidth: 950);
+        var settings = new DockSettings { EdgeOffset = 0 };
+        var r = Calc.Calculate(Monitor(), settings, 0, new PlacementOptions(UseMonitorBounds: true));
 
-        Assert.Equal(950, r.Width);
-    }
-
-    [Fact]
-    public void Width_is_clamped_to_the_work_area()
-    {
-        var settings = new DockSettings { Width = 2400 };
-        var r = Calc.Calculate(Monitor(w: 1280, h: 720), settings, 0);
-
-        Assert.Equal(1280 - 2 * (int)DockPositionCalculator.SideMargin, r.Width);
-        Assert.True(r.X >= 0);
-        Assert.True(r.Right <= 1280);
+        Assert.Equal(1440 - 56, r.Y);
     }
 
     [Fact]
     public void Secondary_monitor_with_negative_origin_is_respected()
     {
-        var settings = new DockSettings { Width = 600, EdgeOffset = 0 };
-        var r = Calc.Calculate(Monitor(x: -1920, w: 1920, h: 1080, primary: false), settings, 0);
+        var settings = new DockSettings { FullWidth = false, EdgeOffset = 0 };
+        var r = Calc.Calculate(Monitor(x: -1920, w: 1920, h: 1080, primary: false), settings, contentWidth: 600);
 
         Assert.Equal(-1920 + (1920 - 600) / 2, r.X);
-        Assert.Equal(1032 - 68, r.Y);
+        Assert.Equal(1032 - 56, r.Y);
     }
 
     [Fact]
     public void Window_padding_inflates_bounds_without_moving_the_glass()
     {
-        var settings = new DockSettings { Width = 800, EdgeOffset = 10 };
+        var settings = new DockSettings { EdgeOffset = 10 };
         var plain = Calc.Calculate(Monitor(), settings, 0);
-        var padded = Calc.Calculate(Monitor(), settings, 0, windowPadding: 16);
+        var padded = Calc.Calculate(Monitor(), settings, 0, new PlacementOptions(WindowPadding: 16));
 
         Assert.Equal(plain.X - 16, padded.X);
         Assert.Equal(plain.Y - 16, padded.Y);
@@ -87,28 +106,28 @@ public class DockPositionCalculatorTests
     }
 
     [Fact]
-    public void Huge_offset_never_pushes_dock_off_screen()
+    public void Huge_offset_never_pushes_bar_off_screen()
     {
-        var settings = new DockSettings { EdgeOffset = 64 };
-        var r = Calc.Calculate(Monitor(w: 800, h: 100, taskbar: 0), settings, 0);
+        var settings = new DockSettings { EdgeOffset = 48 };
+        var r = Calc.Calculate(Monitor(w: 800, h: 80, taskbar: 0), settings, 0);
 
         Assert.True(r.Y >= 0);
-        Assert.True(r.Bottom <= 100);
+        Assert.True(r.Bottom <= 80);
     }
 
     [Fact]
     public void Invalid_scale_falls_back_to_100_percent()
     {
-        var settings = new DockSettings { Width = 800 };
-        var r = Calc.Calculate(Monitor(scale: 0), settings, 0);
+        var settings = new DockSettings { FullWidth = false };
+        var r = Calc.Calculate(Monitor(scale: 0), settings, contentWidth: 800);
 
         Assert.Equal(800, r.Width);
     }
 
     [Theory]
-    [InlineData(DockSizePreset.Small, 56)]
-    [InlineData(DockSizePreset.Medium, 68)]
-    [InlineData(DockSizePreset.Large, 84)]
+    [InlineData(DockSizePreset.Small, 48)]
+    [InlineData(DockSizePreset.Medium, 56)]
+    [InlineData(DockSizePreset.Large, 66)]
     public void Size_presets_set_height(DockSizePreset preset, int expectedHeight)
     {
         var r = Calc.Calculate(Monitor(), new DockSettings { Size = preset }, 0);
@@ -116,12 +135,17 @@ public class DockPositionCalculatorTests
     }
 
     [Fact]
-    public void Required_width_increases_with_shortcuts_and_spacing()
+    public void Reserved_strip_covers_bar_and_both_gaps()
     {
-        var m = DockMetrics.For(DockSizePreset.Medium);
-        Assert.True(m.RequiredWidth(8, 6) > m.RequiredWidth(4, 6));
-        Assert.True(m.RequiredWidth(8, 12) > m.RequiredWidth(8, 6));
-        Assert.Equal(m.RequiredWidth(0, 6), m.RequiredWidth(-3, -1));
+        var settings = new DockSettings { EdgeOffset = 8, Edge = DockEdge.Bottom };
+        var strip = DockPositionCalculator.ReservedStrip(Monitor(scale: 1.25), settings);
+
+        Assert.Equal((int)Math.Round((56 + 16) * 1.25), strip.Height);
+        Assert.Equal(1440, strip.Bottom);
+        Assert.Equal(2560, strip.Width);
+
+        var top = DockPositionCalculator.ReservedStrip(Monitor(), settings with { Edge = DockEdge.Top });
+        Assert.Equal(0, top.Y);
     }
 }
 
@@ -163,5 +187,16 @@ public class MonitorSelectorTests
     {
         Assert.Null(MonitorSelector.Select([], "x"));
         Assert.Null(MonitorSelector.Select(null, null));
+    }
+
+    [Fact]
+    public void Finds_monitor_containing_a_point()
+    {
+        var left = new MonitorInfo("L", new PixelRect(-1920, 0, 1920, 1080), new PixelRect(-1920, 0, 1920, 1040), 1, false);
+        var main = new MonitorInfo("M", new PixelRect(0, 0, 2560, 1440), new PixelRect(0, 0, 2560, 1392), 1, true);
+
+        Assert.Equal("L", MonitorSelector.FromPoint([left, main], -100, 500)!.DeviceName);
+        Assert.Equal("M", MonitorSelector.FromPoint([left, main], 100, 500)!.DeviceName);
+        Assert.Equal("M", MonitorSelector.FromPoint([left, main], 99999, 99999)!.DeviceName); // nearest → primary
     }
 }

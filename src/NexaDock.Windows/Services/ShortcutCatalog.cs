@@ -74,6 +74,45 @@ public sealed class ShortcutCatalog : IShortcutCatalog
         return DockShortcut.Create(string.IsNullOrWhiteSpace(name) ? "Shortcut" : name, path);
     }
 
+    private const string AppsFolderPrefix = @"shell:AppsFolder\";
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, ShortcutIdentity> _identities = new(StringComparer.OrdinalIgnoreCase);
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, string> _names = new(StringComparer.OrdinalIgnoreCase);
+
+    public ShortcutIdentity Identify(DockShortcut shortcut) =>
+        _identities.GetOrAdd(shortcut.Target, target =>
+        {
+            var expanded = Environment.ExpandEnvironmentVariables(target);
+            if (expanded.StartsWith(AppsFolderPrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                return new ShortcutIdentity(null, expanded[AppsFolderPrefix.Length..]);
+            }
+
+            if (string.Equals(Path.GetExtension(expanded), ".lnk", StringComparison.OrdinalIgnoreCase))
+            {
+                return new ShortcutIdentity(ShellLinkResolver.GetTarget(expanded), null);
+            }
+
+            return new ShortcutIdentity(Path.IsPathFullyQualified(expanded) ? expanded : null, null);
+        });
+
+    public string GetDisplayName(string executablePath) =>
+        _names.GetOrAdd(executablePath, path =>
+        {
+            try
+            {
+                var description = FileVersionInfo.GetVersionInfo(path).FileDescription;
+                if (!string.IsNullOrWhiteSpace(description))
+                {
+                    return description.Trim();
+                }
+            }
+            catch (Exception ex) when (ex is FileNotFoundException or UnauthorizedAccessException or IOException)
+            {
+            }
+
+            return Path.GetFileNameWithoutExtension(path);
+        });
+
     private static bool Exists(string target)
     {
         if (!target.StartsWith("shell:", StringComparison.OrdinalIgnoreCase))

@@ -1,8 +1,5 @@
 using System.Collections.ObjectModel;
-using System.Globalization;
 using System.Windows;
-using System.Windows.Media;
-using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
@@ -11,186 +8,218 @@ using NexaDock.Core.Layout;
 using NexaDock.Core.Models;
 using NexaDock.Core.Theming;
 using NexaDock.UI.Theming;
+using NexaDock.UI.Widgets;
 
 namespace NexaDock.UI.ViewModels;
 
-/// <summary>State for the dock surface: shortcuts, clock, metrics and glass brushes.</summary>
+/// <summary>State for the bar: the widget instances, theme brushes and metrics.</summary>
 public sealed partial class DockViewModel : ObservableObject, IDisposable
 {
     private readonly ISettingsService _settings;
-    private readonly IAppLauncher _launcher;
-    private readonly IIconProvider _icons;
+    private readonly WidgetFactory _factory;
     private readonly IAppShell _shell;
     private readonly ILogger<DockViewModel> _logger;
-    private readonly DispatcherTimer _clock;
     private double _scale = 1.0;
-    private int _iconRequestSize;
+    private bool _started;
 
-    public DockViewModel(ISettingsService settings, IAppLauncher launcher, IIconProvider icons, IAppShell shell, ILogger<DockViewModel> logger)
+    public DockViewModel(ISettingsService settings, WidgetFactory factory, IAppShell shell, ILogger<DockViewModel> logger)
     {
         _settings = settings;
-        _launcher = launcher;
-        _icons = icons;
+        _factory = factory;
         _shell = shell;
         _logger = logger;
-
-        _clock = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromSeconds(1) };
-        _clock.Tick += (_, _) => UpdateClock();
-        UpdateClock();
-        _clock.Start();
-
         _settings.Changed += OnSettingsChanged;
-        ApplySettings(_settings.Current, rebuildShortcuts: true);
+        ApplyAppearance(_settings.Current);
     }
 
-    public ObservableCollection<ShortcutItemViewModel> Shortcuts { get; } = [];
-
-    [ObservableProperty] private string _timeText = string.Empty;
-    [ObservableProperty] private string _dateText = string.Empty;
-    [ObservableProperty] private string _dateTimeToolTip = string.Empty;
+    public ObservableCollection<WidgetViewModel> Widgets { get; } = [];
 
     [ObservableProperty] private DockMetrics _metrics = DockMetrics.For(DockSizePreset.Medium);
-    [ObservableProperty] private Thickness _itemMargin;
     [ObservableProperty] private Thickness _contentPadding;
     [ObservableProperty] private Thickness _windowPadding;
     [ObservableProperty] private CornerRadius _cornerRadius = new(8);
-    [ObservableProperty] private CornerRadius _tileCornerRadius = new(12);
     [ObservableProperty] private GlassBrushes? _brushes;
+    [ObservableProperty] private GlassBrushes? _cardBrushes;
     [ObservableProperty] private bool _reducedMotion;
     [ObservableProperty] private bool _isFallbackBackdrop;
-    [ObservableProperty] private bool _hasShortcuts;
+    [ObservableProperty] private double _spacing = 6;
 
     public BackdropKind Backdrop { get; private set; } = BackdropKind.NativeAcrylic;
 
     /// <summary>Transparent margin (DIPs) around the glass for the fallback drop shadow.</summary>
-    public double ShadowPadding => Backdrop == BackdropKind.TranslucentFallback ? 16 : 0;
-
-    /// <summary>Minimum glass width needed for all content.</summary>
-    public double RequiredWidth => Metrics.RequiredWidth(Shortcuts.Count, _settings.Current.Spacing);
-
-    public DockThemeId Theme => _settings.Current.Theme;
+    public double ShadowPadding => Backdrop == BackdropKind.TranslucentFallback ? 14 : 0;
 
     public bool IsDarkTheme => ThemePalettes.Get(_settings.Current.Theme).IsDark;
 
+    public DockSettings Settings => _settings.Current;
+
     /// <summary>Raised when something that affects window size or placement changed.</summary>
     public event EventHandler? LayoutInvalidated;
+
+    /// <summary>Raised when brushes or metrics changed (views refresh their dynamic resources).</summary>
+    public event EventHandler? AppearanceChanged;
+
+    /// <summary>Creates and starts the widgets. Call once the bar window exists.</summary>
+    public void Start()
+    {
+        if (_started)
+        {
+            return;
+        }
+
+        _started = true;
+        SyncWidgets(_settings.Current);
+    }
 
     public void SetBackdrop(BackdropKind kind)
     {
         Backdrop = kind;
         IsFallbackBackdrop = kind == BackdropKind.TranslucentFallback;
-        ApplySettings(_settings.Current, rebuildShortcuts: false);
+        ApplyAppearance(_settings.Current);
     }
 
-    /// <summary>Called by the view when the dock moves to a monitor with a different DPI.</summary>
     public void SetDpiScale(double scale)
     {
-        _scale = scale;
-        var request = IconImageExtensions.IconRequestSize(Metrics.IconSize, _scale);
-        if (request != _iconRequestSize)
+        if (Math.Abs(scale - _scale) < 0.001)
         {
-            _iconRequestSize = request;
-            RefreshIcons();
+            return;
         }
+
+        _scale = scale;
+        foreach (var w in Widgets)
+        {
+            w.SetDpiScale(scale);
+        }
+    }
+
+    public void RemoveWidget(WidgetViewModel widget) =>
+        _settings.Update(s => s with
+        {
+            Widgets = s.Widgets.Where(w => w.Id != widget.InstanceId).ToList(),
+            WidgetsInitialized = true,
+        });
+
+    public void MoveWidget(WidgetViewModel widget, int newIndex)
+    {
+        _settings.Update(s =>
+        {
+            var list = s.Widgets.ToList();
+            var from = list.FindIndex(w => w.Id == widget.InstanceId);
+            if (from < 0)
+            {
+                return s;
+            }
+
+            var item = list[from];
+            list.RemoveAt(from);
+            list.Insert(Math.Clamp(newIndex, 0, list.Count), item);
+            return s with { Widgets = list, WidgetsInitialized = true };
+        });
     }
 
     [RelayCommand]
     private void OpenSettings() => _shell.ShowSettings();
 
     [RelayCommand]
-    private void Exit() => _shell.Exit();
+    private void OpenWidgets() => _shell.ShowWidgetPicker();
 
     [RelayCommand]
     private void HideDock() => _shell.HideDock();
 
+    [RelayCommand]
+    private void Exit() => _shell.Exit();
+
     private void OnSettingsChanged(object? sender, SettingsChangedEventArgs e)
     {
-        var shortcutsChanged = !e.Previous.Shortcuts.SequenceEqual(e.Current.Shortcuts);
-        ApplySettings(e.Current, shortcutsChanged);
-    }
-
-    private void ApplySettings(DockSettings s, bool rebuildShortcuts)
-    {
-        var metrics = DockMetrics.For(s.Size);
-        var sizeChanged = metrics != Metrics;
-        Metrics = metrics;
-
-        ItemMargin = new Thickness(s.Spacing / 2, 0, s.Spacing / 2, 0);
-        ContentPadding = new Thickness(metrics.Padding + 8, metrics.Padding, metrics.Padding + 6, metrics.Padding);
-        WindowPadding = new Thickness(ShadowPadding);
-        CornerRadius = Backdrop == BackdropKind.NativeAcrylic
-            ? new CornerRadius(8) // matches the DWM rounded-corner clip
-            : new CornerRadius(metrics.Height * 0.34);
-        TileCornerRadius = new CornerRadius(metrics.TileSize * 0.28);
-        ReducedMotion = s.ReducedMotion;
-        Brushes = GlassBrushes.Create(ThemePalettes.Get(s.Theme), s.Opacity, Backdrop);
-        OnPropertyChanged(nameof(Theme));
-        OnPropertyChanged(nameof(IsDarkTheme));
-
-        var request = IconImageExtensions.IconRequestSize(metrics.IconSize, _scale);
-        if (rebuildShortcuts)
+        ApplyAppearance(e.Current);
+        if (_started)
         {
-            _iconRequestSize = request;
-            RebuildShortcuts(s.Shortcuts);
-        }
-        else if (sizeChanged && request != _iconRequestSize)
-        {
-            _iconRequestSize = request;
-            RefreshIcons();
+            SyncWidgets(e.Current);
         }
 
-        OnPropertyChanged(nameof(RequiredWidth));
         LayoutInvalidated?.Invoke(this, EventArgs.Empty);
     }
 
-    private void RebuildShortcuts(IReadOnlyList<DockShortcut> shortcuts)
+    private void ApplyAppearance(DockSettings s)
     {
-        Shortcuts.Clear();
-        foreach (var s in shortcuts)
-        {
-            Shortcuts.Add(new ShortcutItemViewModel(s, LoadIcon(s.Target), Launch));
-        }
+        var metrics = DockMetrics.For(s.Size);
+        Metrics = metrics;
+        Spacing = s.Spacing;
+        var vertical = (metrics.Height - metrics.TileHeight) / 2;
+        ContentPadding = new Thickness(vertical + 1, vertical, vertical + 1, vertical);
+        WindowPadding = new Thickness(ShadowPadding);
+        CornerRadius = Backdrop == BackdropKind.NativeAcrylic
+            ? new CornerRadius(8) // matches the DWM rounded-corner clip
+            : new CornerRadius(Math.Round(metrics.Height * 0.36));
+        ReducedMotion = s.ReducedMotion;
 
-        HasShortcuts = Shortcuts.Count > 0;
+        var palette = ThemePalettes.Get(s.Theme);
+        Brushes = GlassBrushes.Create(palette, s.Opacity, Backdrop);
+        CardBrushes = GlassBrushes.Create(palette, Math.Max(s.Opacity + 0.2, 0.7), Backdrop);
+        OnPropertyChanged(nameof(IsDarkTheme));
+        OnPropertyChanged(nameof(Settings));
+        AppearanceChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    private void RefreshIcons()
+    /// <summary>Makes <see cref="Widgets"/> match the configured layout, reusing live instances.</summary>
+    private void SyncWidgets(DockSettings s)
     {
-        foreach (var item in Shortcuts)
+        var wanted = s.Widgets;
+        foreach (var stale in Widgets.Where(w => wanted.All(p => p.Id != w.InstanceId)).ToList())
         {
-            item.Icon = LoadIcon(item.Target);
+            Widgets.Remove(stale);
+            stale.Dispose();
         }
-    }
 
-    private ImageSource? LoadIcon(string target) =>
-        _icons.GetIcon(target, _iconRequestSize == 0 ? 64 : _iconRequestSize).ToBitmapSource();
-
-    private void Launch(DockShortcut shortcut)
-    {
-        var result = _launcher.Launch(shortcut);
-        if (!result.Success)
+        for (var i = 0; i < wanted.Count; i++)
         {
-            _logger.LogWarning("Launch failed: {Error}", result.Error);
-            _shell.NotifyError($"Could not open {shortcut.Name}", result.Error ?? "The target could not be started.");
-        }
-    }
+            var placement = wanted[i];
+            var existing = Widgets.FirstOrDefault(w => w.InstanceId == placement.Id);
+            if (existing is null)
+            {
+                WidgetViewModel? created;
+                try
+                {
+                    created = _factory.Create(placement);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Could not create widget {Type}.", placement.TypeId);
+                    continue;
+                }
 
-    private void UpdateClock()
-    {
-        var now = DateTime.Now;
-        var culture = CultureInfo.CurrentCulture;
-        var time = now.ToString(culture.DateTimeFormat.ShortTimePattern.Replace(":ss", string.Empty), culture);
-        if (time != TimeText)
-        {
-            TimeText = time;
-            DateText = now.ToString("ddd d MMM", culture);
-            DateTimeToolTip = now.ToString("D", culture);
+                if (created is null)
+                {
+                    continue;
+                }
+
+                created.SetDpiScale(_scale);
+                created.ApplySettings(s);
+                Widgets.Insert(Math.Min(i, Widgets.Count), created);
+                created.Start();
+            }
+            else
+            {
+                var at = Widgets.IndexOf(existing);
+                var target = Math.Min(i, Widgets.Count - 1);
+                if (at != target)
+                {
+                    Widgets.Move(at, target);
+                }
+
+                existing.ApplySettings(s);
+            }
         }
     }
 
     public void Dispose()
     {
-        _clock.Stop();
         _settings.Changed -= OnSettingsChanged;
+        foreach (var w in Widgets)
+        {
+            w.Dispose();
+        }
+
+        Widgets.Clear();
     }
 }

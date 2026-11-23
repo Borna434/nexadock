@@ -35,7 +35,7 @@ public sealed partial class ShortcutEditorItem(DockShortcut shortcut, ImageSourc
 
 /// <summary>
 /// Settings are applied live: every change goes straight to <see cref="ISettingsService"/>, which
-/// updates the dock immediately and persists after a short debounce.
+/// updates the bar immediately and persists after a short debounce.
 /// </summary>
 public sealed partial class SettingsViewModel : ObservableObject, IDisposable
 {
@@ -44,6 +44,8 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     private readonly IShortcutCatalog _catalog;
     private readonly IIconProvider _icons;
     private readonly IBackdropService _backdrop;
+    private readonly IStartupRegistration _startup;
+    private readonly IAppShell _shell;
     private readonly string _dataDirectory;
     private bool _syncing;
 
@@ -53,6 +55,8 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         IShortcutCatalog catalog,
         IIconProvider icons,
         IBackdropService backdrop,
+        IStartupRegistration startup,
+        IAppShell shell,
         AppDataLocation dataLocation)
     {
         _settings = settings;
@@ -60,11 +64,13 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         _catalog = catalog;
         _icons = icons;
         _backdrop = backdrop;
+        _startup = startup;
+        _shell = shell;
         _dataDirectory = dataLocation.Directory;
 
         foreach (var p in ThemePalettes.All)
         {
-            var glass = GlassBrushes.Create(p, 0.9, BackdropKind.TranslucentFallback);
+            var glass = GlassBrushes.Create(p, 0.75, BackdropKind.TranslucentFallback);
             Themes.Add(new ThemeOptionViewModel(p, glass.Tint, glass.Foreground));
         }
 
@@ -78,8 +84,6 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     public string BackdropDescription => _backdrop.Capabilities.Description;
     public string DataDirectory => _dataDirectory;
 
-    public double MinWidth => SettingsLimits.MinWidth;
-    public double MaxWidth => SettingsLimits.MaxWidth;
     public double MinSpacing => SettingsLimits.MinSpacing;
     public double MaxSpacing => SettingsLimits.MaxSpacing;
     public double MinOpacity => SettingsLimits.MinOpacity;
@@ -96,11 +100,16 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     [ObservableProperty] private bool _isLarge;
     [ObservableProperty] private bool _isBottom;
     [ObservableProperty] private bool _isTop;
-    [ObservableProperty] private double _width;
+    [ObservableProperty] private bool _fullWidth;
     [ObservableProperty] private double _spacing;
     [ObservableProperty] private double _opacity;
     [ObservableProperty] private double _edgeOffset;
     [ObservableProperty] private bool _reducedMotion;
+    [ObservableProperty] private bool _use24HourClock;
+    [ObservableProperty] private bool _replaceTaskbar;
+    [ObservableProperty] private bool _hideInFullscreen;
+    [ObservableProperty] private bool _launchAtStartup;
+    [ObservableProperty] private string _weatherCity = string.Empty;
     [ObservableProperty] private MonitorOption? _selectedMonitor;
 
     [ObservableProperty]
@@ -124,11 +133,33 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     partial void OnIsLargeChanged(bool value) { if (value) Apply(s => s with { Size = DockSizePreset.Large }); }
     partial void OnIsBottomChanged(bool value) { if (value) Apply(s => s with { Edge = DockEdge.Bottom }); }
     partial void OnIsTopChanged(bool value) { if (value) Apply(s => s with { Edge = DockEdge.Top }); }
-    partial void OnWidthChanged(double value) => Apply(s => s with { Width = Math.Round(value) });
+    partial void OnFullWidthChanged(bool value) => Apply(s => s with { FullWidth = value });
     partial void OnSpacingChanged(double value) => Apply(s => s with { Spacing = Math.Round(value) });
     partial void OnOpacityChanged(double value) => Apply(s => s with { Opacity = Math.Round(value, 2) });
     partial void OnEdgeOffsetChanged(double value) => Apply(s => s with { EdgeOffset = Math.Round(value) });
     partial void OnReducedMotionChanged(bool value) => Apply(s => s with { ReducedMotion = value });
+    partial void OnUse24HourClockChanged(bool value) => Apply(s => s with { Use24HourClock = value });
+    partial void OnReplaceTaskbarChanged(bool value) => Apply(s => s with { ReplaceTaskbar = value });
+    partial void OnHideInFullscreenChanged(bool value) => Apply(s => s with { HideInFullscreen = value });
+    partial void OnWeatherCityChanged(string value) => Apply(s => s with { WeatherCity = value ?? string.Empty });
+
+    partial void OnLaunchAtStartupChanged(bool value)
+    {
+        if (_syncing)
+        {
+            return;
+        }
+
+        try
+        {
+            _startup.SetEnabled(value);
+            Apply(s => s with { LaunchAtStartup = value });
+        }
+        catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException or System.IO.IOException)
+        {
+            StatusText = $"Could not change startup: {ex.Message}";
+        }
+    }
 
     partial void OnSelectedMonitorChanged(MonitorOption? value)
     {
@@ -168,7 +199,10 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         }
     }
 
-    // ---- Shortcuts -------------------------------------------------------------------------------
+    [RelayCommand]
+    private void OpenWidgetPicker() => _shell.ShowWidgetPicker();
+
+    // ---- Pinned apps -----------------------------------------------------------------------------
     /// <summary>Set by the view: shows a file picker and returns the chosen paths.</summary>
     public Func<IReadOnlyList<string>>? PickFiles { get; set; }
 
@@ -187,8 +221,8 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         current.AddRange(added);
         Apply(s => s with { Shortcuts = current, ShortcutsInitialized = true });
         StatusText = added.Count == files.Count
-            ? $"Added {added.Count} shortcut{(added.Count == 1 ? string.Empty : "s")}."
-            : $"Added {added.Count}; the dock holds at most {SettingsLimits.MaxShortcuts} shortcuts.";
+            ? $"Pinned {added.Count} app{(added.Count == 1 ? string.Empty : "s")}."
+            : $"Pinned {added.Count}; the bar holds at most {SettingsLimits.MaxShortcuts} pinned apps.";
         SelectedShortcut = Shortcuts.LastOrDefault();
     }
 
@@ -205,7 +239,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         var index = Shortcuts.IndexOf(item);
         var list = _settings.Current.Shortcuts.Where(s => s.Id != item.Shortcut.Id).ToList();
         Apply(s => s with { Shortcuts = list, ShortcutsInitialized = true });
-        StatusText = $"Removed {item.Name}.";
+        StatusText = $"Unpinned {item.Name}.";
         SelectedShortcut = Shortcuts.Count == 0 ? null : Shortcuts[Math.Clamp(index, 0, Shortcuts.Count - 1)];
     }
 
@@ -241,7 +275,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     {
         var defaults = _catalog.GetDefaultShortcuts();
         Apply(s => s with { Shortcuts = defaults, ShortcutsInitialized = true });
-        StatusText = $"Restored {defaults.Count} default shortcuts.";
+        StatusText = $"Restored {defaults.Count} default pinned apps.";
     }
 
     // ---- General ---------------------------------------------------------------------------------
@@ -253,7 +287,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         {
             Theme = d.Theme,
             Size = d.Size,
-            Width = d.Width,
+            FullWidth = d.FullWidth,
             Spacing = d.Spacing,
             Opacity = d.Opacity,
             EdgeOffset = d.EdgeOffset,
@@ -262,14 +296,12 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
             ReducedMotion = d.ReducedMotion,
         });
         RefreshMonitors();
-        StatusText = "Appearance and position reset to defaults. Shortcuts were kept.";
+        StatusText = "Appearance and position reset. Widgets and pinned apps were kept.";
     }
 
     [RelayCommand]
-    private void OpenDataFolder()
-    {
+    private void OpenDataFolder() =>
         Process.Start(new ProcessStartInfo { FileName = _dataDirectory, UseShellExecute = true })?.Dispose();
-    }
 
     // ---- Sync ------------------------------------------------------------------------------------
     private void Apply(Func<DockSettings, DockSettings> mutate)
@@ -297,11 +329,19 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
             IsLarge = s.Size == DockSizePreset.Large;
             IsBottom = s.Edge == DockEdge.Bottom;
             IsTop = s.Edge == DockEdge.Top;
-            Width = s.Width;
+            FullWidth = s.FullWidth;
             Spacing = s.Spacing;
             Opacity = s.Opacity;
             EdgeOffset = s.EdgeOffset;
             ReducedMotion = s.ReducedMotion;
+            Use24HourClock = s.Use24HourClock;
+            ReplaceTaskbar = s.ReplaceTaskbar;
+            HideInFullscreen = s.HideInFullscreen;
+            LaunchAtStartup = s.LaunchAtStartup;
+            if (!string.Equals(WeatherCity.Trim(), s.WeatherCity, StringComparison.Ordinal))
+            {
+                WeatherCity = s.WeatherCity;
+            }
 
             var selectedId = SelectedShortcut?.Shortcut.Id;
             if (!Shortcuts.Select(x => x.Shortcut).SequenceEqual(s.Shortcuts))

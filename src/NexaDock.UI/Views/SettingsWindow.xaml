@@ -170,18 +170,15 @@
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
-                        <StackPanel Grid.Row="0" Margin="0,4">
-                            <TextBlock Text="Width" Style="{StaticResource Label}" />
-                            <TextBlock Text="Grows to fit content" Style="{StaticResource Hint}" />
+                        <StackPanel Grid.Row="0" Grid.ColumnSpan="2" Margin="0,4">
+                            <TextBlock Text="Full width" Style="{StaticResource Label}" />
+                            <TextBlock Text="Span the whole screen like a taskbar, or shrink to fit the widgets" Style="{StaticResource Hint}" />
                         </StackPanel>
-                        <Slider Grid.Row="0" Grid.Column="1" VerticalAlignment="Center"
-                                Minimum="{Binding MinWidth}" Maximum="{Binding MaxWidth}"
-                                Value="{Binding Width}" SmallChange="10" LargeChange="100"
-                                IsSnapToTickEnabled="True" TickFrequency="10" AutomationProperties.Name="Dock width" />
-                        <TextBlock Grid.Row="0" Grid.Column="2" Style="{StaticResource ValueText}" Text="{Binding Width, StringFormat={}{0:0} px}" />
+                        <CheckBox Grid.Row="0" Grid.Column="2" IsChecked="{Binding FullWidth}" VerticalAlignment="Center" HorizontalAlignment="Right"
+                                  Content="" MinWidth="0" AutomationProperties.Name="Full width" />
 
                         <StackPanel Grid.Row="1" Margin="0,12,0,4">
-                            <TextBlock Text="Icon spacing" Style="{StaticResource Label}" />
+                            <TextBlock Text="Tile spacing" Style="{StaticResource Label}" />
                         </StackPanel>
                         <Slider Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" Margin="0,8,0,0"
                                 Minimum="{Binding MinSpacing}" Maximum="{Binding MaxSpacing}"
@@ -216,6 +213,54 @@
                     </Grid>
                 </Border>
 
+                <Border Style="{StaticResource Card}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="24-hour clock" Style="{StaticResource Label}" />
+                            <TextBlock Text="Off shows 12-hour time with AM/PM" Style="{StaticResource Hint}" />
+                        </StackPanel>
+                        <CheckBox Grid.Column="1" IsChecked="{Binding Use24HourClock}" VerticalAlignment="Center"
+                                  Content="" MinWidth="0" AutomationProperties.Name="24-hour clock" />
+                    </Grid>
+                </Border>
+
+                <!-- Widgets -->
+                <TextBlock Text="Widgets" Style="{StaticResource SectionTitle}" />
+
+                <Border Style="{StaticResource Card}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="Bar layout" Style="{StaticResource Label}" />
+                            <TextBlock Text="Add or remove widgets. Drag tiles on the bar to reorder; right-click a tile to remove it." Style="{StaticResource Hint}" />
+                        </StackPanel>
+                        <Button Grid.Column="1" Content="Manage widgets…" Command="{Binding OpenWidgetPickerCommand}"
+                                Style="{DynamicResource AccentButtonStyle}" VerticalAlignment="Center" />
+                    </Grid>
+                </Border>
+
+                <Border Style="{StaticResource Card}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="240" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="Weather city" Style="{StaticResource Label}" />
+                            <TextBlock Text="Only the city name is sent to Open-Meteo (free, no account)" Style="{StaticResource Hint}" />
+                        </StackPanel>
+                        <TextBox Grid.Column="1" VerticalAlignment="Center" Text="{Binding WeatherCity, UpdateSourceTrigger=LostFocus}"
+                                 AutomationProperties.Name="Weather city" KeyDown="OnCityKeyDown" />
+                    </Grid>
+                </Border>
+
                 <!-- Position -->
                 <TextBlock Text="Position" Style="{StaticResource SectionTitle}" />
 
@@ -227,7 +272,7 @@
                         </Grid.ColumnDefinitions>
                         <StackPanel>
                             <TextBlock Text="Screen edge" Style="{StaticResource Label}" />
-                            <TextBlock Text="The Windows taskbar is left untouched" Style="{StaticResource Hint}" />
+                            <TextBlock Text="Tip: you can also drag the bar by an empty spot to another edge or display" Style="{StaticResource Hint}" />
                         </StackPanel>
                         <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                             <RadioButton GroupName="Edge" Content="Bottom" IsChecked="{Binding IsBottom}" Margin="0,0,14,0" MinWidth="0" />
@@ -267,8 +312,57 @@
                     </Grid>
                 </Border>
 
-                <!-- Shortcuts -->
-                <TextBlock Text="Shortcuts" Style="{StaticResource SectionTitle}" />
+                <!-- Behaviour -->
+                <TextBlock Text="Behavior" Style="{StaticResource SectionTitle}" />
+
+                <Border Style="{StaticResource Card}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Margin="0,0,16,0">
+                            <TextBlock Text="Replace the Windows taskbar" Style="{StaticResource Label}" />
+                            <TextBlock Style="{StaticResource Hint}"
+                                       Text="Hides the taskbar while NexaDock runs and reserves space so maximized windows stop above the bar. Quitting NexaDock brings the taskbar back exactly as it was. The Windows key still opens Start." />
+                        </StackPanel>
+                        <CheckBox Grid.Column="1" IsChecked="{Binding ReplaceTaskbar}" VerticalAlignment="Center"
+                                  Content="" MinWidth="0" AutomationProperties.Name="Replace the Windows taskbar" />
+                    </Grid>
+                </Border>
+
+                <Border Style="{StaticResource Card}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="Hide during full-screen apps" Style="{StaticResource Label}" />
+                            <TextBlock Text="Games, videos and presentations get the whole screen" Style="{StaticResource Hint}" />
+                        </StackPanel>
+                        <CheckBox Grid.Column="1" IsChecked="{Binding HideInFullscreen}" VerticalAlignment="Center"
+                                  Content="" MinWidth="0" AutomationProperties.Name="Hide during full-screen apps" />
+                    </Grid>
+                </Border>
+
+                <Border Style="{StaticResource Card}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="Start with Windows" Style="{StaticResource Label}" />
+                            <TextBlock Text="Launch NexaDock when you sign in" Style="{StaticResource Hint}" />
+                        </StackPanel>
+                        <CheckBox Grid.Column="1" IsChecked="{Binding LaunchAtStartup}" VerticalAlignment="Center"
+                                  Content="" MinWidth="0" AutomationProperties.Name="Start with Windows" />
+                    </Grid>
+                </Border>
+
+                <!-- Pinned apps -->
+                <TextBlock Text="Pinned apps" Style="{StaticResource SectionTitle}" />
 
                 <Border Style="{StaticResource Card}">
                     <Grid>

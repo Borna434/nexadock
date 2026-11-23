@@ -3,7 +3,7 @@
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <PlatformTarget>x64</PlatformTarget>
-    <Version>0.1.0</Version>
+    <Version>0.2.0</Version>
     <Product>NexaDock</Product>
     <Company>NexaDock</Company>
     <Copyright>NexaDock contributors</Copyright>

@@ -1,0 +1,162 @@
+using System.Collections.ObjectModel;
+using System.Windows.Threading;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using NexaDock.Core.Abstractions;
+using NexaDock.Core.Models;
+using NexaDock.Core.Widgets;
+
+namespace NexaDock.UI.Widgets;
+
+/// <summary>CPU and memory rings; the card lists the busiest apps.</summary>
+public sealed partial class SystemWidget : WidgetViewModel
+{
+    private readonly ISystemMonitor _monitor;
+    private readonly IShellCommands _shell;
+    private readonly DispatcherTimer _timer;
+
+    public SystemWidget(WidgetPlacement placement, ISystemMonitor monitor, IShellCommands shell)
+        : base(placement)
+    {
+        _monitor = monitor;
+        _shell = shell;
+        _timer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromSeconds(2) };
+        _timer.Tick += (_, _) => Update();
+    }
+
+    public override bool HasCard => true;
+
+    [ObservableProperty] private double _cpu;
+    [ObservableProperty] private double _memory;
+    [ObservableProperty] private string _cpuText = "–";
+    [ObservableProperty] private string _memoryText = "–";
+    [ObservableProperty] private string _memoryDetail = string.Empty;
+    [ObservableProperty] private string _uptime = string.Empty;
+
+    public ObservableCollection<ProcessUsage> TopCpu { get; } = [];
+
+    public ObservableCollection<ProcessUsage> TopMemory { get; } = [];
+
+    public override void Start()
+    {
+        _monitor.Sample(); // prime the CPU delta
+        _timer.Start();
+    }
+
+    private void Update()
+    {
+        var s = _monitor.Sample();
+        Cpu = s.CpuPercent;
+        Memory = s.MemoryPercent;
+        CpuText = $"{s.CpuPercent:0}%";
+        MemoryText = $"{s.MemoryPercent:0}%";
+        MemoryDetail = $"{s.MemoryUsedBytes / 1073741824.0:0.0} of {s.MemoryTotalBytes / 1073741824.0:0} GB";
+        Uptime = s.Uptime.TotalDays >= 1 ? $"Up {(int)s.Uptime.TotalDays} d {s.Uptime.Hours} h" : $"Up {s.Uptime.Hours} h {s.Uptime.Minutes} min";
+
+        if (IsCardOpen)
+        {
+            Replace(TopCpu, _monitor.TopByCpu(5));
+            Replace(TopMemory, _monitor.TopByMemory(5));
+        }
+    }
+
+    public override void OnCardOpened()
+    {
+        _monitor.TopByCpu(5); // establish a baseline so the first refresh shows real numbers
+        Replace(TopMemory, _monitor.TopByMemory(5));
+    }
+
+    private static void Replace(ObservableCollection<ProcessUsage> target, IReadOnlyList<ProcessUsage> items)
+    {
+        target.Clear();
+        foreach (var i in items)
+        {
+            target.Add(i);
+        }
+    }
+
+    [RelayCommand]
+    private void OpenTaskManager() => _shell.OpenTaskManager();
+
+    public override void Dispose()
+    {
+        _timer.Stop();
+        base.Dispose();
+    }
+}
+
+/// <summary>Network, volume and battery glyphs; opens Quick Settings and the notification center.</summary>
+public sealed partial class ControlCenterWidget : WidgetViewModel
+{
+    private readonly ISystemMonitor _monitor;
+    private readonly IShellCommands _shell;
+    private readonly DispatcherTimer _timer;
+
+    public ControlCenterWidget(WidgetPlacement placement, ISystemMonitor monitor, IShellCommands shell)
+        : base(placement)
+    {
+        _monitor = monitor;
+        _shell = shell;
+        _timer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromSeconds(5) };
+        _timer.Tick += (_, _) => Update();
+    }
+
+    public string VolumeGlyph { get; } = WidgetCatalog.Glyph(0xE767);
+
+    public string BellGlyph { get; } = WidgetCatalog.Glyph(0xEA8F);
+
+    [ObservableProperty] private string _networkGlyph = WidgetCatalog.Glyph(0xE701);
+    [ObservableProperty] private string _networkText = string.Empty;
+    [ObservableProperty] private bool _hasBattery;
+    [ObservableProperty] private string _batteryGlyph = string.Empty;
+    [ObservableProperty] private string _batteryText = string.Empty;
+
+    public override void Start()
+    {
+        Update();
+        _timer.Start();
+    }
+
+    private void Update()
+    {
+        var online = _monitor.IsNetworkAvailable();
+        NetworkGlyph = WidgetCatalog.Glyph(online ? 0xE701 : 0xEB55);
+        NetworkText = online ? "Connected" : "No internet";
+
+        var power = _monitor.GetPower();
+        HasBattery = power.HasBattery;
+        if (power.HasBattery)
+        {
+            BatteryGlyph = WidgetCatalog.Glyph(0xE850 + Math.Clamp(power.Percent / 10, 0, 10));
+            BatteryText = power.IsCharging ? $"{power.Percent}% ⚡" : $"{power.Percent}%";
+        }
+    }
+
+    public override void OnClick() => _shell.OpenQuickSettings();
+
+    [RelayCommand]
+    private void OpenQuickSettings() => _shell.OpenQuickSettings();
+
+    [RelayCommand]
+    private void OpenNotifications() => _shell.OpenNotificationCenter();
+
+    public override void Dispose()
+    {
+        _timer.Stop();
+        base.Dispose();
+    }
+}
+
+public sealed class ShowDesktopWidget(WidgetPlacement placement, IShellCommands shell) : WidgetViewModel(placement)
+{
+    public string Glyph { get; } = WidgetCatalog.Glyph(0xE7F4);
+
+    public override void OnClick() => shell.ToggleDesktop();
+}
+
+public sealed class SpacerWidget(WidgetPlacement placement) : WidgetViewModel(placement)
+{
+    public override bool IsFlexible => true;
+
+    public override bool HasPlate => false;
+}

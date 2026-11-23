@@ -54,11 +54,19 @@ public static class SettingsSerializer
                 MonitorDeviceName = ReadString(root, nameof(DockSettings.MonitorDeviceName)),
                 Size = ReadEnum(root, nameof(DockSettings.Size), d.Size),
                 Theme = ReadEnum(root, nameof(DockSettings.Theme), d.Theme),
-                Width = ReadDouble(root, nameof(DockSettings.Width)) ?? d.Width,
+                FullWidth = ReadBool(root, nameof(DockSettings.FullWidth)) ?? d.FullWidth,
                 Spacing = ReadDouble(root, nameof(DockSettings.Spacing)) ?? d.Spacing,
                 Opacity = ReadDouble(root, nameof(DockSettings.Opacity)) ?? d.Opacity,
                 EdgeOffset = ReadDouble(root, nameof(DockSettings.EdgeOffset)) ?? d.EdgeOffset,
                 ReducedMotion = ReadBool(root, nameof(DockSettings.ReducedMotion)) ?? d.ReducedMotion,
+                Use24HourClock = ReadBool(root, nameof(DockSettings.Use24HourClock)) ?? d.Use24HourClock,
+                ReplaceTaskbar = ReadBool(root, nameof(DockSettings.ReplaceTaskbar)) ?? d.ReplaceTaskbar,
+                HideInFullscreen = ReadBool(root, nameof(DockSettings.HideInFullscreen)) ?? d.HideInFullscreen,
+                LaunchAtStartup = ReadBool(root, nameof(DockSettings.LaunchAtStartup)) ?? d.LaunchAtStartup,
+                TaskbarStateBeforeReplace = ReadInt(root, nameof(DockSettings.TaskbarStateBeforeReplace)),
+                WeatherCity = ReadString(root, nameof(DockSettings.WeatherCity)) ?? d.WeatherCity,
+                WidgetsInitialized = ReadBool(root, nameof(DockSettings.WidgetsInitialized)) ?? d.WidgetsInitialized,
+                Widgets = ReadWidgets(root),
                 ShortcutsInitialized = ReadBool(root, nameof(DockSettings.ShortcutsInitialized)) ?? d.ShortcutsInitialized,
                 Shortcuts = ReadShortcuts(root),
             };
@@ -120,6 +128,31 @@ public static class SettingsSerializer
         }
 
         return fallback;
+    }
+
+    private static IReadOnlyList<WidgetPlacement> ReadWidgets(JsonElement root)
+    {
+        if (!TryGet(root, nameof(DockSettings.Widgets), out var arr) || arr.ValueKind != JsonValueKind.Array)
+        {
+            return Array.Empty<WidgetPlacement>();
+        }
+
+        var list = new List<WidgetPlacement>();
+        foreach (var item in arr.EnumerateArray())
+        {
+            if (item.ValueKind != JsonValueKind.Object)
+            {
+                continue;
+            }
+
+            var type = ReadString(item, nameof(WidgetPlacement.TypeId));
+            if (!string.IsNullOrWhiteSpace(type))
+            {
+                list.Add(new WidgetPlacement(ReadString(item, nameof(WidgetPlacement.Id)) ?? string.Empty, type));
+            }
+        }
+
+        return list;
     }
 
     private static IReadOnlyList<DockShortcut> ReadShortcuts(JsonElement root)

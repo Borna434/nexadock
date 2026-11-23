@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Data;
 
 namespace NexaDock.UI.Converters;
@@ -16,6 +17,27 @@ public sealed class BoolToVisibilityConverter : IValueConverter
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
         value is Visibility v && (v == Visibility.Visible) ^ Invert;
+}
+
+/// <summary>Maps 0..100 to a 0..1 scale factor (for progress bars drawn with ScaleTransform).</summary>
+public sealed class PercentToScaleConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture) =>
+        value is double d ? Math.Clamp(d / 100.0, 0, 1) : 0.0;
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
+        Binding.DoNothing;
+}
+
+/// <summary>Picks the "{TypeName}.Tile" or "{TypeName}.Card" template from resources.</summary>
+public sealed class WidgetTemplateSelector : DataTemplateSelector
+{
+    public bool Card { get; set; }
+
+    public override DataTemplate? SelectTemplate(object item, DependencyObject container) =>
+        item is null || container is not FrameworkElement fe
+            ? null
+            : fe.TryFindResource($"{item.GetType().Name}.{(Card ? "Card" : "Tile")}") as DataTemplate;
 }
 
 /// <summary>Formats a 0..1 value as a whole percentage.</summary>

@@ -2,14 +2,16 @@ using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using NexaDock.Core.Abstractions;
+using NexaDock.Core.Layout;
 using NexaDock.Core.Models;
 using NexaDock.Core.Theming;
 
 namespace NexaDock.UI.Theming;
 
-/// <summary>Builds the frozen WPF brushes that make up the layered glass surface.</summary>
+/// <summary>Builds the frozen WPF brushes that make up the layered glass surface and its tiles.</summary>
 public sealed class GlassBrushes
 {
+    public required bool IsDark { get; init; }
     public required Brush Tint { get; init; }
     public required Brush Sheen { get; init; }
     public required Brush Rim { get; init; }
@@ -17,26 +19,33 @@ public sealed class GlassBrushes
     public required Brush Foreground { get; init; }
     public required Brush SecondaryForeground { get; init; }
     public required Brush Accent { get; init; }
+    public required Color AccentColor { get; init; }
+    public required Brush TileFill { get; init; }
+    public required Brush TileRim { get; init; }
+    public required Brush TileHover { get; init; }
     public required Brush HoverFill { get; init; }
-    public required Brush HoverRim { get; init; }
     public required Brush Separator { get; init; }
+    public required Brush Track { get; init; }
     public required Color ShadowColor { get; init; }
 
     public static GlassBrushes Create(ThemePalette palette, double opacity, BackdropKind backdrop)
     {
         // Without blur behind it, the surface needs more body to keep text legible.
-        var tintAlpha = backdrop == BackdropKind.NativeAcrylic ? opacity : 0.55 + opacity * 0.4;
+        var baseAlpha = Math.Clamp(opacity * palette.TintStrength, 0.05, 0.97);
+        var tintAlpha = backdrop == BackdropKind.NativeAcrylic ? baseAlpha : 0.55 + baseAlpha * 0.4;
         var top = Parse(palette.TintTop);
         var bottom = Parse(palette.TintBottom);
         var highlight = Parse(palette.Highlight);
         var fg = Parse(palette.Foreground);
         var glow = Parse(palette.Glow);
+        var accent = Parse(palette.Accent);
         var dark = palette.IsDark;
+        var tile = palette.TileStrength;
 
         var tint = new LinearGradientBrush
         {
             StartPoint = new Point(0, 0),
-            EndPoint = new Point(0.35, 1),
+            EndPoint = new Point(0, 1),
             GradientStops =
             {
                 new GradientStop(WithAlpha(top, tintAlpha), 0),
@@ -45,7 +54,7 @@ public sealed class GlassBrushes
         };
 
         // Upper "liquid" sheen with a soft horizon, like light caught on curved glass.
-        var sheenStrength = dark ? 0.20 : 0.55;
+        var sheenStrength = dark ? 0.16 : 0.5;
         var sheen = new LinearGradientBrush
         {
             StartPoint = new Point(0, 0),
@@ -53,8 +62,8 @@ public sealed class GlassBrushes
             GradientStops =
             {
                 new GradientStop(WithAlpha(highlight, sheenStrength), 0),
-                new GradientStop(WithAlpha(highlight, sheenStrength * 0.35), 0.42),
-                new GradientStop(WithAlpha(highlight, 0), 0.62),
+                new GradientStop(WithAlpha(highlight, sheenStrength * 0.3), 0.45),
+                new GradientStop(WithAlpha(highlight, 0), 0.6),
                 new GradientStop(WithAlpha(highlight, 0), 1),
             },
         };
@@ -65,41 +74,68 @@ public sealed class GlassBrushes
             EndPoint = new Point(0, 1),
             GradientStops =
             {
-                new GradientStop(WithAlpha(highlight, dark ? 0.42 : 0.95), 0),
-                new GradientStop(WithAlpha(highlight, dark ? 0.10 : 0.35), 0.5),
-                new GradientStop(WithAlpha(highlight, dark ? 0.22 : 0.55), 1),
+                new GradientStop(WithAlpha(highlight, dark ? 0.38 : 0.95), 0),
+                new GradientStop(WithAlpha(highlight, dark ? 0.08 : 0.35), 0.5),
+                new GradientStop(WithAlpha(highlight, dark ? 0.18 : 0.55), 1),
             },
         };
 
         var innerGlow = new RadialGradientBrush
         {
-            Center = new Point(0.5, 1.15),
-            GradientOrigin = new Point(0.5, 1.15),
-            RadiusX = 0.55,
-            RadiusY = 1.1,
+            Center = new Point(0.5, 1.25),
+            GradientOrigin = new Point(0.5, 1.25),
+            RadiusX = 0.6,
+            RadiusY = 1.2,
             GradientStops =
             {
-                new GradientStop(WithAlpha(glow, dark ? 0.30 : 0.22), 0),
+                new GradientStop(WithAlpha(glow, dark ? 0.22 : 0.18), 0),
                 new GradientStop(WithAlpha(glow, 0), 1),
             },
         };
 
-        var hoverBase = dark ? highlight : fg;
-        var result = new GlassBrushes
+        // Tiles: a slightly lifted plate with its own rim, the "liquid drop" inside the bar.
+        var tileFill = new LinearGradientBrush
         {
+            StartPoint = new Point(0, 0),
+            EndPoint = new Point(0, 1),
+            GradientStops =
+            {
+                new GradientStop(WithAlpha(highlight, (dark ? 0.13 : 0.62) * tile), 0),
+                new GradientStop(WithAlpha(highlight, (dark ? 0.06 : 0.38) * tile), 1),
+            },
+        };
+
+        var tileRim = new LinearGradientBrush
+        {
+            StartPoint = new Point(0, 0),
+            EndPoint = new Point(0, 1),
+            GradientStops =
+            {
+                new GradientStop(WithAlpha(highlight, dark ? 0.24 : 0.95), 0),
+                new GradientStop(WithAlpha(highlight, dark ? 0.06 : 0.45), 1),
+            },
+        };
+
+        var hoverBase = dark ? highlight : fg;
+        return new GlassBrushes
+        {
+            IsDark = dark,
             Tint = Freeze(tint),
             Sheen = Freeze(sheen),
             Rim = Freeze(rim),
             InnerGlow = Freeze(innerGlow),
             Foreground = Freeze(new SolidColorBrush(fg)),
             SecondaryForeground = Freeze(new SolidColorBrush(Parse(palette.SecondaryForeground))),
-            Accent = Freeze(new SolidColorBrush(Parse(palette.Accent))),
-            HoverFill = Freeze(new LinearGradientBrush(WithAlpha(hoverBase, dark ? 0.20 : 0.10), WithAlpha(hoverBase, dark ? 0.08 : 0.04), 90)),
-            HoverRim = Freeze(new SolidColorBrush(WithAlpha(highlight, dark ? 0.28 : 0.9))),
+            Accent = Freeze(new SolidColorBrush(accent)),
+            AccentColor = accent,
+            TileFill = Freeze(tileFill),
+            TileRim = Freeze(tileRim),
+            TileHover = Freeze(new SolidColorBrush(WithAlpha(hoverBase, dark ? 0.20 : 0.10))),
+            HoverFill = Freeze(new LinearGradientBrush(WithAlpha(hoverBase, dark ? 0.20 : 0.10), WithAlpha(hoverBase, dark ? 0.09 : 0.05), 90)),
             Separator = Freeze(new SolidColorBrush(WithAlpha(fg, 0.16))),
+            Track = Freeze(new SolidColorBrush(WithAlpha(fg, dark ? 0.16 : 0.12))),
             ShadowColor = dark ? Color.FromArgb(255, 0, 0, 0) : Color.FromArgb(255, 30, 45, 70),
         };
-        return result;
     }
 
     public static Color Parse(string hex) => (Color)ColorConverter.ConvertFromString(hex);
@@ -111,6 +147,42 @@ public sealed class GlassBrushes
     {
         b.Freeze();
         return b;
+    }
+}
+
+/// <summary>
+/// Publishes brushes and metrics as dynamic resources (keys "Bar.*") so the bar, cards and
+/// previews share one look and update instantly when settings change.
+/// </summary>
+public static class ThemeResources
+{
+    public static void Apply(ResourceDictionary target, GlassBrushes b, DockMetrics m, double spacing)
+    {
+        target["Bar.Foreground"] = b.Foreground;
+        target["Bar.Secondary"] = b.SecondaryForeground;
+        target["Bar.Accent"] = b.Accent;
+        target["Bar.AccentColor"] = b.AccentColor;
+        target["Bar.TileFill"] = b.TileFill;
+        target["Bar.TileRim"] = b.TileRim;
+        target["Bar.TileHover"] = b.TileHover;
+        target["Bar.HoverFill"] = b.HoverFill;
+        target["Bar.Separator"] = b.Separator;
+        target["Bar.Track"] = b.Track;
+        target["Bar.Tint"] = b.Tint;
+        target["Bar.Sheen"] = b.Sheen;
+        target["Bar.Rim"] = b.Rim;
+        target["Bar.InnerGlow"] = b.InnerGlow;
+
+        target["Bar.Height"] = m.Height;
+        target["Bar.TileHeight"] = m.TileHeight;
+        target["Bar.IconSize"] = m.IconSize;
+        target["Bar.AppButton"] = m.AppButtonSize;
+        target["Bar.PrimaryFont"] = m.PrimaryFontSize;
+        target["Bar.SecondaryFont"] = m.SecondaryFontSize;
+        target["Bar.TileRadius"] = new CornerRadius(Math.Round(m.TileHeight * 0.3));
+        target["Bar.TilePadding"] = new Thickness(Math.Round(m.TileHeight * 0.26), 0, Math.Round(m.TileHeight * 0.26), 0);
+        target["Bar.Spacing"] = spacing;
+        target["Bar.ArtSize"] = Math.Round(m.TileHeight - 10);
     }
 }
 
@@ -126,6 +198,31 @@ public static class IconImageExtensions
         var bmp = BitmapSource.Create(icon.Width, icon.Height, 96, 96, PixelFormats.Pbgra32, null, icon.Pixels, icon.Width * 4);
         bmp.Freeze();
         return bmp;
+    }
+
+    /// <summary>Decodes encoded image bytes (PNG/JPEG, e.g. album art).</summary>
+    public static BitmapSource? DecodeImage(byte[]? bytes, int decodeWidth = 256)
+    {
+        if (bytes is null || bytes.Length == 0)
+        {
+            return null;
+        }
+
+        try
+        {
+            var img = new BitmapImage();
+            img.BeginInit();
+            img.CacheOption = BitmapCacheOption.OnLoad;
+            img.DecodePixelWidth = decodeWidth;
+            img.StreamSource = new System.IO.MemoryStream(bytes);
+            img.EndInit();
+            img.Freeze();
+            return img;
+        }
+        catch (Exception ex) when (ex is NotSupportedException or System.IO.IOException or InvalidOperationException or ArgumentException)
+        {
+            return null;
+        }
     }
 
     /// <summary>Picks a shell icon size that renders crisply for the given DIP size and scale.</summary>
