@@ -140,6 +140,21 @@ public static class WidgetCatalog
         All.FirstOrDefault(d => string.Equals(d.TypeId, typeId, StringComparison.OrdinalIgnoreCase));
 
     /// <summary>
+    /// Layout of the extra bar on another display, like a secondary Windows 11 taskbar: the apps
+    /// (windows open on that display) in the middle and the clock on the right. IDs derive from
+    /// the display so the layout is stable until the user changes it.
+    /// </summary>
+    public static IReadOnlyList<WidgetPlacement> SecondaryLayout(string display)
+    {
+        var key = new string(display.Where(char.IsLetterOrDigit).ToArray()).ToLowerInvariant();
+        return
+        [
+            new WidgetPlacement("display-" + key + "-apps", WidgetTypes.Apps),
+            new WidgetPlacement("display-" + key + "-clock", WidgetTypes.Clock),
+        ];
+    }
+
+    /// <summary>
     /// First-run layout, centred like the Windows 11 taskbar: weather and media on the left, the
     /// apps in the middle, status and the clock on the right (see <see cref="WidgetArranger"/>).
     /// </summary>

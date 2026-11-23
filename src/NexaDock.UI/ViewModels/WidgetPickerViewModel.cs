@@ -51,6 +51,29 @@ public sealed partial class WidgetPickerViewModel : ObservableObject, IDisposabl
         _settings.Changed += OnSettingsChanged;
     }
 
+    /// <summary>The secondary display whose bar is edited; null edits the main bar.</summary>
+    public string? Display { get; private set; }
+
+    /// <summary>Shown under the title when the picker edits a secondary display's bar.</summary>
+    public string TargetText => Display is null ? string.Empty : Loc.F("picker.forDisplay", DisplayLabel(Display));
+
+    public void SetDisplay(string? display)
+    {
+        Display = display;
+        OnPropertyChanged(nameof(TargetText));
+        Sync(_settings.Current);
+    }
+
+    private static string DisplayLabel(string device)
+    {
+        var digits = new string(device.Where(char.IsDigit).ToArray());
+        return digits.Length > 0 ? digits : device;
+    }
+
+    private IReadOnlyList<WidgetPlacement> Layout(DockSettings s) => Core.Layout.BarLayouts.Get(s, Display);
+
+    private DockSettings With(DockSettings s, IReadOnlyList<WidgetPlacement> list) => Core.Layout.BarLayouts.With(s, Display, list);
+
     public IReadOnlyList<CategoryOption> Categories { get; }
 
     public ObservableCollection<WidgetOptionViewModel> Visible { get; } = [];
@@ -81,7 +104,7 @@ public sealed partial class WidgetPickerViewModel : ObservableObject, IDisposabl
         var type = option.Descriptor.TypeId;
         _settings.Update(s =>
         {
-            var list = s.Widgets.ToList();
+            var list = Layout(s).ToList();
             var existing = list.FindLastIndex(w => w.TypeId == type);
             if (existing >= 0)
             {
@@ -93,7 +116,7 @@ public sealed partial class WidgetPickerViewModel : ObservableObject, IDisposabl
                 list.Insert(WidgetArranger.InsertIndex(list, type), WidgetPlacement.Create(type));
             }
 
-            return s with { Widgets = list, WidgetsInitialized = true };
+            return With(s, list);
         });
     }
 
@@ -101,14 +124,14 @@ public sealed partial class WidgetPickerViewModel : ObservableObject, IDisposabl
         _settings.Update(s =>
         {
             var type = option.Descriptor.TypeId;
-            var list = s.Widgets.ToList();
+            var list = Layout(s).ToList();
             list.Insert(WidgetArranger.InsertIndex(list, type), WidgetPlacement.Create(type));
-            return s with { Widgets = list, WidgetsInitialized = true };
+            return With(s, list);
         });
 
     [RelayCommand]
     private void RestoreDefaultLayout() =>
-        _settings.Update(s => s with { Widgets = WidgetCatalog.DefaultLayout(), WidgetsInitialized = true });
+        _settings.Update(s => With(s, Display is null ? WidgetCatalog.DefaultLayout() : WidgetCatalog.SecondaryLayout(Display)));
 
     private void OnSettingsChanged(object? sender, SettingsChangedEventArgs e) => Sync(e.Current);
 
@@ -116,7 +139,7 @@ public sealed partial class WidgetPickerViewModel : ObservableObject, IDisposabl
     {
         foreach (var o in _all)
         {
-            o.Count = s.Widgets.Count(w => w.TypeId == o.Descriptor.TypeId);
+            o.Count = Layout(s).Count(w => w.TypeId == o.Descriptor.TypeId);
         }
     }
 

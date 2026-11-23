@@ -23,7 +23,7 @@ public sealed class Win32DockWindowHost : IDockWindowHost, IDisposable
     private readonly DispatcherTimer _debounce;
     private readonly List<HwndSource> _sources = new();
     private readonly uint _appBarMessage = RegisterWindowMessage("NexaDock.AppBar");
-    private IntPtr _appBarHwnd;
+    private readonly HashSet<IntPtr> _appBars = new();
     private bool _listening;
 
     public Win32DockWindowHost(ILogger<Win32DockWindowHost> logger)
@@ -80,19 +80,25 @@ public sealed class Win32DockWindowHost : IDockWindowHost, IDisposable
         }
     }
 
+    /// <summary>Last position sent per app bar: unchanged positions are not sent again.</summary>
+    private readonly Dictionary<IntPtr, (DockEdge Edge, PixelRect Strip)> _appBarPositions = new();
+
     public void SetAppBar(IntPtr hwnd, DockEdge edge, PixelRect strip)
     {
-        var data = new APPBARDATA { cbSize = Marshal.SizeOf<APPBARDATA>(), hWnd = hwnd, uCallbackMessage = _appBarMessage };
-        if (_appBarHwnd != hwnd)
+        // Every call briefly steps our tray window aside (see RouteAppBarMessagesToWindows), so
+        // only talk to Windows when the reservation really changes.
+        if (_appBars.Contains(hwnd) && _appBarPositions.TryGetValue(hwnd, out var last) && last.Edge == edge && last.Strip == strip)
         {
-            if (_appBarHwnd != IntPtr.Zero)
-            {
-                RemoveAppBar(_appBarHwnd);
-            }
+            return;
+        }
 
-            SHAppBarMessage(ABM_NEW, ref data);
-            _appBarHwnd = hwnd;
-            _logger.LogInformation("Registered app bar.");
+        _appBarPositions[hwnd] = (edge, strip);
+        using var route = RouteAppBarMessagesToWindows();
+        var data = new APPBARDATA { cbSize = Marshal.SizeOf<APPBARDATA>(), hWnd = hwnd, uCallbackMessage = _appBarMessage };
+        if (_appBars.Add(hwnd))
+        {
+            var registered = SHAppBarMessage(ABM_NEW, ref data);
+            _logger.LogInformation("Registered app bar ({Count} in total): {Result}.", _appBars.Count, registered);
         }
 
         var thickness = strip.Height;
@@ -115,16 +121,72 @@ public sealed class Win32DockWindowHost : IDockWindowHost, IDisposable
 
     public void RemoveAppBar(IntPtr hwnd)
     {
-        if (_appBarHwnd == IntPtr.Zero || _appBarHwnd != hwnd)
+        _appBarPositions.Remove(hwnd);
+        if (!_appBars.Remove(hwnd))
         {
             return;
         }
 
+        using var route = RouteAppBarMessagesToWindows();
         var data = new APPBARDATA { cbSize = Marshal.SizeOf<APPBARDATA>(), hWnd = hwnd };
         SHAppBarMessage(ABM_REMOVE, ref data);
-        _appBarHwnd = IntPtr.Zero;
         _logger.LogInformation("Removed app bar.");
     }
+
+    /// <summary>
+    /// SHAppBarMessage talks to the first "Shell_TrayWnd" window in z-order. While the
+    /// notification-area widget is on, that is our own tray window (it has to be, to receive the
+    /// icons), and Windows ignores app bar messages that loop back into the sending process. So
+    /// our tray window steps below Explorer's for the duration of the call and is raised again
+    /// right after; no icon message can arrive in between because both run on this thread.
+    /// </summary>
+    private static IDisposable RouteAppBarMessagesToWindows()
+    {
+        var own = FindOwnTrayWindow();
+        if (own == IntPtr.Zero)
+        {
+            return NoOp.Instance;
+        }
+
+        SetWindowPos(own, new IntPtr(1) /* HWND_BOTTOM */, 0, 0, 0, 0, 0x0001 | 0x0002 | SWP_NOACTIVATE);
+        return new Restore(own);
+    }
+
+    private static IntPtr FindOwnTrayWindow()
+    {
+        var me = (uint)Environment.ProcessId;
+        var h = IntPtr.Zero;
+        while ((h = FindWindowEx(IntPtr.Zero, h, "Shell_TrayWnd", null)) != IntPtr.Zero)
+        {
+            if (GetWindowThreadProcessId(h, out var pid) != 0 && pid == me)
+            {
+                return h;
+            }
+        }
+
+        return IntPtr.Zero;
+    }
+
+    private sealed class Restore(IntPtr hwnd) : IDisposable
+    {
+        public void Dispose() =>
+            SetWindowPos(hwnd, new IntPtr(-1) /* HWND_TOPMOST */, 0, 0, 0, 0, 0x0001 | 0x0002 | SWP_NOACTIVATE);
+    }
+
+    private sealed class NoOp : IDisposable
+    {
+        public static readonly NoOp Instance = new();
+
+        public void Dispose()
+        {
+        }
+    }
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern IntPtr FindWindowEx(IntPtr parent, IntPtr childAfter, string className, string? windowName);
+
+    [DllImport("user32.dll")]
+    private static extern uint GetWindowThreadProcessId(IntPtr hwnd, out uint processId);
 
     private readonly HashSet<IntPtr> _keyboardWindows = new();
 
@@ -291,9 +353,9 @@ public sealed class Win32DockWindowHost : IDockWindowHost, IDisposable
 
     public void Dispose()
     {
-        if (_appBarHwnd != IntPtr.Zero)
+        foreach (var hwnd in new List<IntPtr>(_appBars))
         {
-            RemoveAppBar(_appBarHwnd);
+            RemoveAppBar(hwnd);
         }
 
         SystemEvents.DisplaySettingsChanged -= OnSystemDisplayChanged;

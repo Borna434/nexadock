@@ -34,6 +34,7 @@ public partial class DockWindow : Window
     private readonly IWindowTracker _tracker;
     private readonly ILogger<DockWindow> _logger;
     private readonly NexaDock.UI.Services.TrayIconHost _trayHost;
+    private readonly BarTarget _target;
     private readonly CardWindow _card;
     private readonly PreviewWindow _preview;
     private readonly DispatcherTimer _hoverTimer;
@@ -77,8 +78,10 @@ public partial class DockWindow : Window
         IWindowTracker tracker,
         IThumbnailService thumbnails,
         NexaDock.UI.Services.TrayIconHost trayHost,
+        BarTarget target,
         ILogger<DockWindow> logger)
     {
+        _target = target;
         _trayHost = trayHost;
         _viewModel = viewModel;
         _backdrop = backdrop;
@@ -122,8 +125,8 @@ public partial class DockWindow : Window
         ApplyTheme();
         _viewModel.AppearanceChanged += (_, _) => ApplyTheme();
         _viewModel.LayoutInvalidated += (_, _) => QueueReposition();
-        _host.PlacementInvalidated += (_, _) => Reposition();
-        _tracker.Changed += (_, _) => UpdateFullscreenState();
+        _host.PlacementInvalidated += OnPlacementInvalidated;
+        _tracker.Changed += OnWindowsChanged;
         Loaded += (_, _) => Dispatcher.BeginInvoke(UpdateFullscreenState, DispatcherPriority.Background);
         DpiChanged += (_, _) => QueueReposition();
         IsVisibleChanged += (_, _) =>
@@ -141,6 +144,13 @@ public partial class DockWindow : Window
     }
 
     public IntPtr Handle => _hwnd;
+
+    /// <summary>The main bar, or the extra bar of one secondary display.</summary>
+    public BarTarget Target => _target;
+
+    private void OnPlacementInvalidated(object? sender, EventArgs e) => Reposition();
+
+    private void OnWindowsChanged(object? sender, EventArgs e) => UpdateFullscreenState();
 
     /// <summary>True while the user chose "Hide bar" (full-screen logic will not bring it back).</summary>
     public bool UserHidden { get; set; }
@@ -190,7 +200,14 @@ public partial class DockWindow : Window
 
     protected override void OnClosed(EventArgs e)
     {
+        _host.PlacementInvalidated -= OnPlacementInvalidated;
+        _tracker.Changed -= OnWindowsChanged;
         _contentWatch.Stop();
+        if (!_target.IsMain)
+        {
+            _viewModel.Dispose(); // an extra bar's widgets go with it
+        }
+
         _host.RemoveAppBar(_hwnd);
         _card.Close();
         _preview.Close();
@@ -229,10 +246,13 @@ public partial class DockWindow : Window
         }
 
         var settings = _settings.Current;
-        var monitor = MonitorSelector.Select(_monitors.GetMonitors(), settings.MonitorDeviceName);
+        var monitors = _monitors.GetMonitors();
+        var monitor = _target.IsMain
+            ? MonitorSelector.Select(monitors, settings.MonitorDeviceName)
+            : monitors.FirstOrDefault(m => string.Equals(m.DeviceName, _target.Display, StringComparison.OrdinalIgnoreCase));
         if (monitor is null)
         {
-            _logger.LogWarning("No monitors reported; keeping current position.");
+            _logger.LogWarning("No monitor for this bar; keeping current position.");
             return;
         }
 
@@ -244,7 +264,10 @@ public partial class DockWindow : Window
         var options = new PlacementOptions(_viewModel.ShadowPadding, UseMonitorBounds: settings.ReplaceTaskbar);
         _bounds = _positioner.Calculate(monitor, settings, contentWidth, options);
         _host.SetBounds(_hwnd, _bounds);
-        _trayHost.SetHostBounds(_bounds.X, _bounds.Y, _bounds.X + _bounds.Width, _bounds.Y + _bounds.Height, settings.Edge == DockEdge.Top);
+        if (_target.IsMain)
+        {
+            _trayHost.SetHostBounds(_bounds.X, _bounds.Y, _bounds.X + _bounds.Width, _bounds.Y + _bounds.Height, settings.Edge == DockEdge.Top);
+        }
 
         if (settings.ReplaceTaskbar)
         {
@@ -356,7 +379,7 @@ public partial class DockWindow : Window
                 _card.CloseCard();
                 CaptureMouse();
             }
-            else if (!onTile && (Math.Abs(delta.Y) > DragThreshold * 2 || Math.Abs(delta.X) > DragThreshold * 2))
+            else if (!onTile && _target.IsMain && (Math.Abs(delta.Y) > DragThreshold * 2 || Math.Abs(delta.X) > DragThreshold * 2))
             {
                 _logger.LogDebug("Bar drag started (pressed on {Target}).", _pressWidget?.GetType().Name ?? "background");
                 _gesture = GestureMode.BarDrag;
@@ -695,7 +718,10 @@ public partial class DockWindow : Window
         auto.IsCheckable = true;
         auto.IsChecked = _settings.Current.AutoSwitchProfiles;
         profiles.Items.Add(auto);
-        menu.Items.Add(profiles);
+        if (_target.IsMain)
+        {
+            menu.Items.Add(profiles);
+        }
 
         menu.Items.Add(Item(Loc.T("menu.widgets"), () => _viewModel.OpenWidgetsCommand.Execute(null)));
         menu.Items.Add(Item(Loc.T("menu.arrange"), _viewModel.ArrangeWidgets));

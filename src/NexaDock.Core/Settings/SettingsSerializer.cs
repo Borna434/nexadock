@@ -73,6 +73,8 @@ public static class SettingsSerializer
                 WidgetsInitialized = ReadBool(root, nameof(DockSettings.WidgetsInitialized)) ?? d.WidgetsInitialized,
                 Widgets = ReadWidgets(root),
                 Profiles = ReadProfiles(root),
+                ShowOnAllDisplays = ReadBool(root, nameof(DockSettings.ShowOnAllDisplays)) ?? d.ShowOnAllDisplays,
+                DisplayLayouts = ReadDisplayLayouts(root),
                 ActiveProfileId = ReadString(root, nameof(DockSettings.ActiveProfileId)),
                 DefaultProfileId = ReadString(root, nameof(DockSettings.DefaultProfileId)),
                 AutoSwitchProfiles = ReadBool(root, nameof(DockSettings.AutoSwitchProfiles)) ?? d.AutoSwitchProfiles,
@@ -194,6 +196,25 @@ public static class SettingsSerializer
     }
 
     private static IReadOnlyList<WidgetPlacement> ReadWidgets(JsonElement root) => ReadWidgetArray(root);
+
+    private static IReadOnlyList<DisplayLayout> ReadDisplayLayouts(JsonElement root)
+    {
+        if (!TryGet(root, nameof(DockSettings.DisplayLayouts), out var arr) || arr.ValueKind != JsonValueKind.Array)
+        {
+            return Array.Empty<DisplayLayout>();
+        }
+
+        var list = new List<DisplayLayout>();
+        foreach (var item in arr.EnumerateArray())
+        {
+            if (item.ValueKind == JsonValueKind.Object && ReadString(item, nameof(DisplayLayout.DeviceName)) is { Length: > 0 } device)
+            {
+                list.Add(new DisplayLayout(device, ReadWidgetArray(item)));
+            }
+        }
+
+        return list;
+    }
 
     private static IReadOnlyList<WidgetPlacement> ReadWidgetArray(JsonElement root)
     {

@@ -27,6 +27,8 @@ public sealed class AppShell : IAppShell
 
     private DockWindow Dock => _services.GetRequiredService<DockWindow>();
 
+    private BarManager Bars => _services.GetRequiredService<BarManager>();
+
     public void ShowDock()
     {
         var dock = Dock;
@@ -39,6 +41,7 @@ public sealed class AppShell : IAppShell
         dock.Topmost = false; // re-assert z-order above other topmost windows
         dock.Topmost = true;
         dock.Reposition();
+        Bars.ShowAll();
     }
 
     public void HideDock()
@@ -46,6 +49,7 @@ public sealed class AppShell : IAppShell
         var dock = Dock;
         dock.UserHidden = true;
         dock.Hide();
+        Bars.HideAll();
         Notify(Loc.T("notify.hidden.title"), Loc.T("notify.hidden.body"));
     }
 
@@ -64,15 +68,17 @@ public sealed class AppShell : IAppShell
         _settingsWindow.Activate();
     }
 
-    public void ShowWidgetPicker()
+    public void ShowWidgetPicker(string? display = null)
     {
         if (_pickerWindow is { IsLoaded: true })
         {
+            _pickerWindow.SetDisplay(display);
             Bring(_pickerWindow);
             return;
         }
 
         _pickerWindow = _services.GetRequiredService<WidgetPickerWindow>();
+        _pickerWindow.SetDisplay(display);
         _pickerWindow.SetAppIcon(AppIcon);
         _pickerWindow.Closed += (_, _) => _pickerWindow = null;
         _pickerWindow.Show();

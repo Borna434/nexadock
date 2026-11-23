@@ -26,24 +26,36 @@ public sealed partial class DockViewModel : ObservableObject, IDisposable
 
     private readonly PulseCenter _pulse;
 
-    public DockViewModel(ISettingsService settings, WidgetFactory factory, IAppShell shell, PulseCenter pulse, ILogger<DockViewModel> logger)
+    public DockViewModel(ISettingsService settings, WidgetFactory factory, IAppShell shell, PulseCenter pulse, BarTarget target, ILogger<DockViewModel> logger)
     {
         _settings = settings;
         _factory = factory;
         _shell = shell;
         _pulse = pulse;
+        Target = target;
         _logger = logger;
         _settings.Changed += OnSettingsChanged;
-        _pulse.Changed += (_, _) => UpdatePulseGlow();
-        Localization.Loc.LanguageChanged += (_, _) =>
-        {
-            foreach (var w in Widgets)
-            {
-                w.OnLanguageChanged();
-                w.ApplySettings(_settings.Current);
-            }
-        };
+        _pulse.Changed += OnPulseChanged;
+        Localization.Loc.LanguageChanged += OnLanguageChanged;
         ApplyAppearance(_settings.Current);
+    }
+
+    /// <summary>The main bar, or the extra bar of one secondary display.</summary>
+    public BarTarget Target { get; }
+
+    public bool IsMainBar => Target.IsMain;
+
+    private IReadOnlyList<WidgetPlacement> Layout(DockSettings s) => BarLayouts.Get(s, Target.Display);
+
+    private void OnPulseChanged(object? sender, EventArgs e) => UpdatePulseGlow();
+
+    private void OnLanguageChanged(object? sender, EventArgs e)
+    {
+        foreach (var w in Widgets)
+        {
+            w.OnLanguageChanged();
+            w.ApplySettings(_settings.Current);
+        }
     }
 
     public PulseCenter Pulse => _pulse;
@@ -139,21 +151,17 @@ public sealed partial class DockViewModel : ObservableObject, IDisposable
     }
 
     public void RemoveWidget(WidgetViewModel widget) =>
-        _settings.Update(s => s with
-        {
-            Widgets = s.Widgets.Where(w => w.Id != widget.InstanceId).ToList(),
-            WidgetsInitialized = true,
-        });
+        _settings.Update(s => BarLayouts.With(s, Target.Display, Layout(s).Where(w => w.Id != widget.InstanceId).ToList()));
 
     /// <summary>Puts the widgets in their logical places around the centred apps.</summary>
     public void ArrangeWidgets() =>
-        _settings.Update(s => s with { Widgets = WidgetArranger.Arrange(s.Widgets), WidgetsInitialized = true });
+        _settings.Update(s => BarLayouts.With(s, Target.Display, WidgetArranger.Arrange(Layout(s))));
 
     public void MoveWidget(WidgetViewModel widget, int newIndex)
     {
         _settings.Update(s =>
         {
-            var list = s.Widgets.ToList();
+            var list = Layout(s).ToList();
             var from = list.FindIndex(w => w.Id == widget.InstanceId);
             if (from < 0)
             {
@@ -163,7 +171,7 @@ public sealed partial class DockViewModel : ObservableObject, IDisposable
             var item = list[from];
             list.RemoveAt(from);
             list.Insert(Math.Clamp(newIndex, 0, list.Count), item);
-            return s with { Widgets = list, WidgetsInitialized = true };
+            return BarLayouts.With(s, Target.Display, list);
         });
     }
 
@@ -171,7 +179,7 @@ public sealed partial class DockViewModel : ObservableObject, IDisposable
     private void OpenSettings() => _shell.ShowSettings();
 
     [RelayCommand]
-    private void OpenWidgets() => _shell.ShowWidgetPicker();
+    private void OpenWidgets() => _shell.ShowWidgetPicker(Target.Display);
 
     [RelayCommand]
     private void HideDock() => _shell.HideDock();
@@ -214,7 +222,7 @@ public sealed partial class DockViewModel : ObservableObject, IDisposable
     /// <summary>Makes <see cref="Widgets"/> match the configured layout, reusing live instances.</summary>
     private void SyncWidgets(DockSettings s)
     {
-        var wanted = s.Widgets;
+        var wanted = Layout(s);
         foreach (var stale in Widgets.Where(w => wanted.All(p => p.Id != w.InstanceId)).ToList())
         {
             Widgets.Remove(stale);
@@ -243,6 +251,7 @@ public sealed partial class DockViewModel : ObservableObject, IDisposable
                     continue;
                 }
 
+                created.SetDisplay(Target.Display);
                 created.SetDpiScale(_scale);
                 created.ApplySettings(s);
                 Widgets.Insert(Math.Min(i, Widgets.Count), created);
@@ -267,6 +276,8 @@ public sealed partial class DockViewModel : ObservableObject, IDisposable
     public void Dispose()
     {
         _settings.Changed -= OnSettingsChanged;
+        _pulse.Changed -= OnPulseChanged;
+        Localization.Loc.LanguageChanged -= OnLanguageChanged;
         foreach (var w in Widgets)
         {
             w.Dispose();

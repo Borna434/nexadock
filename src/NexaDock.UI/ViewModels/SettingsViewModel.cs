@@ -226,6 +226,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     [ObservableProperty] private bool _use24HourClock;
     [ObservableProperty] private bool _replaceTaskbar;
     [ObservableProperty] private bool _hideInFullscreen;
+    [ObservableProperty] private bool _showOnAllDisplays;
     [ObservableProperty] private bool _launchAtStartup;
     [ObservableProperty] private string _weatherCity = string.Empty;
     [ObservableProperty] private MonitorOption? _selectedMonitor;
@@ -259,6 +260,8 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     partial void OnUse24HourClockChanged(bool value) => Apply(s => s with { Use24HourClock = value });
     partial void OnReplaceTaskbarChanged(bool value) => Apply(s => s with { ReplaceTaskbar = value });
     partial void OnHideInFullscreenChanged(bool value) => Apply(s => s with { HideInFullscreen = value });
+
+    partial void OnShowOnAllDisplaysChanged(bool value) => Apply(s => s with { ShowOnAllDisplays = value });
     partial void OnWeatherCityChanged(string value) => Apply(s => s with { WeatherCity = value ?? string.Empty });
 
     partial void OnLaunchAtStartupChanged(bool value)
@@ -455,6 +458,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
             Use24HourClock = s.Use24HourClock;
             ReplaceTaskbar = s.ReplaceTaskbar;
             HideInFullscreen = s.HideInFullscreen;
+            ShowOnAllDisplays = s.ShowOnAllDisplays;
             LaunchAtStartup = s.LaunchAtStartup;
             PulseEnabled = s.PulseEnabled;
             AutoSwitchProfiles = s.AutoSwitchProfiles;

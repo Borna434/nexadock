@@ -116,6 +116,8 @@ public partial class App : Application
         services.AddSingleton<IAppShell>(sp => sp.GetRequiredService<AppShell>());
         services.AddSingleton<TrayIconService>();
         services.AddSingleton<WidgetFactory>();
+        services.AddSingleton(BarTarget.Main);
+        services.AddSingleton<BarManager>();
         services.AddSingleton<DockViewModel>();
         services.AddSingleton<DockWindow>();
         services.AddTransient<SettingsViewModel>();
@@ -152,6 +154,7 @@ public partial class App : Application
 
         var shell = _host.Services.GetRequiredService<AppShell>();
         shell.ShowDock();
+        _host.Services.GetRequiredService<BarManager>().Start();
         _host.Services.GetRequiredService<TrayIconService>().Show();
         ApplyTrayTexts();
         _host.Services.GetRequiredService<ProfileCoordinator>().Start();
@@ -326,6 +329,7 @@ public partial class App : Application
             if (_host is not null)
             {
                 _host.Services.GetRequiredService<TrayIconService>().Dispose();
+                _host.Services.GetRequiredService<BarManager>().Dispose(); // extra bars first
                 RestoreTaskbar();
                 _host.Services.GetRequiredService<DockWindow>().Close(); // removes the app bar reservation
                 _host.Services.GetRequiredService<SettingsService>().Flush();

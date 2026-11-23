@@ -418,6 +418,9 @@ public static class Strings
         ["tray.editHint"] = "Click an icon to show it on the bar or hide it here.",
         ["tray.empty"] = "No background apps have icons right now.",
         ["tray.unavailable"] = "The notification area could not be hosted.",
+        ["behavior.allDisplays"] = "Show a bar on every display",
+        ["behavior.allDisplaysHint"] = "Each other display gets its own bar with its own widgets; its apps show the windows open on that display.",
+        ["picker.forDisplay"] = "Bar on display {0}",
     };
 
     public static IReadOnlyDictionary<string, string> Croatian { get; } = new Dictionary<string, string>
@@ -812,5 +815,8 @@ public static class Strings
         ["tray.editHint"] = "Kliknite ikonu da je prikažete na traci ili sakrijete ovdje.",
         ["tray.empty"] = "Trenutno nijedna aplikacija u pozadini nema ikonu.",
         ["tray.unavailable"] = "Područje obavijesti nije se moglo preuzeti.",
+        ["behavior.allDisplays"] = "Traka na svim zaslonima",
+        ["behavior.allDisplaysHint"] = "Svaki drugi zaslon dobiva svoju traku s vlastitim widgetima; aplikacije na njoj prikazuju prozore otvorene na tom zaslonu.",
+        ["picker.forDisplay"] = "Traka na zaslonu {0}",
     };
 }

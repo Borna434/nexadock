@@ -96,14 +96,47 @@ public sealed partial class AppsWidget : WidgetViewModel
     {
         _tracker.Changed += OnWindowsChanged;
         _tracker.Start();
+        if (Display is not null)
+        {
+            // Windows also move between displays without any event (Win+Shift+Arrow, snapping).
+            _displayWatch = new System.Windows.Threading.DispatcherTimer(System.Windows.Threading.DispatcherPriority.Background)
+            {
+                Interval = TimeSpan.FromSeconds(1.5),
+            };
+            _displayWatch.Tick += (_, _) => RebuildIfMoved();
+            _displayWatch.Start();
+        }
+
         Rebuild();
     }
 
+    private System.Windows.Threading.DispatcherTimer? _displayWatch;
+    private HashSet<IntPtr> _shownHere = [];
+
     private void OnWindowsChanged(object? sender, EventArgs e) => Rebuild();
+
+    /// <summary>
+    /// On a secondary display's bar only the windows open on that display are listed (pinned apps
+    /// are on every bar), like the "taskbar where the window is open" option of Windows.
+    /// </summary>
+    private IReadOnlyList<TrackedWindow> WindowsHere() =>
+        Display is null
+            ? _tracker.Windows
+            : _tracker.Windows.Where(w => string.Equals(_tracker.GetMonitorDeviceName(w.Handle), Display, StringComparison.OrdinalIgnoreCase)).ToList();
+
+    private void RebuildIfMoved()
+    {
+        var now = WindowsHere().Select(w => w.Handle).ToHashSet();
+        if (!now.SetEquals(_shownHere))
+        {
+            Rebuild();
+        }
+    }
 
     private void Rebuild()
     {
-        var windows = _tracker.Windows;
+        var windows = WindowsHere();
+        _shownHere = windows.Select(w => w.Handle).ToHashSet();
         var used = new HashSet<IntPtr>();
         var groups = new List<AppGroup>();
 
@@ -267,6 +300,7 @@ public sealed partial class AppsWidget : WidgetViewModel
 
     public override void Dispose()
     {
+        _displayWatch?.Stop();
         _tracker.Changed -= OnWindowsChanged;
         base.Dispose();
     }

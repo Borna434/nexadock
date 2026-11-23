@@ -74,6 +74,12 @@ public abstract partial class WidgetViewModel : ObservableObject, IDisposable
     {
     }
 
+    /// <summary>The secondary display this widget's bar is on; null on the main bar.</summary>
+    public string? Display { get; private set; }
+
+    /// <summary>Set by the bar before <see cref="Start"/>.</summary>
+    public void SetDisplay(string? display) => Display = display;
+
     /// <summary>Called once after the widget is placed on the bar.</summary>
     public virtual void Start()
     {

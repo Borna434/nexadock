@@ -155,6 +155,9 @@ public interface IWindowTracker
 
     /// <summary>True when the foreground window covers the whole given monitor (game, video, slideshow).</summary>
     bool IsForegroundFullscreen(MonitorInfo monitor);
+
+    /// <summary>GDI name of the display a window is on (most of its area), e.g. \\.\DISPLAY2.</summary>
+    string? GetMonitorDeviceName(IntPtr hwnd);
 }
 
 /// <summary>Windows shell actions that the taskbar normally provides.</summary>
@@ -418,7 +421,8 @@ public interface IAppShell
 
     void ShowSettings();
 
-    void ShowWidgetPicker();
+    /// <param name="display">The secondary display whose bar to edit; null for the main bar.</param>
+    void ShowWidgetPicker(string? display = null);
 
     /// <summary>Non-blocking user notification (tray balloon) for recoverable failures.</summary>
     void NotifyError(string title, string message);

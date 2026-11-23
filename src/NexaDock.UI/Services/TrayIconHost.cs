@@ -131,10 +131,32 @@ public sealed partial class TrayIconHost : ObservableObject, IDisposable
 
     public void Attach()
     {
-        if (++_users > 1 || _area is not null)
+        if (++_users > 1 || _area is not null || _startPending)
         {
             return;
         }
+
+        // Start once the bars have settled: while they register their screen space our tray
+        // window briefly steps aside, and icons that apps re-add at that moment would go to
+        // Explorer instead of us.
+        _startPending = true;
+        var timer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(1.5) };
+        timer.Tick += (_, _) =>
+        {
+            timer.Stop();
+            _startPending = false;
+            if (_users > 0 && _area is null)
+            {
+                StartHosting();
+            }
+        };
+        timer.Start();
+    }
+
+    private bool _startPending;
+
+    private void StartHosting()
+    {
 
         try
         {

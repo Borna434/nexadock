@@ -71,6 +71,7 @@ public sealed class Win32WindowTracker : IWindowTracker, IDisposable
         Hook(EVENT_SYSTEM_MINIMIZESTART, EVENT_SYSTEM_MINIMIZEEND, flags);
         Hook(EVENT_OBJECT_CREATE, EVENT_OBJECT_HIDE, flags);
         Hook(EVENT_OBJECT_NAMECHANGE, EVENT_OBJECT_NAMECHANGE, flags);
+        Hook(EventSystemMoveSizeEnd, EventSystemMoveSizeEnd, flags); // a window dragged to another display
         Hook(EVENT_OBJECT_CLOAKED, EVENT_OBJECT_UNCLOAKED, flags);
 
         Refresh();
@@ -362,4 +363,21 @@ public sealed class Win32WindowTracker : IWindowTracker, IDisposable
     }
 
     private sealed record ProcessIdentity(string? ExecutablePath, string? PackageAumid);
+
+    private const uint EventSystemMoveSizeEnd = 0x000B;
+
+    public string? GetMonitorDeviceName(IntPtr hwnd)
+    {
+        var monitor = MonitorFromWindow(hwnd, 2 /* MONITOR_DEFAULTTONEAREST */);
+        if (monitor == IntPtr.Zero)
+        {
+            return null;
+        }
+
+        var info = new MONITORINFOEX { cbSize = System.Runtime.InteropServices.Marshal.SizeOf<MONITORINFOEX>(), szDevice = string.Empty };
+        return GetMonitorInfo(monitor, ref info) ? info.szDevice : null;
+    }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint flags);
 }

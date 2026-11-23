@@ -56,6 +56,17 @@ public sealed record DockProfile(string Id, string Name, IReadOnlyList<WidgetPla
     public override int GetHashCode() => HashCode.Combine(Id, Name, Widgets.Count);
 }
 
+/// <summary>The widget layout of the extra bar on one secondary display.</summary>
+public sealed record DisplayLayout(string DeviceName, IReadOnlyList<WidgetPlacement> Widgets)
+{
+    public bool Equals(DisplayLayout? other) =>
+        other is not null
+        && string.Equals(DeviceName, other.DeviceName, StringComparison.OrdinalIgnoreCase)
+        && Widgets.SequenceEqual(other.Widgets);
+
+    public override int GetHashCode() => HashCode.Combine(DeviceName.ToUpperInvariant(), Widgets.Count);
+}
+
 /// <summary>Complete persisted user configuration. Immutable; use <c>with</c> to change.</summary>
 public sealed record DockSettings
 {
@@ -139,6 +150,14 @@ public sealed record DockSettings
     /// <summary>Pinned apps shown in the Apps widget.</summary>
     public IReadOnlyList<DockShortcut> Shortcuts { get; init; } = Array.Empty<DockShortcut>();
 
+    // ---- Multiple displays --------------------------------------------------------------------
+
+    /// <summary>Show an extra bar on every other display (each with its own layout).</summary>
+    public bool ShowOnAllDisplays { get; init; } = true;
+
+    /// <summary>Layouts of the extra bars, by display; a display without one gets the default.</summary>
+    public IReadOnlyList<DisplayLayout> DisplayLayouts { get; init; } = Array.Empty<DisplayLayout>();
+
     public static DockSettings Default { get; } = new();
 
     public DockProfile? ActiveProfile => Profiles.FirstOrDefault(p => p.Id == ActiveProfileId);
@@ -173,7 +192,9 @@ public sealed record DockSettings
         && DefaultProfileId == other.DefaultProfileId
         && AutoSwitchProfiles == other.AutoSwitchProfiles
         && ShortcutsInitialized == other.ShortcutsInitialized
-        && Shortcuts.SequenceEqual(other.Shortcuts);
+        && Shortcuts.SequenceEqual(other.Shortcuts)
+        && ShowOnAllDisplays == other.ShowOnAllDisplays
+        && DisplayLayouts.SequenceEqual(other.DisplayLayouts);
 
     public override int GetHashCode() =>
         HashCode.Combine(Edge, Size, Theme, Spacing, Opacity, EdgeOffset, Widgets.Count, Profiles.Count);

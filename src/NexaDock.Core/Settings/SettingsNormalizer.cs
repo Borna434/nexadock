@@ -33,6 +33,12 @@ public static class SettingsNormalizer
             WeatherCity = city.Length > SettingsLimits.MaxCityLength ? city[..SettingsLimits.MaxCityLength] : city,
             Shortcuts = NormalizeShortcuts(settings.Shortcuts),
             Widgets = NormalizeWidgets(settings.Widgets),
+            DisplayLayouts = (settings.DisplayLayouts ?? [])
+                .Where(l => l is not null && !string.IsNullOrWhiteSpace(l.DeviceName))
+                .GroupBy(l => l.DeviceName.Trim(), StringComparer.OrdinalIgnoreCase)
+                .Take(SettingsLimits.MaxProfiles)
+                .Select(g => new DisplayLayout(g.Key, NormalizeWidgets(g.First().Widgets)))
+                .ToList(),
         };
 
         return NormalizeProfiles(normalized);

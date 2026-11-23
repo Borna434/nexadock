@@ -26,6 +26,17 @@
 
         <StackPanel Grid.ColumnSpan="2">
             <TextBlock Text="{l:Loc picker.heading}" FontSize="26" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding TargetText}" FontSize="13" FontWeight="SemiBold" Margin="0,2,0,0" Foreground="#FF4C8DFF">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Style.Triggers>
+                            <Trigger Property="Text" Value="">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
             <TextBlock Text="{l:Loc picker.intro}"
                        Opacity="0.72" FontSize="13" Margin="0,2,0,14" TextWrapping="Wrap" />
         </StackPanel>

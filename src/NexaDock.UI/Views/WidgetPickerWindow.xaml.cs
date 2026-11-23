@@ -16,5 +16,7 @@ public partial class WidgetPickerWindow : Window
 
     public void SetAppIcon(ImageSource? icon) => Icon = icon;
 
+    public void SetDisplay(string? display) => ((WidgetPickerViewModel)DataContext).SetDisplay(display);
+
     private void OnDoneClick(object sender, RoutedEventArgs e) => Close();
 }

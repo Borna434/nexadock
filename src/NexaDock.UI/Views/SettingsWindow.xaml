@@ -462,6 +462,20 @@
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
                                 <StackPanel>
+                                    <TextBlock Text="{l:Loc behavior.allDisplays}" Style="{StaticResource Label}" />
+                                    <TextBlock Text="{l:Loc behavior.allDisplaysHint}" Style="{StaticResource Hint}" />
+                                </StackPanel>
+                                <CheckBox Grid.Column="1" Style="{StaticResource Toggle}" IsChecked="{Binding ShowOnAllDisplays}" AutomationProperties.Name="{l:Loc behavior.allDisplays}" />
+                            </Grid>
+                        </Border>
+
+                        <Border Style="{StaticResource Card}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
                                     <TextBlock Text="{l:Loc behavior.fullscreen}" Style="{StaticResource Label}" />
                                     <TextBlock Text="{l:Loc behavior.fullscreenHint}" Style="{StaticResource Hint}" />
                                 </StackPanel>
