@@ -60,6 +60,7 @@ public static class WidgetTypes
 
     // Phase 4
     public const string Agenda = "agenda";
+    public const string Tray = "tray";
 }
 
 public static class WidgetCatalog
@@ -122,6 +123,8 @@ public static class WidgetCatalog
             "Wi-Fi and Bluetooth on or off in one click.", Glyph(0xE702)),
         new(WidgetTypes.Brightness, "Brightness", WidgetCategory.System,
             "Display brightness slider (laptop screens and DDC/CI monitors).", Glyph(0xE706)),
+        new(WidgetTypes.Tray, "Notification Icons", WidgetCategory.Apps,
+            "Icons of apps running in the background (Discord, Steam…); click, right-click and pin them as on the taskbar.", Glyph(0xE70E)),
         new(WidgetTypes.RecycleBin, "Recycle Bin", WidgetCategory.Apps,
             "What the bin holds; open it or empty it.", Glyph(0xE74D)),
 
@@ -148,6 +151,7 @@ public static class WidgetCatalog
             WidgetPlacement.Create(WidgetTypes.Apps),
             WidgetPlacement.Create(WidgetTypes.Pulse),
             WidgetPlacement.Create(WidgetTypes.System),
+            WidgetPlacement.Create(WidgetTypes.Tray),
             WidgetPlacement.Create(WidgetTypes.ControlCenter),
             WidgetPlacement.Create(WidgetTypes.Clock),
         ]);

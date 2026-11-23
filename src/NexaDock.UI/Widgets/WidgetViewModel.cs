@@ -141,6 +141,7 @@ public sealed class WidgetFactory(IServiceProvider services)
         [WidgetTypes.Brightness] = typeof(BrightnessWidget),
         [WidgetTypes.Claude] = typeof(ClaudeWidget),
         [WidgetTypes.Agenda] = typeof(AgendaWidget),
+        [WidgetTypes.Tray] = typeof(TrayWidget),
     };
 
     public static bool IsSupported(string typeId) => Types.ContainsKey(typeId);

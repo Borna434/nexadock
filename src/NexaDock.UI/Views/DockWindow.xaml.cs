@@ -33,6 +33,7 @@ public partial class DockWindow : Window
     private readonly ISettingsService _settings;
     private readonly IWindowTracker _tracker;
     private readonly ILogger<DockWindow> _logger;
+    private readonly NexaDock.UI.Services.TrayIconHost _trayHost;
     private readonly CardWindow _card;
     private readonly PreviewWindow _preview;
     private readonly DispatcherTimer _hoverTimer;
@@ -75,8 +76,10 @@ public partial class DockWindow : Window
         ISettingsService settings,
         IWindowTracker tracker,
         IThumbnailService thumbnails,
+        NexaDock.UI.Services.TrayIconHost trayHost,
         ILogger<DockWindow> logger)
     {
+        _trayHost = trayHost;
         _viewModel = viewModel;
         _backdrop = backdrop;
         _host = host;
@@ -241,6 +244,7 @@ public partial class DockWindow : Window
         var options = new PlacementOptions(_viewModel.ShadowPadding, UseMonitorBounds: settings.ReplaceTaskbar);
         _bounds = _positioner.Calculate(monitor, settings, contentWidth, options);
         _host.SetBounds(_hwnd, _bounds);
+        _trayHost.SetHostBounds(_bounds.X, _bounds.Y, _bounds.X + _bounds.Width, _bounds.Y + _bounds.Height, settings.Edge == DockEdge.Top);
 
         if (settings.ReplaceTaskbar)
         {
@@ -642,6 +646,11 @@ public partial class DockWindow : Window
     protected override void OnPreviewMouseRightButtonUp(MouseButtonEventArgs e)
     {
         base.OnPreviewMouseRightButtonUp(e);
+        if (FindAncestor(e.OriginalSource as DependencyObject, fe => fe is Controls.TrayIconButton) is not null)
+        {
+            return; // the app shows its own menu
+        }
+
         e.Handled = true;
         HidePreview();
         _card.CloseCard();

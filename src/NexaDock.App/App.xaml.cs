@@ -24,6 +24,7 @@ namespace NexaDock.App;
 public partial class App : Application
 {
     private const string CenteredLayoutKey = "layout.centered.v1";
+    private const string TrayAddedKey = "layout.tray.v1";
 
     private IHost? _host;
     private Mutex? _singleInstance;
@@ -90,6 +91,7 @@ public partial class App : Application
         services.AddSingleton<PulseCenter>();
         services.AddSingleton<NexaDock.Core.Calendar.ICalendarSource, NexaDock.Infrastructure.Calendar.IcsCalendarSource>();
         services.AddSingleton<CalendarFeed>();
+        services.AddSingleton<TrayIconHost>();
         services.AddSingleton<NexaDock.Core.Usage.IClaudeUsageSource, NexaDock.Infrastructure.Usage.ClaudeLogReader>();
         services.AddSingleton<ProfileCoordinator>();
         services.AddSingleton<SettingsService>();
@@ -232,6 +234,31 @@ public partial class App : Application
             settings.Flush();
             store.Set(CenteredLayoutKey, "1");
             _logger?.LogInformation("Arranged widgets around the centred apps.");
+        }
+
+        // One-time: put the new notification icons widget on bars that have the apps (Phase 4).
+        if (store.Get(TrayAddedKey) is null)
+        {
+            static IReadOnlyList<Core.Models.WidgetPlacement> WithTray(IReadOnlyList<Core.Models.WidgetPlacement> widgets)
+            {
+                if (widgets.Any(w => w.TypeId == WidgetTypes.Tray) || !widgets.Any(w => w.TypeId == WidgetTypes.Apps))
+                {
+                    return widgets;
+                }
+
+                var list = widgets.ToList();
+                list.Insert(WidgetArranger.InsertIndex(list, WidgetTypes.Tray), Core.Models.WidgetPlacement.Create(WidgetTypes.Tray));
+                return list;
+            }
+
+            settings.Update(s => s with
+            {
+                Widgets = WithTray(s.Widgets),
+                Profiles = s.Profiles.Select(p => p with { Widgets = WithTray(p.Widgets) }).ToList(),
+            });
+            settings.Flush();
+            store.Set(TrayAddedKey, "1");
+            _logger?.LogInformation("Added the notification icons widget.");
         }
 
         // The Run key is the source of truth (the user may disable startup in Task Manager).

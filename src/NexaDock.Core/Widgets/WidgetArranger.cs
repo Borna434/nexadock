@@ -42,6 +42,7 @@ public static class WidgetArranger
         WidgetTypes.System,
         WidgetTypes.Network,
         WidgetTypes.Storage,
+        WidgetTypes.Tray,
         WidgetTypes.Keyboard,
         WidgetTypes.QuickToggles,
         WidgetTypes.Brightness,

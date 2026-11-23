@@ -1420,4 +1420,88 @@
         </StackPanel>
     </DataTemplate>
 
+    <!-- ====================================================================================== -->
+    <!-- Phase 4: notification icons (background apps)                                           -->
+    <!-- ====================================================================================== -->
+
+    <DataTemplate x:Key="TrayIconView" DataType="{x:Type svc:TrayIconItem}">
+        <Image Source="{Binding Icon}" Width="16" Height="16" RenderOptions.BitmapScalingMode="HighQuality"
+               SnapsToDevicePixels="True" UseLayoutRounding="True" />
+    </DataTemplate>
+
+    <DataTemplate x:Key="TrayWidget.Tile" DataType="{x:Type w:TrayWidget}">
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+            <ItemsControl ItemsSource="{Binding Host.Pinned}" Focusable="False">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type svc:TrayIconItem}">
+                        <c:TrayIconButton Style="{StaticResource Bar.PlainButton}" Width="26" Height="28" ToolTip="{Binding Title}"
+                                          Host="{Binding DataContext.Host, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                          Content="{Binding}" ContentTemplate="{StaticResource TrayIconView}" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <Grid Width="24" Height="28" Background="Transparent" ToolTip="{l:Loc tray.show}">
+                <TextBlock Text="&#xE70E;" FontFamily="{StaticResource IconFont}" FontSize="11" Foreground="{DynamicResource Bar.Foreground}"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Grid>
+        </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate x:Key="TrayWidget.Card" DataType="{x:Type w:TrayWidget}">
+        <StackPanel Width="264">
+            <Grid>
+                <TextBlock Text="{l:Loc tray.title}" Style="{StaticResource Card.Title}" />
+                <Button x:Name="EditButton" Style="{StaticResource Bar.GlyphButton}" Width="26" Height="26" FontSize="12" HorizontalAlignment="Right"
+                        Content="&#xE718;" Command="{Binding ToggleEditingCommand}" ToolTip="{l:Loc tray.edit}" />
+            </Grid>
+            <TextBlock Text="{l:Loc tray.editHint}" Style="{StaticResource Card.Label}" TextWrapping="Wrap" TextTrimming="None" Margin="0,6,0,0"
+                       Visibility="{Binding IsEditing, Converter={StaticResource BoolToVisibility}}" />
+            <TextBlock Text="{l:Loc tray.unavailable}" Style="{StaticResource Card.Label}" TextWrapping="Wrap" TextTrimming="None" Margin="0,8,0,0"
+                       Visibility="{Binding Host.IsAvailable, Converter={StaticResource InverseBoolToVisibility}}" />
+            <TextBlock Text="{l:Loc tray.empty}" Style="{StaticResource Card.Label}" TextWrapping="Wrap" TextTrimming="None" Margin="0,8,0,0"
+                       Visibility="{Binding Host.HasIcons, Converter={StaticResource InverseBoolToVisibility}}" />
+            <ItemsControl ItemsSource="{Binding Host.All}" Margin="-4,8,-4,0" Focusable="False">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type svc:TrayIconItem}">
+                        <Grid Width="44" Height="40">
+                            <Border x:Name="PinPlate" CornerRadius="9" Margin="2" Background="{DynamicResource Bar.HoverFill}" Visibility="Collapsed" />
+                            <c:TrayIconButton Style="{StaticResource Bar.PlainButton}" ToolTip="{Binding Title}"
+                                              IsEditing="{Binding DataContext.IsEditing, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                              Host="{Binding DataContext.Host, RelativeSource={RelativeSource AncestorType=ItemsControl}}">
+                                <Image Source="{Binding Icon}" Width="20" Height="20" RenderOptions.BitmapScalingMode="HighQuality"
+                                       SnapsToDevicePixels="True" UseLayoutRounding="True" />
+                            </c:TrayIconButton>
+                            <Ellipse x:Name="PinDot" Width="5" Height="5" Fill="{DynamicResource Bar.Accent}" VerticalAlignment="Bottom"
+                                     HorizontalAlignment="Center" Margin="0,0,0,3" Visibility="Collapsed" IsHitTestVisible="False" />
+                        </Grid>
+                        <DataTemplate.Triggers>
+                            <DataTrigger Binding="{Binding IsPinned}" Value="True">
+                                <Setter TargetName="PinDot" Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding IsPinned}" Value="True" />
+                                    <Condition Binding="{Binding DataContext.IsEditing, RelativeSource={RelativeSource AncestorType=ItemsControl}}" Value="True" />
+                                </MultiDataTrigger.Conditions>
+                                <Setter TargetName="PinPlate" Property="Visibility" Value="Visible" />
+                            </MultiDataTrigger>
+                        </DataTemplate.Triggers>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding IsEditing}" Value="True">
+                <Setter TargetName="EditButton" Property="Content" Value="&#xE73E;" />
+                <Setter TargetName="EditButton" Property="ToolTip" Value="{l:Loc tray.done}" />
+            </DataTrigger>
+        </DataTemplate.Triggers>
+    </DataTemplate>
+
 </ResourceDictionary>

@@ -407,6 +407,17 @@ public static class Strings
         ["calendar.publicWarning"] = "Connected with the public address: it only works while the calendar is public. The secret address works for private calendars.",
         ["pulse.meeting"] = "{0} starts in {1} min",
         ["menu.arrange"] = "Arrange widgets",
+
+        // Notification icons (Phase 4)
+        ["widget.tray.name"] = "Notification Icons",
+        ["widget.tray.desc"] = "Icons of apps running in the background (Discord, Steam…); click, right-click and pin them as on the taskbar.",
+        ["tray.title"] = "Background apps",
+        ["tray.show"] = "Show hidden icons",
+        ["tray.edit"] = "Choose icons for the bar",
+        ["tray.done"] = "Done",
+        ["tray.editHint"] = "Click an icon to show it on the bar or hide it here.",
+        ["tray.empty"] = "No background apps have icons right now.",
+        ["tray.unavailable"] = "The notification area could not be hosted.",
     };
 
     public static IReadOnlyDictionary<string, string> Croatian { get; } = new Dictionary<string, string>
@@ -790,5 +801,16 @@ public static class Strings
         ["calendar.publicWarning"] = "Povezano javnom adresom: radi samo dok je kalendar javan. Tajna adresa radi i za privatne kalendare.",
         ["pulse.meeting"] = "{0} počinje za {1} min",
         ["menu.arrange"] = "Posloži widgete",
+
+        // Ikone u pozadini (faza 4)
+        ["widget.tray.name"] = "Ikone u pozadini",
+        ["widget.tray.desc"] = "Ikone aplikacija koje rade u pozadini (Discord, Steam…); klik, desni klik i prikvačivanje kao na programskoj traci.",
+        ["tray.title"] = "Aplikacije u pozadini",
+        ["tray.show"] = "Prikaži skrivene ikone",
+        ["tray.edit"] = "Odaberi ikone za traku",
+        ["tray.done"] = "Gotovo",
+        ["tray.editHint"] = "Kliknite ikonu da je prikažete na traci ili sakrijete ovdje.",
+        ["tray.empty"] = "Trenutno nijedna aplikacija u pozadini nema ikonu.",
+        ["tray.unavailable"] = "Područje obavijesti nije se moglo preuzeti.",
     };
 }

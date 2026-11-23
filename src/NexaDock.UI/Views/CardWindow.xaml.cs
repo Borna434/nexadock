@@ -33,6 +33,7 @@ public partial class CardWindow : Window
         _kind = kind;
         AllowsTransparency = kind == BackdropKind.TranslucentFallback;
         InitializeComponent();
+        AddHandler(Controls.TrayIconButton.ActivatedEvent, new RoutedEventHandler((_, _) => CloseCard()));
 
         var radius = new CornerRadius(kind == BackdropKind.NativeAcrylic ? 8 : 18);
         foreach (var b in new[] { Shadow, Glass, Glow, Sheen, Rim })
