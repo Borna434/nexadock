@@ -42,7 +42,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $tag = '${{ github.ref_name }}'
-          $notes = "docs/releases/$tag.md"
-          $args = @($tag, 'dist/NexaDock-win-x64.zip', 'dist/NexaDock-win-x64.zip.sha256', '--title', "NexaDock $($tag.TrimStart('v'))")
-          if (Test-Path $notes) { $args += @('--notes-file', $notes) } else { $args += '--generate-notes' }
-          gh release create @args
+          $notes = "docs/release-notes/$tag.md"
+          $ghArgs = @($tag, 'dist/NexaDock-win-x64.zip', 'dist/NexaDock-win-x64.zip.sha256', '--title', "NexaDock $($tag.TrimStart('v'))")
+          if (Test-Path $notes) { $ghArgs += @('--notes-file', $notes) } else { $ghArgs += '--generate-notes' }
+          gh release create @ghArgs
