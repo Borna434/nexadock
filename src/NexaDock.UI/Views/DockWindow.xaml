@@ -93,11 +93,34 @@
             </Border.Effect>
         </Border>
 
-        <!-- Layered glass: tint, rising glow, sheen, rim. -->
+        <!-- Layered liquid glass over the native blur. All static brushes: nothing animates or
+             re-renders unless the pointer moves over the bar.
+             tint, rising glow, sheen, lens depth, pointer light, specular hairline, edge light. -->
         <Border x:Name="Glass" CornerRadius="{Binding CornerRadius}" Background="{Binding Brushes.Tint}" />
         <Border CornerRadius="{Binding CornerRadius}" Background="{Binding Brushes.InnerGlow}" IsHitTestVisible="False" />
         <Border CornerRadius="{Binding CornerRadius}" Background="{Binding Brushes.Sheen}" IsHitTestVisible="False" />
-        <Border CornerRadius="{Binding CornerRadius}" BorderBrush="{Binding Brushes.Rim}" BorderThickness="{Binding RimThickness}" IsHitTestVisible="False" />
+        <Border CornerRadius="{Binding CornerRadius}" Background="{Binding Brushes.Depth}" IsHitTestVisible="False" />
+        <Border x:Name="PointerLight" CornerRadius="{Binding CornerRadius}" IsHitTestVisible="False" Opacity="0">
+            <Border.Background>
+                <RadialGradientBrush x:Name="PointerLightBrush" Center="0.5,0.15" GradientOrigin="0.5,0.15" RadiusX="0.1" RadiusY="1.4">
+                    <GradientStop x:Name="PointerLightInner" Color="#30FFFFFF" Offset="0" />
+                    <GradientStop x:Name="PointerLightOuter" Color="#00FFFFFF" Offset="1" />
+                </RadialGradientBrush>
+            </Border.Background>
+        </Border>
+        <Border Height="1" VerticalAlignment="Top" Margin="{Binding SpecularMargin}" Background="{Binding Brushes.Specular}" IsHitTestVisible="False" />
+        <Border CornerRadius="{Binding CornerRadius}" BorderThickness="{Binding RimThickness}" IsHitTestVisible="False">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="BorderBrush" Value="{Binding Brushes.EdgeLight}" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsFlush}" Value="True">
+                            <Setter Property="BorderBrush" Value="{Binding Brushes.Rim}" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+        </Border>
 
         <ItemsControl x:Name="WidgetHost" ItemsSource="{Binding Widgets}" Margin="{Binding ContentPadding}" Focusable="False">
             <ItemsControl.ItemsPanel>

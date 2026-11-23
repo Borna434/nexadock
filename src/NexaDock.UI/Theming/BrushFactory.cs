@@ -16,6 +16,18 @@ public sealed class GlassBrushes
     public required Brush Sheen { get; init; }
     public required Brush Rim { get; init; }
     public required Brush InnerGlow { get; init; }
+
+    /// <summary>A bright hairline along the top edge that fades out towards the ends (specular light).</summary>
+    public required Brush Specular { get; init; }
+
+    /// <summary>Darkens the lower inner edge so the glass reads as thick, like a lens.</summary>
+    public required Brush Depth { get; init; }
+
+    /// <summary>Colour of the soft light that follows the pointer across the bar.</summary>
+    public required Color LightColor { get; init; }
+
+    /// <summary>Edge light of floating glass: bright top-left, quiet middle, a glint bottom-right.</summary>
+    public required Brush EdgeLight { get; init; }
     public required Brush Foreground { get; init; }
     public required Brush SecondaryForeground { get; init; }
     public required Brush Accent { get; init; }
@@ -108,11 +120,53 @@ public sealed class GlassBrushes
         var tileRim = new LinearGradientBrush
         {
             StartPoint = new Point(0, 0),
+            EndPoint = new Point(1, 1),
+            GradientStops =
+            {
+                new GradientStop(WithAlpha(highlight, dark ? 0.42 : 0.98), 0),
+                new GradientStop(WithAlpha(highlight, dark ? 0.10 : 0.50), 0.35),
+                new GradientStop(WithAlpha(highlight, dark ? 0.04 : 0.35), 0.7),
+                new GradientStop(WithAlpha(highlight, dark ? 0.22 : 0.70), 1),
+            },
+        };
+
+        var specular = new LinearGradientBrush
+        {
+            StartPoint = new Point(0, 0),
+            EndPoint = new Point(1, 0),
+            GradientStops =
+            {
+                new GradientStop(WithAlpha(highlight, 0), 0),
+                new GradientStop(WithAlpha(highlight, dark ? 0.55 : 0.95), 0.18),
+                new GradientStop(WithAlpha(highlight, dark ? 0.30 : 0.70), 0.5),
+                new GradientStop(WithAlpha(highlight, dark ? 0.55 : 0.95), 0.82),
+                new GradientStop(WithAlpha(highlight, 0), 1),
+            },
+        };
+
+        var shade = dark ? Color.FromRgb(0, 0, 0) : Color.FromRgb(40, 60, 90);
+        var depth = new LinearGradientBrush
+        {
+            StartPoint = new Point(0, 0),
             EndPoint = new Point(0, 1),
             GradientStops =
             {
-                new GradientStop(WithAlpha(highlight, dark ? 0.24 : 0.95), 0),
-                new GradientStop(WithAlpha(highlight, dark ? 0.06 : 0.45), 1),
+                new GradientStop(WithAlpha(shade, 0), 0),
+                new GradientStop(WithAlpha(shade, 0), 0.62),
+                new GradientStop(WithAlpha(shade, dark ? 0.16 : 0.07), 1),
+            },
+        };
+
+        var edgeLight = new LinearGradientBrush
+        {
+            StartPoint = new Point(0, 0),
+            EndPoint = new Point(1, 1),
+            GradientStops =
+            {
+                new GradientStop(WithAlpha(highlight, dark ? 0.50 : 0.98), 0),
+                new GradientStop(WithAlpha(highlight, dark ? 0.12 : 0.45), 0.3),
+                new GradientStop(WithAlpha(highlight, dark ? 0.05 : 0.30), 0.7),
+                new GradientStop(WithAlpha(highlight, dark ? 0.30 : 0.75), 1),
             },
         };
 
@@ -124,6 +178,10 @@ public sealed class GlassBrushes
             Sheen = Freeze(sheen),
             Rim = Freeze(rim),
             InnerGlow = Freeze(innerGlow),
+            Specular = Freeze(specular),
+            Depth = Freeze(depth),
+            EdgeLight = Freeze(edgeLight),
+            LightColor = highlight,
             Foreground = Freeze(new SolidColorBrush(fg)),
             SecondaryForeground = Freeze(new SolidColorBrush(Parse(palette.SecondaryForeground))),
             Accent = Freeze(new SolidColorBrush(accent)),

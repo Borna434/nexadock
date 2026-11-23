@@ -108,6 +108,9 @@ public sealed partial class DockViewModel : ObservableObject, IDisposable
     /// <summary>The rim: all round for a floating bar, one line on the inner side when flush.</summary>
     [ObservableProperty] private Thickness _rimThickness = new(1);
 
+    /// <summary>Where the specular hairline sits: just inside the top edge, inset from the ends.</summary>
+    [ObservableProperty] private Thickness _specularMargin = new(14, 1, 14, 0);
+
     public BackdropKind Backdrop { get; private set; } = BackdropKind.NativeAcrylic;
 
     /// <summary>Transparent margin (DIPs) around the glass for the fallback drop shadow.</summary>
@@ -214,6 +217,7 @@ public sealed partial class DockViewModel : ObservableObject, IDisposable
         WindowPadding = new Thickness(ShadowPadding);
         IsFlush = s.FullWidth && s.EdgeOffset <= 0;
         RimThickness = !IsFlush ? new Thickness(1) : s.Edge == DockEdge.Top ? new Thickness(0, 0, 0, 1) : new Thickness(0, 1, 0, 0);
+        SpecularMargin = IsFlush ? new Thickness(0, 1, 0, 0) : new Thickness(14, 1, 14, 0);
         CornerRadius = IsFlush
             ? new CornerRadius(0)
             : Backdrop == BackdropKind.NativeAcrylic

@@ -229,6 +229,9 @@ public partial class DockWindow : Window
         ThemeResources.Apply(_card.Resources, _viewModel.CardBrushes, _viewModel.Metrics, _viewModel.Spacing);
         ThemeResources.Apply(_preview.Resources, _viewModel.CardBrushes, _viewModel.Metrics, _viewModel.Spacing);
         _card.ApplyChrome(_viewModel.IsDarkTheme, _viewModel.ReducedMotion);
+        var light = _viewModel.Brushes.LightColor;
+        PointerLightInner.Color = GlassBrushes.WithAlpha(light, _viewModel.IsDarkTheme ? 0.14 : 0.40);
+        PointerLightOuter.Color = GlassBrushes.WithAlpha(light, 0);
         _preview.ApplyChrome(_viewModel.IsDarkTheme);
 
         if (_hwnd != IntPtr.Zero && _viewModel.Backdrop == BackdropKind.NativeAcrylic && _lastFlush != _viewModel.IsFlush)
@@ -368,6 +371,7 @@ public partial class DockWindow : Window
     protected override void OnPreviewMouseMove(MouseEventArgs e)
     {
         base.OnPreviewMouseMove(e);
+        MovePointerLight(e);
 
         if (e.LeftButton != MouseButtonState.Pressed || _pressPoint is null)
         {
@@ -788,9 +792,51 @@ public partial class DockWindow : Window
         }
     }
 
+    // ---- Pointer light ------------------------------------------------------------------------------
+
+    /// <summary>A soft light that follows the pointer along the glass, like a reflection.</summary>
+    private void MovePointerLight(MouseEventArgs e)
+    {
+        var width = Root.ActualWidth;
+        if (width <= 0)
+        {
+            return;
+        }
+
+        var x = Math.Clamp(e.GetPosition(Root).X / width, 0, 1);
+        var center = new Point(x, 0.15);
+        PointerLightBrush.Center = center;
+        PointerLightBrush.GradientOrigin = center;
+        PointerLightBrush.RadiusX = Math.Min(0.5, 150 / width);
+        if (PointerLight.Opacity < 1 && !_pointerLightShown)
+        {
+            _pointerLightShown = true;
+            FadePointerLight(1);
+        }
+    }
+
+    private bool _pointerLightShown;
+
+    private void FadePointerLight(double to)
+    {
+        if (_viewModel.ReducedMotion)
+        {
+            PointerLight.BeginAnimation(OpacityProperty, null);
+            PointerLight.Opacity = to;
+            return;
+        }
+
+        PointerLight.BeginAnimation(OpacityProperty, new System.Windows.Media.Animation.DoubleAnimation(to, TimeSpan.FromMilliseconds(to > 0 ? 160 : 320))
+        {
+            EasingFunction = new System.Windows.Media.Animation.CubicEase { EasingMode = System.Windows.Media.Animation.EasingMode.EaseOut },
+        });
+    }
+
     protected override void OnMouseLeave(MouseEventArgs e)
     {
         base.OnMouseLeave(e);
+        _pointerLightShown = false;
+        FadePointerLight(0);
         _hoverTimer.Stop();
         _hoverItem = null;
         SchedulePreviewHide();
