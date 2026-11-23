@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 using NexaDock.Core.Abstractions;
 using NexaDock.Core.Models;
 using NexaDock.Core.Widgets;
+using NexaDock.UI.Localization;
 
 namespace NexaDock.UI.ViewModels;
 
@@ -11,10 +12,11 @@ public sealed partial class WidgetOptionViewModel(WidgetDescriptor descriptor, A
     : ObservableObject
 {
     public WidgetDescriptor Descriptor { get; } = descriptor;
-    public string Name => Descriptor.Name;
-    public string Description => Descriptor.Description;
+    public string Name => Loc.T($"widget.{Descriptor.TypeId}.name");
+    public string Description => Loc.T($"widget.{Descriptor.TypeId}.desc");
     public string Glyph => Descriptor.Glyph;
     public string Category => Descriptor.Category.ToString();
+    public string CategoryLabel => Loc.T($"category.{Category}");
     public bool AllowMultiple => Descriptor.AllowMultiple;
 
     [ObservableProperty]
@@ -23,7 +25,7 @@ public sealed partial class WidgetOptionViewModel(WidgetDescriptor descriptor, A
 
     public bool IsAdded => Count > 0;
 
-    public string ActionText => IsAdded ? (AllowMultiple ? $"Remove one ({Count})" : "Remove") : "Add";
+    public string ActionText => IsAdded ? (AllowMultiple ? Loc.F("picker.removeOne", Count) : Loc.T("picker.remove")) : Loc.T("picker.add");
 
     [RelayCommand]
     private void Toggle() => toggle(this);
@@ -42,21 +44,21 @@ public sealed partial class WidgetPickerViewModel : ObservableObject, IDisposabl
     {
         _settings = settings;
         _all = WidgetCatalog.All.Select(d => new WidgetOptionViewModel(d, Toggle, AddAnother)).ToList();
-        Categories = ["All", .. WidgetCatalog.All.Select(d => d.Category.ToString()).Distinct()];
-        _selectedCategory = "All";
+        Categories = [new CategoryOption("All"), .. WidgetCatalog.All.Select(d => d.Category.ToString()).Distinct().Select(c => new CategoryOption(c))];
+        _selectedCategory = Categories[0];
         Sync(_settings.Current);
         Filter();
         _settings.Changed += OnSettingsChanged;
     }
 
-    public IReadOnlyList<string> Categories { get; }
+    public IReadOnlyList<CategoryOption> Categories { get; }
 
     public ObservableCollection<WidgetOptionViewModel> Visible { get; } = [];
 
-    [ObservableProperty] private string _selectedCategory;
+    [ObservableProperty] private CategoryOption _selectedCategory;
     [ObservableProperty] private string _search = string.Empty;
 
-    partial void OnSelectedCategoryChanged(string value) => Filter();
+    partial void OnSelectedCategoryChanged(CategoryOption value) => Filter();
 
     partial void OnSearchChanged(string value) => Filter();
 
@@ -65,7 +67,7 @@ public sealed partial class WidgetPickerViewModel : ObservableObject, IDisposabl
         var term = Search.Trim();
         Visible.Clear();
         foreach (var o in _all.Where(o =>
-                     (SelectedCategory == "All" || o.Category == SelectedCategory)
+                     (SelectedCategory is null || SelectedCategory.Id == "All" || o.Category == SelectedCategory.Id)
                      && (term.Length == 0
                          || o.Name.Contains(term, StringComparison.OrdinalIgnoreCase)
                          || o.Description.Contains(term, StringComparison.OrdinalIgnoreCase))))
@@ -116,4 +118,9 @@ public sealed partial class WidgetPickerViewModel : ObservableObject, IDisposabl
     }
 
     public void Dispose() => _settings.Changed -= OnSettingsChanged;
+}
+
+public sealed record CategoryOption(string Id)
+{
+    public string Label => Loc.T($"category.{Id}");
 }

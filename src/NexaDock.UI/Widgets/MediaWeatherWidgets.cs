@@ -9,6 +9,8 @@ using NexaDock.Core.Models;
 using NexaDock.Core.Widgets;
 using NexaDock.UI.Theming;
 
+using NexaDock.UI.Localization;
+
 namespace NexaDock.UI.Widgets;
 
 public sealed partial class WeatherWidget : WidgetViewModel
@@ -38,7 +40,7 @@ public sealed partial class WeatherWidget : WidgetViewModel
     [ObservableProperty] private string _condition = string.Empty;
     [ObservableProperty] private string _range = string.Empty;
     [ObservableProperty] private string _details = string.Empty;
-    [ObservableProperty] private string _status = "Set city";
+    [ObservableProperty] private string _status = Loc.T("weather.setCity");
 
     public ObservableCollection<ForecastDay> Forecast { get; } = [];
 
@@ -50,6 +52,8 @@ public sealed partial class WeatherWidget : WidgetViewModel
             _ = RefreshAsync();
         }
     }
+
+    public override void OnLanguageChanged() => _ = RefreshAsync();
 
     public override void Start() => _timer.Start();
 
@@ -65,14 +69,14 @@ public sealed partial class WeatherWidget : WidgetViewModel
         if (NeedsCity)
         {
             HasData = false;
-            Status = "Set city";
+            Status = Loc.T("weather.setCity");
             OnPropertyChanged(nameof(HasCard));
             return;
         }
 
         if (!HasData)
         {
-            Status = "Loading…";
+            Status = Loc.T("common.loading");
         }
 
         try
@@ -86,10 +90,10 @@ public sealed partial class WeatherWidget : WidgetViewModel
             Temperature = $"{Math.Round(r.Temperature):0}°";
             Kind = WeatherCodes.Kind(r.Code, r.IsDay);
             Location = r.Location;
-            Condition = WeatherCodes.Describe(r.Code);
+            Condition = Loc.T($"weather.code.{WeatherCodes.Kind(r.Code, r.IsDay)}");
             var today = r.Days.FirstOrDefault();
-            Range = today is null ? string.Empty : $"H {Math.Round(today.Max):0}°  L {Math.Round(today.Min):0}°";
-            Details = $"Feels like {Math.Round(r.ApparentTemperature):0}° · Humidity {r.Humidity}% · Wind {Math.Round(r.WindSpeed):0} {(RegionInfo.CurrentRegion.IsMetric ? "km/h" : "mph")}";
+            Range = today is null ? string.Empty : Loc.F("weather.range", Math.Round(today.Max), Math.Round(today.Min));
+            Details = Loc.F("weather.details", Math.Round(r.ApparentTemperature), r.Humidity, Math.Round(r.WindSpeed), RegionInfo.CurrentRegion.IsMetric ? "km/h" : "mph");
             Forecast.Clear();
             foreach (var d in r.Days.Skip(1).Take(4))
             {
@@ -107,7 +111,7 @@ public sealed partial class WeatherWidget : WidgetViewModel
         {
             if (!HasData)
             {
-                Status = ex.Message.Contains("not found", StringComparison.OrdinalIgnoreCase) ? "City not found" : "Offline";
+                Status = ex.Message.Contains("not found", StringComparison.OrdinalIgnoreCase) ? Loc.T("weather.notFound") : Loc.T("weather.offline");
             }
         }
         catch (OperationCanceledException)
@@ -155,7 +159,7 @@ public sealed partial class NowPlayingWidget : WidgetViewModel
 
     [ObservableProperty] private bool _hasMedia;
     [ObservableProperty] private bool _isPlaying;
-    [ObservableProperty] private string _title = "Nothing playing";
+    [ObservableProperty] private string _title = Loc.T("media.nothing");
     [ObservableProperty] private string _artist = string.Empty;
     [ObservableProperty] private string _source = string.Empty;
     [ObservableProperty] private ImageSource? _art;
@@ -181,6 +185,8 @@ public sealed partial class NowPlayingWidget : WidgetViewModel
 
     private void OnMediaChanged(object? sender, EventArgs e) => Apply(_media.Current);
 
+    public override void OnLanguageChanged() => Apply(_media.Current);
+
     private void Apply(MediaInfo? info)
     {
         var artChanged = !ReferenceEquals(_info?.Thumbnail, info?.Thumbnail);
@@ -191,7 +197,7 @@ public sealed partial class NowPlayingWidget : WidgetViewModel
 
         if (info is null)
         {
-            Title = "Nothing playing";
+            Title = Loc.T("media.nothing");
             Artist = string.Empty;
             Source = string.Empty;
             IsPlaying = false;

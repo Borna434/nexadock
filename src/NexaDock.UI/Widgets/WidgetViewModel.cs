@@ -35,8 +35,32 @@ public abstract partial class WidgetViewModel : ObservableObject, IDisposable
     /// <summary>Whether the tile is drawn on its own glass plate.</summary>
     public virtual bool HasPlate => true;
 
+    /// <summary>Whether the card contains text input (the card may then take keyboard focus).</summary>
+    public virtual bool WantsKeyboard => false;
+
+    /// <summary>Whether the tile reacts to the mouse wheel (<see cref="OnWheel"/>).</summary>
+    public virtual bool HandlesWheel => false;
+
     /// <summary>Set while this widget's card is open (tiles can highlight themselves).</summary>
     [ObservableProperty] private bool _isCardOpen;
+
+    /// <summary>False hides the tile entirely (e.g. Pulse with nothing to report).</summary>
+    [ObservableProperty] private bool _isVisibleOnBar = true;
+
+    /// <summary>True while a Pulse alert belongs to this widget: the tile glows.</summary>
+    [ObservableProperty] private bool _isPulsing;
+
+    public string TypeId => Descriptor.TypeId;
+
+    /// <summary>Called after the UI language changed; refresh any text the view model cached.</summary>
+    public virtual void OnLanguageChanged()
+    {
+    }
+
+    /// <summary>Mouse wheel over the tile; positive = up.</summary>
+    public virtual void OnWheel(int delta)
+    {
+    }
 
     /// <summary>Called once after the widget is placed on the bar.</summary>
     public virtual void Start()
@@ -89,6 +113,20 @@ public sealed class WidgetFactory(IServiceProvider services)
         [WidgetTypes.ControlCenter] = typeof(ControlCenterWidget),
         [WidgetTypes.ShowDesktop] = typeof(ShowDesktopWidget),
         [WidgetTypes.Spacer] = typeof(SpacerWidget),
+        [WidgetTypes.Pulse] = typeof(PulseWidget),
+        [WidgetTypes.Focus] = typeof(FocusWidget),
+        [WidgetTypes.Timer] = typeof(TimerWidget),
+        [WidgetTypes.Stopwatch] = typeof(StopwatchWidget),
+        [WidgetTypes.Todos] = typeof(TodosWidget),
+        [WidgetTypes.Notes] = typeof(NotesWidget),
+        [WidgetTypes.Volume] = typeof(VolumeWidget),
+        [WidgetTypes.Microphone] = typeof(MicrophoneWidget),
+        [WidgetTypes.Network] = typeof(NetworkWidget),
+        [WidgetTypes.Storage] = typeof(StorageWidget),
+        [WidgetTypes.RecycleBin] = typeof(RecycleBinWidget),
+        [WidgetTypes.Keyboard] = typeof(KeyboardWidget),
+        [WidgetTypes.QuickToggles] = typeof(QuickTogglesWidget),
+        [WidgetTypes.Brightness] = typeof(BrightnessWidget),
     };
 
     public static bool IsSupported(string typeId) => Types.ContainsKey(typeId);

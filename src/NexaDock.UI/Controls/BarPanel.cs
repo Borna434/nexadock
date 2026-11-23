@@ -87,6 +87,14 @@ public sealed class BarPanel : Panel
 
             var w = GetIsFlexible(child) ? flexWidth : child.DesiredSize.Width;
             var h = Math.Min(child.DesiredSize.Height, finalSize.Height);
+
+            // A tile that would only partly fit is not shown at all (no tiles cut off at the edge).
+            if (x + w > finalSize.Width + 0.5)
+            {
+                child.Arrange(new Rect(finalSize.Width, 0, 0, 0));
+                continue;
+            }
+
             child.Arrange(new Rect(x, (finalSize.Height - h) / 2, w, h));
             x += w + Gap;
         }

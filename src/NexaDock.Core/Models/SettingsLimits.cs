@@ -15,4 +15,13 @@ public static class SettingsLimits
     public const int MaxShortcuts = 32;
     public const int MaxWidgets = 40;
     public const int MaxCityLength = 80;
+
+    public const int MaxProfiles = 8;
+    public const int MaxProfileNameLength = 32;
+    public const int MaxTriggerApps = 20;
+
+    public const int MinFocusMinutes = 5;
+    public const int MaxFocusMinutes = 120;
+    public const int MinBreakMinutes = 1;
+    public const int MaxBreakMinutes = 60;
 }

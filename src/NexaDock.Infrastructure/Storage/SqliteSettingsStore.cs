@@ -12,8 +12,10 @@ namespace NexaDock.Infrastructure.Storage;
 /// Stores settings as a JSON document in a small SQLite key/value table. Corrupt databases are moved
 /// aside (never deleted) and replaced with defaults.
 /// </summary>
-public sealed class SqliteSettingsStore : ISettingsStore
+public sealed class SqliteSettingsStore : ISettingsStore, IKeyValueStore
 {
+    internal const string DataKeyPrefix = "data.";
+
     internal const string SettingsKey = "dock.settings";
     internal const int StorageSchemaVersion = 1;
 
@@ -91,6 +93,63 @@ public sealed class SqliteSettingsStore : ISettingsStore
                 _logger.LogWarning(ex, "Settings database rejected a write; moved to {Backup} and retrying.", backup);
                 WriteJson(json);
             }
+        }
+    }
+
+    /// <summary>Reads widget content stored under <c>data.{key}</c>; <c>null</c> when missing or unreadable.</summary>
+    public string? Get(string key)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(key);
+        lock (_gate)
+        {
+            if (!File.Exists(_databasePath))
+            {
+                return null;
+            }
+
+            try
+            {
+                using var connection = Open();
+                EnsureSchema(connection);
+                using var cmd = connection.CreateCommand();
+                cmd.CommandText = "SELECT value FROM settings WHERE key = $key;";
+                cmd.Parameters.AddWithValue("$key", DataKeyPrefix + key);
+                return cmd.ExecuteScalar() as string;
+            }
+            catch (SqliteException ex)
+            {
+                _logger.LogWarning(ex, "Reading {Key} failed.", key);
+                return null;
+            }
+        }
+    }
+
+    /// <summary>Stores (or with <c>null</c> deletes) widget content under <c>data.{key}</c>.</summary>
+    public void Set(string key, string? value)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(key);
+        lock (_gate)
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(_databasePath)!);
+            using var connection = Open();
+            EnsureSchema(connection);
+            using var cmd = connection.CreateCommand();
+            if (value is null)
+            {
+                cmd.CommandText = "DELETE FROM settings WHERE key = $key;";
+            }
+            else
+            {
+                cmd.CommandText = """
+                    INSERT INTO settings (key, value, updated_utc) VALUES ($key, $value, $updated)
+                    ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_utc = excluded.updated_utc;
+                    """;
+                cmd.Parameters.AddWithValue("$value", value);
+                cmd.Parameters.AddWithValue("$updated", DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture));
+            }
+
+            cmd.Parameters.AddWithValue("$key", DataKeyPrefix + key);
+            cmd.ExecuteNonQuery();
         }
     }
 

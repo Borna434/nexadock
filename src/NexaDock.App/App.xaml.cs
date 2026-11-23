@@ -11,6 +11,8 @@ using NexaDock.Infrastructure;
 using NexaDock.Infrastructure.Logging;
 using NexaDock.Infrastructure.Storage;
 using NexaDock.Core.Widgets;
+using NexaDock.UI.Localization;
+using NexaDock.UI.Services;
 using NexaDock.UI.ViewModels;
 using NexaDock.UI.Views;
 using NexaDock.UI.Widgets;
@@ -61,7 +63,16 @@ public partial class App : Application
 
         var services = builder.Services;
         services.AddSingleton(new AppDataLocation(AppPaths.DataDirectory));
-        services.AddSingleton<ISettingsStore>(sp => new SqliteSettingsStore(AppPaths.DatabasePath, sp.GetRequiredService<ILogger<SqliteSettingsStore>>()));
+        services.AddSingleton(sp => new SqliteSettingsStore(AppPaths.DatabasePath, sp.GetRequiredService<ILogger<SqliteSettingsStore>>()));
+        services.AddSingleton<ISettingsStore>(sp => sp.GetRequiredService<SqliteSettingsStore>());
+        services.AddSingleton<IKeyValueStore>(sp => sp.GetRequiredService<SqliteSettingsStore>());
+        services.AddSingleton<IAudioService, CoreAudioService>();
+        services.AddSingleton<IStorageNetworkMonitor, StorageNetworkMonitor>();
+        services.AddSingleton<IKeyboardLayoutService, KeyboardLayoutService>();
+        services.AddSingleton<IRadioService, WinRtRadioService>();
+        services.AddSingleton<IBrightnessService, BrightnessService>();
+        services.AddSingleton<PulseCenter>();
+        services.AddSingleton<ProfileCoordinator>();
         services.AddSingleton<SettingsService>();
         services.AddSingleton<ISettingsService>(sp => sp.GetRequiredService<SettingsService>());
         services.AddSingleton<IDockPositioner, DockPositionCalculator>();
@@ -104,11 +115,25 @@ public partial class App : Application
         _logger.LogInformation("{Product} starting on Windows build {Build}.", ProductInfo.DisplayTitle, Environment.OSVersion.Version.Build);
 
         InitializeSettings(_host.Services);
+        var settingsService = _host.Services.GetRequiredService<SettingsService>();
+        Loc.Apply(settingsService.Current.Language);
+        settingsService.Changed += (_, args) =>
+        {
+            if (args.Previous.Language != args.Current.Language && Loc.Apply(args.Current.Language))
+            {
+                ApplyTrayTexts();
+                Dispatcher.BeginInvoke(() => LocalizeDefaultProfile(settingsService));
+            }
+        };
+
         _host.Services.GetRequiredService<TaskbarCoordinator>().Start();
+        _host.Services.GetRequiredService<PulseCenter>().Start();
 
         var shell = _host.Services.GetRequiredService<AppShell>();
         shell.ShowDock();
         _host.Services.GetRequiredService<TrayIconService>().Show();
+        ApplyTrayTexts();
+        _host.Services.GetRequiredService<ProfileCoordinator>().Start();
 
         _showSignal = new EventWaitHandle(false, EventResetMode.AutoReset, ProductInfo.ShowDockEventName);
         _showSignalRegistration = ThreadPool.RegisterWaitForSingleObject(
@@ -136,6 +161,8 @@ public partial class App : Application
     {
         var settings = services.GetRequiredService<SettingsService>();
         settings.Load();
+        Loc.Apply(settings.Current.Language);
+        LocalizeDefaultProfile(settings);
         settings.SaveFailed += (_, ex) => _logger?.LogError(ex, "Saving settings failed.");
         _logger?.LogInformation("Settings load status: {Status}.", settings.LoadStatus);
 
@@ -175,10 +202,28 @@ public partial class App : Application
         if (settings.LoadStatus == SettingsLoadStatus.Recovered)
         {
             services.GetRequiredService<AppShell>().NotifyError(
-                $"{ProductInfo.Name} settings were reset",
-                "The stored settings could not be read, so defaults were restored. The old data was kept next to the database.");
+                Loc.F("notify.reset.title", ProductInfo.Name),
+                Loc.T("notify.reset.body"));
         }
     }
+
+    /// <summary>The built-in default profile carries a placeholder name; show it in the UI language.</summary>
+    private static void LocalizeDefaultProfile(ISettingsService settings)
+    {
+        var builtInNames = new[] { "Everyday", "Svakodnevno" };
+        var wanted = Loc.T("profiles.default");
+        settings.Update(s => s with
+        {
+            Profiles = s.Profiles
+                .Select(p => p.Id == SettingsNormalizer.DefaultProfileId && builtInNames.Contains(p.Name) ? p with { Name = wanted } : p)
+                .ToList(),
+        });
+    }
+
+    private void ApplyTrayTexts() =>
+        _host?.Services.GetRequiredService<TrayIconService>().SetTexts(
+            Loc.T("tray.show"), Loc.T("menu.settings"), Loc.T("menu.widgets"), Loc.T("menu.exit"),
+            $"{ProductInfo.Name} — {Loc.T("tray.tagline")}");
 
     private void RestoreTaskbar()
     {

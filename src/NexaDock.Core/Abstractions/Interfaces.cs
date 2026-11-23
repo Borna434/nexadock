@@ -105,6 +105,12 @@ public interface IDockWindowHost
     PointerState GetPointer();
 
     /// <summary>
+    /// Lets a pop-up take keyboard focus (for typing a to-do or note) or returns it to the
+    /// non-activating mode.
+    /// </summary>
+    void SetKeyboardInput(IntPtr hwnd, bool enabled);
+
+    /// <summary>
     /// Reports every mouse-button press anywhere on screen (physical pixels) until disposed.
     /// Used to close pop-ups on outside clicks, since non-activating windows get no deactivation.
     /// </summary>
@@ -317,6 +323,92 @@ public interface IStartupRegistration
     void SetEnabled(bool enabled);
 }
 
+// ---- Phase 3 services ------------------------------------------------------------------------------
+
+/// <summary>Small local key/value store for widget content (to-dos, notes). Values are JSON/text.</summary>
+public interface IKeyValueStore
+{
+    string? Get(string key);
+
+    void Set(string key, string? value);
+}
+
+public sealed record AudioEndpointState(bool Available, string DeviceName, double Volume, bool Muted);
+
+/// <summary>Default speaker and microphone through Windows Core Audio.</summary>
+public interface IAudioService
+{
+    AudioEndpointState GetSpeaker();
+
+    AudioEndpointState GetMicrophone();
+
+    void SetSpeakerVolume(double volume01);
+
+    void SetSpeakerMuted(bool muted);
+
+    void SetMicrophoneMuted(bool muted);
+}
+
+public sealed record NetworkTotals(long BytesReceived, long BytesSent, string AdapterNames);
+
+public sealed record DriveUsage(string Name, string Label, ulong FreeBytes, ulong TotalBytes, bool IsSystem);
+
+public sealed record RecycleBinState(long Items, long Bytes);
+
+/// <summary>Network counters, drives and the Recycle Bin.</summary>
+public interface IStorageNetworkMonitor
+{
+    NetworkTotals GetNetworkTotals();
+
+    IReadOnlyList<DriveUsage> GetDrives();
+
+    RecycleBinState GetRecycleBin();
+
+    void OpenRecycleBin();
+
+    /// <summary>Empties the bin. Windows shows its own confirmation first.</summary>
+    void EmptyRecycleBin();
+
+    void OpenThisPc();
+}
+
+public sealed record KeyboardLayoutInfo(string Short, string Name);
+
+public interface IKeyboardLayoutService
+{
+    /// <summary>Layout of the window in front (the one the user types into).</summary>
+    KeyboardLayoutInfo GetCurrent();
+
+    /// <summary>Asks the window in front to switch to the next installed layout.</summary>
+    void SwitchNext();
+}
+
+public enum RadioKind
+{
+    WiFi,
+    Bluetooth,
+}
+
+public sealed record RadioInfo(RadioKind Kind, string Name, bool IsOn);
+
+public interface IRadioService
+{
+    Task<IReadOnlyList<RadioInfo>> GetRadiosAsync();
+
+    Task<bool> SetAsync(RadioKind kind, bool on);
+}
+
+public sealed record DisplayBrightness(string Id, string Name, int Percent);
+
+/// <summary>Brightness for laptop panels (WMI) and external monitors (DDC/CI).</summary>
+public interface IBrightnessService
+{
+    /// <summary>Slow (DDC/CI round trips); call off the UI thread.</summary>
+    IReadOnlyList<DisplayBrightness> GetDisplays();
+
+    void Set(string id, int percent);
+}
+
 /// <summary>Application-level commands used by views and the tray.</summary>
 public interface IAppShell
 {
@@ -330,6 +422,9 @@ public interface IAppShell
 
     /// <summary>Non-blocking user notification (tray balloon) for recoverable failures.</summary>
     void NotifyError(string title, string message);
+
+    /// <summary>Non-blocking informational notification (e.g. a finished timer).</summary>
+    void Notify(string title, string message);
 
     void Exit();
 }

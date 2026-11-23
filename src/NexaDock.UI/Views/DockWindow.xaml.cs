@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using NexaDock.Core.Abstractions;
 using NexaDock.Core.Layout;
 using NexaDock.Core.Models;
+using NexaDock.UI.Localization;
 using NexaDock.UI.Theming;
 using NexaDock.UI.ViewModels;
 using NexaDock.UI.Widgets;
@@ -421,8 +422,19 @@ public partial class DockWindow : Window
         _gesture = GestureMode.None;
     }
 
+    protected override void OnPreviewMouseWheel(MouseWheelEventArgs e)
+    {
+        base.OnPreviewMouseWheel(e);
+        if (FindTile(e.OriginalSource as DependencyObject)?.DataContext is WidgetViewModel { HandlesWheel: true } widget)
+        {
+            widget.OnWheel(e.Delta);
+            e.Handled = true;
+        }
+    }
+
     private void OnTileClicked(WidgetViewModel widget, FrameworkElement tile)
     {
+        _viewModel.Pulse.Acknowledge(widget.TypeId);
         if (!widget.HasCard)
         {
             widget.OnClick();
@@ -580,15 +592,33 @@ public partial class DockWindow : Window
                 menu.Items.Add(Item(item.Header, item.Execute, item.IsEnabled));
             }
 
-            menu.Items.Add(Item($"Remove {widget.Name}", () => _viewModel.RemoveWidget(widget)));
+            menu.Items.Add(Item(Loc.F("menu.remove", Loc.T($"widget.{widget.TypeId}.name")), () => _viewModel.RemoveWidget(widget)));
             menu.Items.Add(new Separator());
         }
 
-        menu.Items.Add(Item("Widgets…", () => _viewModel.OpenWidgetsCommand.Execute(null)));
-        menu.Items.Add(Item("Settings…", () => _viewModel.OpenSettingsCommand.Execute(null)));
-        menu.Items.Add(Item("Hide bar", () => _viewModel.HideDockCommand.Execute(null)));
+        // Profiles: pick one manually, or let triggers switch automatically.
+        var profiles = new MenuItem { Header = Loc.T("menu.profile") };
+        foreach (var p in _viewModel.Profiles)
+        {
+            var id = p.Id;
+            var item = Item(p.Name, () => _viewModel.SelectProfile(id));
+            item.IsCheckable = true;
+            item.IsChecked = p.Id == _viewModel.ActiveProfileId;
+            profiles.Items.Add(item);
+        }
+
+        profiles.Items.Add(new Separator());
+        var auto = Item(Loc.T("menu.autoSwitch"), () => _viewModel.SetAutoSwitch(!_settings.Current.AutoSwitchProfiles));
+        auto.IsCheckable = true;
+        auto.IsChecked = _settings.Current.AutoSwitchProfiles;
+        profiles.Items.Add(auto);
+        menu.Items.Add(profiles);
+
+        menu.Items.Add(Item(Loc.T("menu.widgets"), () => _viewModel.OpenWidgetsCommand.Execute(null)));
+        menu.Items.Add(Item(Loc.T("menu.settings"), () => _viewModel.OpenSettingsCommand.Execute(null)));
+        menu.Items.Add(Item(Loc.T("menu.hide"), () => _viewModel.HideDockCommand.Execute(null)));
         menu.Items.Add(new Separator());
-        menu.Items.Add(Item("Exit NexaDock", () => _viewModel.ExitCommand.Execute(null)));
+        menu.Items.Add(Item(Loc.T("menu.exit"), () => _viewModel.ExitCommand.Execute(null)));
 
         menu.PlacementTarget = this;
         menu.Placement = PlacementMode.MousePoint;

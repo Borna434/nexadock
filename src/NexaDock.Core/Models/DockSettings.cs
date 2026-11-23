@@ -6,10 +6,60 @@ public sealed record WidgetPlacement(string Id, string TypeId)
     public static WidgetPlacement Create(string typeId) => new(Guid.NewGuid().ToString("N"), typeId);
 }
 
+/// <summary>User interface language.</summary>
+public enum AppLanguage
+{
+    /// <summary>Follow the Windows display language (Croatian if Windows is Croatian, otherwise English).</summary>
+    System = 0,
+    English = 1,
+    Croatian = 2,
+}
+
+/// <summary>When a profile switches itself on.</summary>
+/// <param name="ScheduleEnabled">Use the time window below.</param>
+/// <param name="FromMinutes">Start, minutes after midnight (0–1439).</param>
+/// <param name="ToMinutes">End, minutes after midnight; may be earlier than the start (overnight).</param>
+/// <param name="Days">Days the schedule applies to; empty means every day.</param>
+/// <param name="Apps">Executable names (e.g. "steam.exe"); when one is in front the profile wins.</param>
+public sealed record ProfileTrigger(
+    bool ScheduleEnabled,
+    int FromMinutes,
+    int ToMinutes,
+    IReadOnlyList<DayOfWeek> Days,
+    IReadOnlyList<string> Apps)
+{
+    public static ProfileTrigger None { get; } = new(false, 9 * 60, 17 * 60, [], []);
+
+    public bool IsAutomatic => ScheduleEnabled || Apps.Count > 0;
+
+    public bool Equals(ProfileTrigger? other) =>
+        other is not null
+        && ScheduleEnabled == other.ScheduleEnabled
+        && FromMinutes == other.FromMinutes
+        && ToMinutes == other.ToMinutes
+        && Days.SequenceEqual(other.Days)
+        && Apps.SequenceEqual(other.Apps, StringComparer.OrdinalIgnoreCase);
+
+    public override int GetHashCode() => HashCode.Combine(ScheduleEnabled, FromMinutes, ToMinutes, Days.Count, Apps.Count);
+}
+
+/// <summary>A named widget layout (Work, Gaming, Study, …) with optional automatic triggers.</summary>
+public sealed record DockProfile(string Id, string Name, IReadOnlyList<WidgetPlacement> Widgets, ProfileTrigger Trigger)
+{
+    public bool Equals(DockProfile? other) =>
+        other is not null
+        && Id == other.Id
+        && Name == other.Name
+        && Widgets.SequenceEqual(other.Widgets)
+        && Trigger.Equals(other.Trigger);
+
+    public override int GetHashCode() => HashCode.Combine(Id, Name, Widgets.Count);
+}
+
 /// <summary>Complete persisted user configuration. Immutable; use <c>with</c> to change.</summary>
 public sealed record DockSettings
 {
-    public const int CurrentSchemaVersion = 2;
+    public const int CurrentSchemaVersion = 3;
 
     public int SchemaVersion { get; init; } = CurrentSchemaVersion;
 
@@ -40,6 +90,8 @@ public sealed record DockSettings
 
     public bool Use24HourClock { get; init; } = true;
 
+    public AppLanguage Language { get; init; } = AppLanguage.System;
+
     // ---- Behaviour ---------------------------------------------------------------------------
     /// <summary>Hide the Windows taskbar while NexaDock runs and reserve screen space for the bar.</summary>
     public bool ReplaceTaskbar { get; init; }
@@ -55,12 +107,31 @@ public sealed record DockSettings
     /// </summary>
     public int? TaskbarStateBeforeReplace { get; init; }
 
-    // ---- Widgets -----------------------------------------------------------------------------
+    /// <summary>Let the bar raise tiles that need attention (battery, disk, timers, …).</summary>
+    public bool PulseEnabled { get; init; } = true;
+
+    // ---- Widgets & profiles -----------------------------------------------------------------
     public string WeatherCity { get; init; } = string.Empty;
+
+    public int FocusMinutes { get; init; } = 25;
+
+    public int ShortBreakMinutes { get; init; } = 5;
+
+    public int LongBreakMinutes { get; init; } = 15;
 
     public bool WidgetsInitialized { get; init; }
 
+    /// <summary>The active layout. Always mirrored into the active profile by normalization.</summary>
     public IReadOnlyList<WidgetPlacement> Widgets { get; init; } = Array.Empty<WidgetPlacement>();
+
+    public IReadOnlyList<DockProfile> Profiles { get; init; } = Array.Empty<DockProfile>();
+
+    public string? ActiveProfileId { get; init; }
+
+    /// <summary>Profile used when no automatic trigger matches (the one the user picked last).</summary>
+    public string? DefaultProfileId { get; init; }
+
+    public bool AutoSwitchProfiles { get; init; } = true;
 
     /// <summary>True once default pinned apps were seeded, so a deliberately empty list is respected.</summary>
     public bool ShortcutsInitialized { get; init; }
@@ -69,6 +140,8 @@ public sealed record DockSettings
     public IReadOnlyList<DockShortcut> Shortcuts { get; init; } = Array.Empty<DockShortcut>();
 
     public static DockSettings Default { get; } = new();
+
+    public DockProfile? ActiveProfile => Profiles.FirstOrDefault(p => p.Id == ActiveProfileId);
 
     public bool Equals(DockSettings? other) =>
         other is not null
@@ -83,16 +156,25 @@ public sealed record DockSettings
         && Opacity.Equals(other.Opacity)
         && ReducedMotion == other.ReducedMotion
         && Use24HourClock == other.Use24HourClock
+        && Language == other.Language
         && ReplaceTaskbar == other.ReplaceTaskbar
         && HideInFullscreen == other.HideInFullscreen
         && LaunchAtStartup == other.LaunchAtStartup
         && TaskbarStateBeforeReplace == other.TaskbarStateBeforeReplace
+        && PulseEnabled == other.PulseEnabled
         && string.Equals(WeatherCity, other.WeatherCity, StringComparison.Ordinal)
+        && FocusMinutes == other.FocusMinutes
+        && ShortBreakMinutes == other.ShortBreakMinutes
+        && LongBreakMinutes == other.LongBreakMinutes
         && WidgetsInitialized == other.WidgetsInitialized
         && Widgets.SequenceEqual(other.Widgets)
+        && Profiles.SequenceEqual(other.Profiles)
+        && ActiveProfileId == other.ActiveProfileId
+        && DefaultProfileId == other.DefaultProfileId
+        && AutoSwitchProfiles == other.AutoSwitchProfiles
         && ShortcutsInitialized == other.ShortcutsInitialized
         && Shortcuts.SequenceEqual(other.Shortcuts);
 
     public override int GetHashCode() =>
-        HashCode.Combine(Edge, Size, Theme, Spacing, Opacity, EdgeOffset, Widgets.Count, Shortcuts.Count);
+        HashCode.Combine(Edge, Size, Theme, Spacing, Opacity, EdgeOffset, Widgets.Count, Profiles.Count);
 }

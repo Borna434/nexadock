@@ -3,7 +3,8 @@
                     xmlns:w="clr-namespace:NexaDock.UI.Widgets"
                     xmlns:c="clr-namespace:NexaDock.UI.Controls"
                     xmlns:conv="clr-namespace:NexaDock.UI.Converters"
-                    xmlns:b="clr-namespace:NexaDock.UI.Behaviors">
+                    xmlns:b="clr-namespace:NexaDock.UI.Behaviors"
+                    xmlns:l="clr-namespace:NexaDock.UI.Localization">
 
     <!-- Shared resources ===================================================================== -->
     <FontFamily x:Key="IconFont">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
@@ -12,6 +13,9 @@
     <conv:BoolToVisibilityConverter x:Key="BoolToVisibility" />
     <conv:BoolToVisibilityConverter x:Key="InverseBoolToVisibility" Invert="True" />
     <conv:PercentToScaleConverter x:Key="PercentToScale" />
+    <conv:NonEmptyToVisibilityConverter x:Key="NonEmptyToVisibility" />
+    <conv:InverseBoolConverter x:Key="InverseBool" />
+    <conv:AllFalseToVisibilityConverter x:Key="AllFalseToVisibility" />
     <conv:WidgetTemplateSelector x:Key="TileSelector" />
     <conv:WidgetTemplateSelector x:Key="CardSelector" Card="True" />
 
@@ -121,8 +125,8 @@
             <Grid Margin="0,0,0,8">
                 <TextBlock Text="{Binding Title}" Style="{StaticResource Card.Body}" FontWeight="SemiBold" VerticalAlignment="Center" />
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <Button Style="{StaticResource Bar.GlyphButton}" Width="26" Height="26" FontSize="11" Command="{Binding PreviousCommand}" ToolTip="Previous month">&#xE76B;</Button>
-                    <Button Style="{StaticResource Bar.GlyphButton}" Width="26" Height="26" FontSize="11" Command="{Binding NextCommand}" ToolTip="Next month">&#xE76C;</Button>
+                    <Button Style="{StaticResource Bar.GlyphButton}" Width="26" Height="26" FontSize="11" Command="{Binding PreviousCommand}" ToolTip="{l:Loc calendar.previous}">&#xE76B;</Button>
+                    <Button Style="{StaticResource Bar.GlyphButton}" Width="26" Height="26" FontSize="11" Command="{Binding NextCommand}" ToolTip="{l:Loc calendar.next}">&#xE76C;</Button>
                 </StackPanel>
             </Grid>
             <ItemsControl ItemsSource="{Binding WeekdayNames}">
@@ -168,8 +172,8 @@
     <!-- Apps ================================================================================= -->
     <DataTemplate x:Key="AppsWidget.Tile" DataType="{x:Type w:AppsWidget}">
         <StackPanel Orientation="Horizontal">
-            <Button Style="{StaticResource Bar.PlainButton}" Command="{Binding OpenStartCommand}" ToolTip="Start"
-                    Width="{DynamicResource Bar.AppButton}" Height="{DynamicResource Bar.TileHeight}" AutomationProperties.Name="Start">
+            <Button Style="{StaticResource Bar.PlainButton}" Command="{Binding OpenStartCommand}" ToolTip="{l:Loc apps.start}"
+                    Width="{DynamicResource Bar.AppButton}" Height="{DynamicResource Bar.TileHeight}" AutomationProperties.Name="{l:Loc apps.start}">
                 <!-- NexaDock's own start mark: four soft glass squares. -->
                 <UniformGrid Rows="2" Columns="2" Width="{DynamicResource Bar.IconSize}" Height="{DynamicResource Bar.IconSize}" Margin="3">
                     <UniformGrid.Resources>
@@ -239,7 +243,7 @@
             <TextBlock Text="{Binding LongDate}" Style="{StaticResource Card.Body}" Margin="0,2,0,0" />
             <TextBlock Text="{Binding WeekText}" Style="{StaticResource Card.Label}" Margin="0,2,0,14" />
             <ContentPresenter Content="{Binding Calendar}" ContentTemplate="{StaticResource MonthCalendarView}" />
-            <Button Style="{StaticResource Card.Button}" Content="Date &amp; time settings" Margin="0,12,0,0"
+            <Button Style="{StaticResource Card.Button}" Content="{l:Loc clock.settings}" Margin="0,12,0,0"
                     HorizontalAlignment="Left" Command="{Binding OpenDateTimeSettingsCommand}" />
         </StackPanel>
     </DataTemplate>
@@ -257,7 +261,7 @@
     <DataTemplate x:Key="CalendarWidget.Card" DataType="{x:Type w:CalendarWidget}">
         <StackPanel Width="250">
             <ContentPresenter Content="{Binding Calendar}" ContentTemplate="{StaticResource MonthCalendarView}" />
-            <Button Style="{StaticResource Card.Button}" Content="Today" Margin="0,10,0,0" HorizontalAlignment="Left"
+            <Button Style="{StaticResource Card.Button}" Content="{l:Loc calendar.today}" Margin="0,10,0,0" HorizontalAlignment="Left"
                     Command="{Binding Calendar.GoToTodayCommand}" />
         </StackPanel>
     </DataTemplate>
@@ -269,34 +273,34 @@
                          Track="{DynamicResource Bar.Track}" Fill="{DynamicResource Bar.Accent}" />
             <StackPanel Margin="8,0,0,0" VerticalAlignment="Center">
                 <TextBlock Text="{Binding DayText}" Style="{StaticResource Bar.Text}" FontWeight="SemiBold" />
-                <TextBlock Text="of today" Style="{StaticResource Bar.SubText}" />
+                <TextBlock Text="{l:Loc progress.ofToday}" Style="{StaticResource Bar.SubText}" />
             </StackPanel>
         </StackPanel>
     </DataTemplate>
 
     <DataTemplate x:Key="DayProgressWidget.Card" DataType="{x:Type w:DayProgressWidget}">
         <StackPanel Width="260">
-            <TextBlock Text="Time flies" Style="{StaticResource Card.Title}" />
+            <TextBlock Text="{l:Loc progress.title}" Style="{StaticResource Card.Title}" />
             <TextBlock Text="{Binding RemainingText}" Style="{StaticResource Card.Label}" Margin="0,2,0,14" />
-            <TextBlock Text="Today" Style="{StaticResource Card.Label}" />
+            <TextBlock Text="{l:Loc progress.today}" Style="{StaticResource Card.Label}" />
             <Border Style="{StaticResource Card.Progress}" Margin="0,4,0,12">
                 <Border CornerRadius="3" Background="{DynamicResource Bar.Accent}" HorizontalAlignment="Stretch" RenderTransformOrigin="0,0.5">
                     <Border.RenderTransform><ScaleTransform ScaleX="{Binding Day, Converter={StaticResource PercentToScale}}" /></Border.RenderTransform>
                 </Border>
             </Border>
-            <TextBlock Text="This week" Style="{StaticResource Card.Label}" />
+            <TextBlock Text="{l:Loc progress.week}" Style="{StaticResource Card.Label}" />
             <Border Style="{StaticResource Card.Progress}" Margin="0,4,0,12">
                 <Border CornerRadius="3" Background="{DynamicResource Bar.Accent}" RenderTransformOrigin="0,0.5">
                     <Border.RenderTransform><ScaleTransform ScaleX="{Binding Week, Converter={StaticResource PercentToScale}}" /></Border.RenderTransform>
                 </Border>
             </Border>
-            <TextBlock Text="This month" Style="{StaticResource Card.Label}" />
+            <TextBlock Text="{l:Loc progress.month}" Style="{StaticResource Card.Label}" />
             <Border Style="{StaticResource Card.Progress}" Margin="0,4,0,12">
                 <Border CornerRadius="3" Background="{DynamicResource Bar.Accent}" RenderTransformOrigin="0,0.5">
                     <Border.RenderTransform><ScaleTransform ScaleX="{Binding Month, Converter={StaticResource PercentToScale}}" /></Border.RenderTransform>
                 </Border>
             </Border>
-            <TextBlock Text="This year" Style="{StaticResource Card.Label}" />
+            <TextBlock Text="{l:Loc progress.year}" Style="{StaticResource Card.Label}" />
             <Border Style="{StaticResource Card.Progress}" Margin="0,4,0,0">
                 <Border CornerRadius="3" Background="{DynamicResource Bar.Accent}" RenderTransformOrigin="0,0.5">
                     <Border.RenderTransform><ScaleTransform ScaleX="{Binding Year, Converter={StaticResource PercentToScale}}" /></Border.RenderTransform>
@@ -308,22 +312,22 @@
     <!-- CPU & memory ========================================================================= -->
     <DataTemplate x:Key="SystemWidget.Tile" DataType="{x:Type w:SystemWidget}">
         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-            <Grid Width="30" Height="30" ToolTip="Processor">
+            <Grid Width="30" Height="30" ToolTip="{l:Loc system.processor}">
                 <c:RingGauge Value="{Binding Cpu}" StrokeThickness="3" Track="{DynamicResource Bar.Track}" Fill="{DynamicResource Bar.Accent}" />
                 <TextBlock Text="{Binding Cpu, StringFormat={}{0:0}}" Style="{StaticResource Bar.Text}" FontSize="9.5" FontWeight="SemiBold"
                            HorizontalAlignment="Center" VerticalAlignment="Center" />
             </Grid>
             <StackPanel Margin="6,0,10,0" VerticalAlignment="Center">
-                <TextBlock Text="CPU" Style="{StaticResource Bar.SubText}" />
+                <TextBlock Text="{l:Loc system.cpu}" Style="{StaticResource Bar.SubText}" />
                 <TextBlock Text="{Binding CpuText}" Style="{StaticResource Bar.Text}" FontWeight="SemiBold" FontSize="12" />
             </StackPanel>
-            <Grid Width="30" Height="30" ToolTip="Memory">
+            <Grid Width="30" Height="30" ToolTip="{l:Loc system.memory}">
                 <c:RingGauge Value="{Binding Memory}" StrokeThickness="3" Track="{DynamicResource Bar.Track}" Fill="#5EE6C8" />
                 <TextBlock Text="{Binding Memory, StringFormat={}{0:0}}" Style="{StaticResource Bar.Text}" FontSize="9.5" FontWeight="SemiBold"
                            HorizontalAlignment="Center" VerticalAlignment="Center" />
             </Grid>
             <StackPanel Margin="6,0,0,0" VerticalAlignment="Center">
-                <TextBlock Text="RAM" Style="{StaticResource Bar.SubText}" />
+                <TextBlock Text="{l:Loc system.ram}" Style="{StaticResource Bar.SubText}" />
                 <TextBlock Text="{Binding MemoryText}" Style="{StaticResource Bar.Text}" FontWeight="SemiBold" FontSize="12" />
             </StackPanel>
         </StackPanel>
@@ -348,7 +352,7 @@
                         <c:RingGauge Value="{Binding Cpu}" StrokeThickness="7" Track="{DynamicResource Bar.Track}" Fill="{DynamicResource Bar.Accent}" />
                         <TextBlock Text="{Binding CpuText}" Style="{StaticResource Card.Title}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Grid>
-                    <TextBlock Text="Processor" Style="{StaticResource Card.Label}" HorizontalAlignment="Center" Margin="0,6,0,0" />
+                    <TextBlock Text="{l:Loc system.processor}" Style="{StaticResource Card.Label}" HorizontalAlignment="Center" Margin="0,6,0,0" />
                 </StackPanel>
                 <StackPanel Grid.Column="1" HorizontalAlignment="Center">
                     <Grid Width="78" Height="78">
@@ -358,9 +362,9 @@
                     <TextBlock Text="{Binding MemoryDetail}" Style="{StaticResource Card.Label}" HorizontalAlignment="Center" Margin="0,6,0,0" />
                 </StackPanel>
             </Grid>
-            <TextBlock Text="Busiest apps — CPU" Style="{StaticResource Card.Label}" FontWeight="SemiBold" Margin="0,0,0,2" />
+            <TextBlock Text="{l:Loc system.busyCpu}" Style="{StaticResource Card.Label}" FontWeight="SemiBold" Margin="0,0,0,2" />
             <ItemsControl ItemsSource="{Binding TopCpu}" ItemTemplate="{StaticResource ProcessRow}" />
-            <TextBlock Text="Collecting…" Margin="0,2,0,0">
+            <TextBlock Text="{l:Loc system.collecting}" Margin="0,2,0,0">
                 <TextBlock.Style>
                     <Style TargetType="TextBlock" BasedOn="{StaticResource Card.Label}">
                         <Setter Property="Visibility" Value="Collapsed" />
@@ -372,11 +376,11 @@
                     </Style>
                 </TextBlock.Style>
             </TextBlock>
-            <TextBlock Text="Busiest apps — memory" Style="{StaticResource Card.Label}" FontWeight="SemiBold" Margin="0,12,0,2" />
+            <TextBlock Text="{l:Loc system.busyMemory}" Style="{StaticResource Card.Label}" FontWeight="SemiBold" Margin="0,12,0,2" />
             <ItemsControl ItemsSource="{Binding TopMemory}" ItemTemplate="{StaticResource ProcessRow}" />
             <Grid Margin="0,12,0,0">
                 <TextBlock Text="{Binding Uptime}" Style="{StaticResource Card.Label}" VerticalAlignment="Center" />
-                <Button Style="{StaticResource Card.Button}" Content="Task Manager" HorizontalAlignment="Right" Command="{Binding OpenTaskManagerCommand}" />
+                <Button Style="{StaticResource Card.Button}" Content="{l:Loc system.taskManager}" HorizontalAlignment="Right" Command="{Binding OpenTaskManagerCommand}" />
             </Grid>
         </StackPanel>
     </DataTemplate>
@@ -427,7 +431,7 @@
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
-            <TextBlock Text="Weather data by Open-Meteo.com" Style="{StaticResource Card.Label}" FontSize="10.5" Margin="0,10,0,0" />
+            <TextBlock Text="{l:Loc weather.credit}" Style="{StaticResource Card.Label}" FontSize="10.5" Margin="0,10,0,0" />
         </StackPanel>
     </DataTemplate>
 
@@ -450,7 +454,7 @@
                 <TextBlock Text="{Binding Artist}" Style="{StaticResource Bar.SubText}" />
             </StackPanel>
             <Button Style="{StaticResource Bar.GlyphButton}" Command="{Binding PlayPauseCommand}" Content="{Binding PlayPauseGlyph}"
-                    ToolTip="Play / pause" Visibility="{Binding HasMedia, Converter={StaticResource BoolToVisibility}}" />
+                    ToolTip="{l:Loc media.playPause}" Visibility="{Binding HasMedia, Converter={StaticResource BoolToVisibility}}" />
         </StackPanel>
     </DataTemplate>
 
@@ -483,11 +487,11 @@
             </StackPanel>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,10,0,0">
                 <Button Style="{StaticResource Bar.GlyphButton}" Width="44" Height="44" FontSize="18" Content="{Binding PreviousGlyph}"
-                        Command="{Binding PreviousCommand}" IsEnabled="{Binding CanPrevious}" ToolTip="Previous" />
+                        Command="{Binding PreviousCommand}" IsEnabled="{Binding CanPrevious}" ToolTip="{l:Loc media.previous}" />
                 <Button Style="{StaticResource Bar.GlyphButton}" Width="54" Height="54" FontSize="24" Margin="14,0" Content="{Binding PlayPauseGlyph}"
-                        Command="{Binding PlayPauseCommand}" ToolTip="Play / pause" />
+                        Command="{Binding PlayPauseCommand}" ToolTip="{l:Loc media.playPause}" />
                 <Button Style="{StaticResource Bar.GlyphButton}" Width="44" Height="44" FontSize="18" Content="{Binding NextGlyph}"
-                        Command="{Binding NextCommand}" IsEnabled="{Binding CanNext}" ToolTip="Next" />
+                        Command="{Binding NextCommand}" IsEnabled="{Binding CanNext}" ToolTip="{l:Loc media.next}" />
             </StackPanel>
         </StackPanel>
     </DataTemplate>
@@ -495,7 +499,7 @@
     <!-- Control center ======================================================================= -->
     <DataTemplate x:Key="ControlCenterWidget.Tile" DataType="{x:Type w:ControlCenterWidget}">
         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-            <StackPanel Orientation="Horizontal" ToolTip="Quick Settings" Background="Transparent">
+            <StackPanel Orientation="Horizontal" ToolTip="{l:Loc control.quickSettings}" Background="Transparent">
                 <TextBlock Text="{Binding NetworkGlyph}" FontFamily="{StaticResource IconFont}" FontSize="15" Foreground="{DynamicResource Bar.Foreground}"
                            VerticalAlignment="Center" ToolTip="{Binding NetworkText}" />
                 <TextBlock Text="{Binding VolumeGlyph}" FontFamily="{StaticResource IconFont}" FontSize="15" Foreground="{DynamicResource Bar.Foreground}"
@@ -507,17 +511,637 @@
             </StackPanel>
             <Rectangle Width="1" Height="18" Fill="{DynamicResource Bar.Separator}" Margin="10,0,4,0" />
             <Button Style="{StaticResource Bar.GlyphButton}" Content="{Binding BellGlyph}" Command="{Binding OpenNotificationsCommand}"
-                    ToolTip="Notifications" Width="28" Height="28" />
+                    ToolTip="{l:Loc control.notifications}" Width="28" Height="28" />
         </StackPanel>
     </DataTemplate>
 
     <!-- Show desktop / spacer ================================================================ -->
     <DataTemplate x:Key="ShowDesktopWidget.Tile" DataType="{x:Type w:ShowDesktopWidget}">
         <TextBlock Text="{Binding Glyph}" FontFamily="{StaticResource IconFont}" FontSize="15" Foreground="{DynamicResource Bar.Foreground}"
-                   VerticalAlignment="Center" ToolTip="Show desktop" />
+                   VerticalAlignment="Center" ToolTip="{l:Loc widget.showdesktop.name}" />
     </DataTemplate>
 
     <DataTemplate x:Key="SpacerWidget.Tile" DataType="{x:Type w:SpacerWidget}">
         <Border Background="Transparent" />
     </DataTemplate>
+
+    <!-- ====================================================================================== -->
+    <!-- Phase 3 widgets                                                                         -->
+    <!-- ====================================================================================== -->
+
+    <Style x:Key="Card.TextBox" TargetType="TextBox">
+        <Setter Property="Foreground" Value="{DynamicResource Bar.Foreground}" />
+        <Setter Property="CaretBrush" Value="{DynamicResource Bar.Foreground}" />
+        <Setter Property="SelectionBrush" Value="{DynamicResource Bar.Accent}" />
+        <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Padding" Value="8,6" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TextBox">
+                    <Border x:Name="Bd" CornerRadius="8" Background="{DynamicResource Bar.Track}"
+                            BorderBrush="{DynamicResource Bar.TileRim}" BorderThickness="1">
+                        <Grid>
+                            <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" VerticalScrollBarVisibility="Auto" />
+                            <TextBlock x:Name="Hint" Text="{TemplateBinding Tag}" Margin="{TemplateBinding Padding}" Padding="2,0"
+                                       Foreground="{DynamicResource Bar.Secondary}" FontSize="{TemplateBinding FontSize}"
+                                       IsHitTestVisible="False" Visibility="Collapsed" />
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="Text" Value="">
+                            <Setter TargetName="Hint" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource Bar.Accent}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="Card.CheckBox" TargetType="CheckBox">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="CheckBox">
+                    <Grid Background="Transparent">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Border x:Name="Box" Width="18" Height="18" CornerRadius="9" BorderThickness="1.5"
+                                BorderBrush="{DynamicResource Bar.Secondary}" VerticalAlignment="Center">
+                            <TextBlock x:Name="Tick" Text="&#xE73E;" FontFamily="{StaticResource IconFont}" FontSize="10" Foreground="White"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed" />
+                        </Border>
+                        <ContentPresenter Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center" />
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Box" Property="Background" Value="{DynamicResource Bar.Accent}" />
+                            <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource Bar.Accent}" />
+                            <Setter TargetName="Tick" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Slim glass slider for cards. -->
+    <Style x:Key="Card.Slider" TargetType="Slider">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="IsMoveToPointEnabled" Value="True" />
+        <Setter Property="Minimum" Value="0" />
+        <Setter Property="Maximum" Value="100" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Slider">
+                    <Grid Height="22" Background="Transparent">
+                        <Border Height="4" CornerRadius="2" Background="{DynamicResource Bar.Track}" VerticalAlignment="Center" />
+                        <Track x:Name="PART_Track" VerticalAlignment="Center">
+                            <Track.DecreaseRepeatButton>
+                                <RepeatButton Command="Slider.DecreaseLarge" Focusable="False">
+                                    <RepeatButton.Template>
+                                        <ControlTemplate TargetType="RepeatButton">
+                                            <Border Height="4" CornerRadius="2" Background="{DynamicResource Bar.Accent}" />
+                                        </ControlTemplate>
+                                    </RepeatButton.Template>
+                                </RepeatButton>
+                            </Track.DecreaseRepeatButton>
+                            <Track.IncreaseRepeatButton>
+                                <RepeatButton Command="Slider.IncreaseLarge" Focusable="False">
+                                    <RepeatButton.Template>
+                                        <ControlTemplate TargetType="RepeatButton">
+                                            <Border Background="Transparent" />
+                                        </ControlTemplate>
+                                    </RepeatButton.Template>
+                                </RepeatButton>
+                            </Track.IncreaseRepeatButton>
+                            <Track.Thumb>
+                                <Thumb Focusable="False">
+                                    <Thumb.Template>
+                                        <ControlTemplate TargetType="Thumb">
+                                            <Ellipse Width="16" Height="16" Fill="White" Stroke="{DynamicResource Bar.Accent}" StrokeThickness="2" />
+                                        </ControlTemplate>
+                                    </Thumb.Template>
+                                </Thumb>
+                            </Track.Thumb>
+                        </Track>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Pulse ================================================================================ -->
+    <DataTemplate x:Key="PulseWidget.Tile" DataType="{x:Type w:PulseWidget}">
+        <Border x:Name="Capsule" CornerRadius="10" Padding="8,4" Background="{DynamicResource Bar.Accent}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="{Binding Glyph}" FontFamily="{StaticResource IconFont}" FontSize="14" Foreground="White" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding Headline}" Foreground="White" FontFamily="{StaticResource UiFont}" FontSize="12.5" FontWeight="SemiBold"
+                           Margin="8,0,0,0" MaxWidth="220" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                <Border CornerRadius="7" Background="#33FFFFFF" Padding="5,0" Margin="8,0,0,0"
+                        Visibility="{Binding CountText, Converter={StaticResource NonEmptyToVisibility}}">
+                    <TextBlock Text="{Binding CountText}" Foreground="White" FontSize="11" FontWeight="SemiBold" />
+                </Border>
+            </StackPanel>
+        </Border>
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding IsCritical}" Value="True">
+                <Setter TargetName="Capsule" Property="Background" Value="#E5484D" />
+            </DataTrigger>
+        </DataTemplate.Triggers>
+    </DataTemplate>
+
+    <DataTemplate x:Key="PulseWidget.Card" DataType="{x:Type w:PulseWidget}">
+        <StackPanel Width="300">
+            <TextBlock Text="{l:Loc pulse.title}" Style="{StaticResource Card.Title}" />
+            <TextBlock Text="{l:Loc pulse.subtitle}" Style="{StaticResource Card.Label}" Margin="0,2,0,12" TextWrapping="Wrap" />
+            <ItemsControl ItemsSource="{Binding Rows}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type w:PulseRow}">
+                        <Border CornerRadius="10" Padding="10,8" Margin="0,0,0,6" Background="{DynamicResource Bar.TileFill}"
+                                BorderBrush="{DynamicResource Bar.TileRim}" BorderThickness="1">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock x:Name="Icon" Text="{Binding Glyph}" FontFamily="{StaticResource IconFont}" FontSize="16"
+                                           Foreground="{DynamicResource Bar.Accent}" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="1" Text="{Binding Message}" Style="{StaticResource Card.Body}" TextWrapping="Wrap"
+                                           TextTrimming="None" Margin="10,0" VerticalAlignment="Center" />
+                                <Button Grid.Column="2" Style="{StaticResource Bar.GlyphButton}" Width="26" Height="26" FontSize="10"
+                                        Content="&#xE8BB;" Command="{Binding DismissCommand}" ToolTip="{l:Loc pulse.dismiss}" />
+                            </Grid>
+                        </Border>
+                        <DataTemplate.Triggers>
+                            <DataTrigger Binding="{Binding IsCritical}" Value="True">
+                                <Setter TargetName="Icon" Property="Foreground" Value="#FF6B6F" />
+                            </DataTrigger>
+                        </DataTemplate.Triggers>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <Button Style="{StaticResource Card.Button}" Content="{l:Loc pulse.dismissAll}" HorizontalAlignment="Left" Margin="0,4,0,0"
+                    Command="{Binding DismissAllCommand}" />
+        </StackPanel>
+    </DataTemplate>
+
+    <!-- Focus ================================================================================ -->
+    <DataTemplate x:Key="FocusWidget.Tile" DataType="{x:Type w:FocusWidget}">
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+            <Grid Width="28" Height="28">
+                <c:RingGauge x:Name="Ring" Value="{Binding ProgressPercent}" StrokeThickness="3" Track="{DynamicResource Bar.Track}" Fill="{DynamicResource Bar.Accent}" />
+            </Grid>
+            <StackPanel Margin="8,0,4,0" VerticalAlignment="Center">
+                <TextBlock Text="{Binding RemainingText}" Style="{StaticResource Bar.Text}" FontWeight="SemiBold" FontFamily="{StaticResource DisplayFont}" />
+                <TextBlock Text="{Binding PhaseText}" Style="{StaticResource Bar.SubText}" />
+            </StackPanel>
+            <Button Style="{StaticResource Bar.GlyphButton}" Content="{Binding ToggleGlyph}" Command="{Binding ToggleCommand}" Width="28" Height="28" />
+        </StackPanel>
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding IsBreak}" Value="True">
+                <Setter TargetName="Ring" Property="Fill" Value="#5EE6C8" />
+            </DataTrigger>
+        </DataTemplate.Triggers>
+    </DataTemplate>
+
+    <DataTemplate x:Key="FocusWidget.Card" DataType="{x:Type w:FocusWidget}">
+        <StackPanel Width="270">
+            <TextBlock Text="{l:Loc widget.focus.name}" Style="{StaticResource Card.Title}" />
+            <TextBlock Text="{Binding RoundsText}" Style="{StaticResource Card.Label}" Margin="0,2,0,14" />
+            <Grid Width="150" Height="150" HorizontalAlignment="Center">
+                <c:RingGauge x:Name="BigRing" Value="{Binding ProgressPercent}" StrokeThickness="9" Track="{DynamicResource Bar.Track}" Fill="{DynamicResource Bar.Accent}" />
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding RemainingText}" Style="{StaticResource Bar.Text}" FontFamily="{StaticResource DisplayFont}" FontSize="32" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                    <TextBlock Text="{Binding PhaseText}" Style="{StaticResource Card.Label}" HorizontalAlignment="Center" />
+                </StackPanel>
+            </Grid>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,14,0,16">
+                <Button Style="{StaticResource Bar.GlyphButton}" Width="40" Height="40" FontSize="14" Content="&#xE72C;" Command="{Binding ResetCommand}" ToolTip="{l:Loc common.reset}" />
+                <Button Style="{StaticResource Bar.GlyphButton}" Width="52" Height="52" FontSize="22" Margin="12,0" Content="{Binding ToggleGlyph}" Command="{Binding ToggleCommand}" ToolTip="{l:Loc common.startPause}" />
+                <Button Style="{StaticResource Bar.GlyphButton}" Width="40" Height="40" FontSize="14" Content="&#xE893;" Command="{Binding SkipCommand}" ToolTip="{l:Loc focus.skip}" />
+            </StackPanel>
+            <Grid Margin="0,0,0,6">
+                <TextBlock Text="{l:Loc focus.focusLength}" Style="{StaticResource Card.Body}" VerticalAlignment="Center" />
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Style="{StaticResource Bar.GlyphButton}" Width="26" Height="26" FontSize="10" Content="&#xE738;" Command="{Binding ChangeFocusCommand}" CommandParameter="-5" />
+                    <TextBlock Text="{Binding FocusMinutes, StringFormat={}{0} min}" Style="{StaticResource Card.Body}" Width="56" TextAlignment="Center" VerticalAlignment="Center" />
+                    <Button Style="{StaticResource Bar.GlyphButton}" Width="26" Height="26" FontSize="10" Content="&#xE710;" Command="{Binding ChangeFocusCommand}" CommandParameter="5" />
+                </StackPanel>
+            </Grid>
+            <Grid>
+                <TextBlock Text="{l:Loc focus.breakLength}" Style="{StaticResource Card.Body}" VerticalAlignment="Center" />
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Style="{StaticResource Bar.GlyphButton}" Width="26" Height="26" FontSize="10" Content="&#xE738;" Command="{Binding ChangeBreakCommand}" CommandParameter="-1" />
+                    <TextBlock Text="{Binding BreakMinutes, StringFormat={}{0} min}" Style="{StaticResource Card.Body}" Width="56" TextAlignment="Center" VerticalAlignment="Center" />
+                    <Button Style="{StaticResource Bar.GlyphButton}" Width="26" Height="26" FontSize="10" Content="&#xE710;" Command="{Binding ChangeBreakCommand}" CommandParameter="1" />
+                </StackPanel>
+            </Grid>
+        </StackPanel>
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding IsBreak}" Value="True">
+                <Setter TargetName="BigRing" Property="Fill" Value="#5EE6C8" />
+            </DataTrigger>
+        </DataTemplate.Triggers>
+    </DataTemplate>
+
+    <!-- Timer ================================================================================ -->
+    <DataTemplate x:Key="TimerWidget.Tile" DataType="{x:Type w:TimerWidget}">
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+            <c:RingGauge Width="24" Height="24" Value="{Binding ProgressPercent}" StrokeThickness="3" Track="{DynamicResource Bar.Track}" Fill="{DynamicResource Bar.Accent}" />
+            <TextBlock Text="{Binding RemainingText}" Style="{StaticResource Bar.Text}" FontWeight="SemiBold" FontFamily="{StaticResource DisplayFont}"
+                       Margin="8,0,2,0" VerticalAlignment="Center" />
+            <Button Style="{StaticResource Bar.GlyphButton}" Content="{Binding ToggleGlyph}" Command="{Binding ToggleCommand}" Width="28" Height="28" />
+        </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate x:Key="TimerWidget.Card" DataType="{x:Type w:TimerWidget}">
+        <StackPanel Width="270">
+            <TextBlock Text="{l:Loc widget.timer.name}" Style="{StaticResource Card.Title}" />
+            <TextBlock Text="{Binding RemainingText}" Style="{StaticResource Bar.Text}" FontFamily="{StaticResource DisplayFont}" FontSize="40"
+                       FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,8,0,4" />
+            <Border Style="{StaticResource Card.Progress}" Margin="0,0,0,14">
+                <Border CornerRadius="3" Background="{DynamicResource Bar.Accent}" RenderTransformOrigin="0,0.5">
+                    <Border.RenderTransform><ScaleTransform ScaleX="{Binding ProgressPercent, Converter={StaticResource PercentToScale}}" /></Border.RenderTransform>
+                </Border>
+            </Border>
+            <TextBlock Text="{l:Loc timer.presets}" Style="{StaticResource Card.Label}" Margin="0,0,0,6" />
+            <ItemsControl ItemsSource="{Binding Presets}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate><UniformGrid Columns="4" /></ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Button Style="{StaticResource Card.Button}" Margin="2" Padding="4,6" Content="{Binding StringFormat={}{0} min}"
+                                Command="{Binding DataContext.StartPresetCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                CommandParameter="{Binding}" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,12,0,0">
+                <Button Style="{StaticResource Card.Button}" Content="+1 min" Command="{Binding AddCommand}" CommandParameter="1" Margin="0,0,6,0" />
+                <Button Style="{StaticResource Card.Button}" Content="+5 min" Command="{Binding AddCommand}" CommandParameter="5" Margin="0,0,6,0" />
+                <Button Style="{StaticResource Bar.GlyphButton}" Width="36" Height="36" Content="{Binding ToggleGlyph}" Command="{Binding ToggleCommand}" ToolTip="{l:Loc common.startPause}" />
+                <Button Style="{StaticResource Bar.GlyphButton}" Width="36" Height="36" Content="&#xE72C;" Command="{Binding ResetCommand}" ToolTip="{l:Loc common.reset}" />
+            </StackPanel>
+        </StackPanel>
+    </DataTemplate>
+
+    <!-- Stopwatch ============================================================================ -->
+    <DataTemplate x:Key="StopwatchWidget.Tile" DataType="{x:Type w:StopwatchWidget}">
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+            <TextBlock Text="&#xE916;" FontFamily="{StaticResource IconFont}" FontSize="15" Foreground="{DynamicResource Bar.Accent}" VerticalAlignment="Center" />
+            <TextBlock Text="{Binding ElapsedText}" Style="{StaticResource Bar.Text}" FontWeight="SemiBold" FontFamily="{StaticResource DisplayFont}"
+                       Margin="8,0,2,0" VerticalAlignment="Center" MinWidth="44" />
+            <Button Style="{StaticResource Bar.GlyphButton}" Content="{Binding ToggleGlyph}" Command="{Binding ToggleCommand}" Width="28" Height="28" />
+        </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate x:Key="StopwatchWidget.Card" DataType="{x:Type w:StopwatchWidget}">
+        <StackPanel Width="260">
+            <TextBlock Text="{l:Loc widget.stopwatch.name}" Style="{StaticResource Card.Title}" />
+            <TextBlock Text="{Binding PreciseText}" Style="{StaticResource Bar.Text}" FontFamily="{StaticResource DisplayFont}" FontSize="38"
+                       FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,8,0,10" />
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,12">
+                <Button Style="{StaticResource Card.Button}" Content="{l:Loc stopwatch.lapButton}" Command="{Binding LapCommand}" Margin="0,0,8,0" MinWidth="70" />
+                <Button Style="{StaticResource Bar.GlyphButton}" Width="44" Height="44" FontSize="18" Content="{Binding ToggleGlyph}" Command="{Binding ToggleCommand}" />
+                <Button Style="{StaticResource Card.Button}" Content="{l:Loc common.reset}" Command="{Binding ResetCommand}" Margin="8,0,0,0" MinWidth="70" />
+            </StackPanel>
+            <ItemsControl ItemsSource="{Binding Laps}" MaxHeight="200">
+                <ItemsControl.Template>
+                    <ControlTemplate TargetType="ItemsControl">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto"><ItemsPresenter /></ScrollViewer>
+                    </ControlTemplate>
+                </ItemsControl.Template>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type w:LapRow}">
+                        <Grid Margin="0,3">
+                            <TextBlock Text="{Binding Label}" Style="{StaticResource Card.Label}" />
+                            <TextBlock Text="{Binding Time}" Style="{StaticResource Card.Body}" HorizontalAlignment="Right" />
+                        </Grid>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+    </DataTemplate>
+
+    <!-- To-dos =============================================================================== -->
+    <DataTemplate x:Key="TodosWidget.Tile" DataType="{x:Type w:TodosWidget}">
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+            <Grid Width="26" Height="26">
+                <c:RingGauge Value="{Binding DonePercent}" StrokeThickness="3" Track="{DynamicResource Bar.Track}" Fill="#5EE6C8" />
+                <TextBlock Text="&#xE73E;" FontFamily="{StaticResource IconFont}" FontSize="10" Foreground="{DynamicResource Bar.Foreground}"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Grid>
+            <StackPanel Margin="8,0,0,0" VerticalAlignment="Center" MaxWidth="170">
+                <TextBlock Text="{Binding NextText}" Style="{StaticResource Bar.Text}" FontSize="12.5" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding CountText}" Style="{StaticResource Bar.SubText}" />
+            </StackPanel>
+        </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate x:Key="TodosWidget.Card" DataType="{x:Type w:TodosWidget}">
+        <StackPanel Width="300">
+            <Grid>
+                <TextBlock Text="{l:Loc widget.todos.name}" Style="{StaticResource Card.Title}" />
+                <TextBlock Text="{Binding CountText}" Style="{StaticResource Card.Label}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+            </Grid>
+            <TextBox Style="{StaticResource Card.TextBox}" Margin="0,10,0,10" Tag="{l:Loc todos.addHint}"
+                     Text="{Binding NewText, UpdateSourceTrigger=PropertyChanged}">
+                <TextBox.InputBindings>
+                    <KeyBinding Key="Enter" Command="{Binding AddCommand}" />
+                </TextBox.InputBindings>
+            </TextBox>
+            <ItemsControl ItemsSource="{Binding Items}" MaxHeight="260">
+                <ItemsControl.Template>
+                    <ControlTemplate TargetType="ItemsControl">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto"><ItemsPresenter /></ScrollViewer>
+                    </ControlTemplate>
+                </ItemsControl.Template>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type w:TodoRowViewModel}">
+                        <Grid Margin="0,3">
+                            <CheckBox Style="{StaticResource Card.CheckBox}" IsChecked="{Binding Done}" Margin="0,0,30,0">
+                                <TextBlock x:Name="Label" Text="{Binding Text}" Style="{StaticResource Card.Body}" TextWrapping="Wrap" TextTrimming="None" />
+                            </CheckBox>
+                            <Button Style="{StaticResource Bar.GlyphButton}" Width="24" Height="24" FontSize="10" HorizontalAlignment="Right"
+                                    Content="&#xE74D;" Command="{Binding DeleteCommand}" ToolTip="{l:Loc common.delete}" />
+                        </Grid>
+                        <DataTemplate.Triggers>
+                            <DataTrigger Binding="{Binding Done}" Value="True">
+                                <Setter TargetName="Label" Property="Opacity" Value="0.5" />
+                                <Setter TargetName="Label" Property="TextDecorations" Value="Strikethrough" />
+                            </DataTrigger>
+                        </DataTemplate.Triggers>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <Button Style="{StaticResource Card.Button}" Content="{l:Loc todos.clearDone}" HorizontalAlignment="Left" Margin="0,10,0,0"
+                    Command="{Binding ClearCompletedCommand}" />
+        </StackPanel>
+    </DataTemplate>
+
+    <!-- Notes ================================================================================ -->
+    <DataTemplate x:Key="NotesWidget.Tile" DataType="{x:Type w:NotesWidget}">
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+            <TextBlock Text="&#xE70B;" FontFamily="{StaticResource IconFont}" FontSize="15" Foreground="#FFD166" VerticalAlignment="Center" />
+            <TextBlock Text="{Binding Preview}" Style="{StaticResource Bar.Text}" FontSize="12.5" Margin="8,0,0,0" MaxWidth="170" VerticalAlignment="Center" />
+        </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate x:Key="NotesWidget.Card" DataType="{x:Type w:NotesWidget}">
+        <StackPanel Width="320">
+            <TextBlock Text="{l:Loc widget.notes.name}" Style="{StaticResource Card.Title}" />
+            <TextBlock Text="{l:Loc notes.autosave}" Style="{StaticResource Card.Label}" Margin="0,2,0,10" />
+            <TextBox Style="{StaticResource Card.TextBox}" Height="220" AcceptsReturn="True" TextWrapping="Wrap" Tag="{l:Loc notes.hint}"
+                     VerticalContentAlignment="Top" Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}" />
+        </StackPanel>
+    </DataTemplate>
+
+    <!-- Volume / microphone =================================================================== -->
+    <DataTemplate x:Key="VolumeWidget.Tile" DataType="{x:Type w:VolumeWidget}">
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" ToolTip="{l:Loc volume.tip}">
+            <TextBlock Text="{Binding Glyph}" FontFamily="{StaticResource IconFont}" FontSize="15" Foreground="{DynamicResource Bar.Foreground}" VerticalAlignment="Center" />
+            <TextBlock Text="{Binding PercentText}" Style="{StaticResource Bar.Text}" FontSize="12.5" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center" />
+        </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate x:Key="VolumeWidget.Card" DataType="{x:Type w:VolumeWidget}">
+        <StackPanel Width="280">
+            <TextBlock Text="{l:Loc widget.volume.name}" Style="{StaticResource Card.Title}" />
+            <TextBlock Text="{Binding DeviceName}" Style="{StaticResource Card.Label}" Margin="0,2,0,12" />
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Button Style="{StaticResource Bar.GlyphButton}" Content="{Binding Glyph}" Command="{Binding ToggleMuteCommand}" ToolTip="{l:Loc volume.mute}" />
+                <Slider Grid.Column="1" Style="{StaticResource Card.Slider}" Value="{Binding Volume}" Margin="8,0" />
+                <TextBlock Grid.Column="2" Text="{Binding PercentText}" Style="{StaticResource Card.Body}" Width="44" TextAlignment="Right" VerticalAlignment="Center" />
+            </Grid>
+            <Grid Margin="0,14,0,0" Visibility="{Binding MicAvailable, Converter={StaticResource BoolToVisibility}}">
+                <TextBlock Text="{l:Loc widget.microphone.name}" Style="{StaticResource Card.Body}" VerticalAlignment="Center" />
+                <Button Style="{StaticResource Card.Button}" HorizontalAlignment="Right" Command="{Binding ToggleMicCommand}">
+                    <Button.Content>
+                        <TextBlock>
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Text" Value="{l:Loc mic.mute}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding MicMuted}" Value="True">
+                                            <Setter Property="Text" Value="{l:Loc mic.unmute}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Button.Content>
+                </Button>
+            </Grid>
+        </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate x:Key="MicrophoneWidget.Tile" DataType="{x:Type w:MicrophoneWidget}">
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" ToolTip="{Binding StateText}">
+            <TextBlock x:Name="Mic" Text="{Binding Glyph}" FontFamily="{StaticResource IconFont}" FontSize="15"
+                       Foreground="{DynamicResource Bar.Foreground}" VerticalAlignment="Center" />
+        </StackPanel>
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding Muted}" Value="True">
+                <Setter TargetName="Mic" Property="Foreground" Value="#FF6B6F" />
+            </DataTrigger>
+        </DataTemplate.Triggers>
+    </DataTemplate>
+
+    <!-- Network ============================================================================== -->
+    <DataTemplate x:Key="NetworkWidget.Tile" DataType="{x:Type w:NetworkWidget}">
+        <StackPanel VerticalAlignment="Center" MinWidth="70">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="&#xE74B;" FontFamily="{StaticResource IconFont}" FontSize="9" Foreground="#5EE6C8" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding DownText}" Style="{StaticResource Bar.Text}" FontSize="11.5" FontWeight="SemiBold" Margin="4,0,0,0" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="&#xE74A;" FontFamily="{StaticResource IconFont}" FontSize="9" Foreground="{DynamicResource Bar.Accent}" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding UpText}" Style="{StaticResource Bar.SubText}" FontSize="11" Margin="4,0,0,0" />
+            </StackPanel>
+        </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate x:Key="NetworkWidget.Card" DataType="{x:Type w:NetworkWidget}">
+        <StackPanel Width="280">
+            <TextBlock Text="{l:Loc widget.network.name}" Style="{StaticResource Card.Title}" />
+            <TextBlock Text="{Binding Adapters}" Style="{StaticResource Card.Label}" Margin="0,2,0,12" TextTrimming="CharacterEllipsis" />
+            <Grid Margin="0,0,0,10">
+                <StackPanel>
+                    <TextBlock Text="{l:Loc network.down}" Style="{StaticResource Card.Label}" />
+                    <TextBlock Text="{Binding DownText}" Style="{StaticResource Card.Title}" Foreground="#5EE6C8" />
+                </StackPanel>
+                <StackPanel HorizontalAlignment="Right">
+                    <TextBlock Text="{l:Loc network.up}" Style="{StaticResource Card.Label}" HorizontalAlignment="Right" />
+                    <TextBlock Text="{Binding UpText}" Style="{StaticResource Card.Title}" Foreground="{DynamicResource Bar.Accent}" />
+                </StackPanel>
+            </Grid>
+            <Border CornerRadius="8" Background="{DynamicResource Bar.Track}" Padding="10">
+                <Grid Width="260" Height="70" ClipToBounds="True">
+                    <Polygon Points="{Binding DownPoints}" Fill="#405EE6C8" Stroke="#5EE6C8" StrokeThickness="1.5" />
+                    <Polygon Points="{Binding UpPoints}" Fill="#308AB4FF" Stroke="{DynamicResource Bar.Accent}" StrokeThickness="1.2" />
+                </Grid>
+            </Border>
+            <TextBlock Text="{Binding PeakText}" Style="{StaticResource Card.Label}" FontSize="11" Margin="0,6,0,0" />
+        </StackPanel>
+    </DataTemplate>
+
+    <!-- Storage / recycle bin ================================================================= -->
+    <DataTemplate x:Key="StorageWidget.Tile" DataType="{x:Type w:StorageWidget}">
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+            <TextBlock Text="&#xEDA2;" FontFamily="{StaticResource IconFont}" FontSize="15" Foreground="{DynamicResource Bar.Foreground}" VerticalAlignment="Center" />
+            <StackPanel Margin="8,0,0,0" VerticalAlignment="Center" Width="74">
+                <TextBlock Text="{Binding FreeText}" Style="{StaticResource Bar.Text}" FontSize="12" FontWeight="SemiBold" />
+                <Border Style="{StaticResource Card.Progress}" Height="4" Margin="0,3,0,0">
+                    <Border CornerRadius="2" Background="{DynamicResource Bar.Accent}" RenderTransformOrigin="0,0.5">
+                        <Border.RenderTransform><ScaleTransform ScaleX="{Binding UsedPercent, Converter={StaticResource PercentToScale}}" /></Border.RenderTransform>
+                    </Border>
+                </Border>
+            </StackPanel>
+        </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate x:Key="StorageWidget.Card" DataType="{x:Type w:StorageWidget}">
+        <StackPanel Width="280">
+            <TextBlock Text="{l:Loc widget.storage.name}" Style="{StaticResource Card.Title}" Margin="0,0,0,10" />
+            <ItemsControl ItemsSource="{Binding Drives}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type w:DriveRow}">
+                        <StackPanel Margin="0,0,0,12">
+                            <Grid>
+                                <TextBlock Text="{Binding Title}" Style="{StaticResource Card.Body}" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding UsedPercent, StringFormat={}{0:0}%}" Style="{StaticResource Card.Label}" HorizontalAlignment="Right" />
+                            </Grid>
+                            <Border Style="{StaticResource Card.Progress}" Margin="0,5,0,3">
+                                <Border x:Name="Fill" CornerRadius="3" Background="{DynamicResource Bar.Accent}" RenderTransformOrigin="0,0.5">
+                                    <Border.RenderTransform><ScaleTransform ScaleX="{Binding UsedPercent, Converter={StaticResource PercentToScale}}" /></Border.RenderTransform>
+                                </Border>
+                            </Border>
+                            <TextBlock Text="{Binding Detail}" Style="{StaticResource Card.Label}" FontSize="11" />
+                        </StackPanel>
+                        <DataTemplate.Triggers>
+                            <DataTrigger Binding="{Binding IsLow}" Value="True">
+                                <Setter TargetName="Fill" Property="Background" Value="#FF6B6F" />
+                            </DataTrigger>
+                        </DataTemplate.Triggers>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <Button Style="{StaticResource Card.Button}" Content="{l:Loc storage.openThisPc}" HorizontalAlignment="Left" Command="{Binding OpenThisPcCommand}" />
+        </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate x:Key="RecycleBinWidget.Tile" DataType="{x:Type w:RecycleBinWidget}">
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" ToolTip="{Binding DetailText}">
+            <TextBlock Text="{Binding Glyph}" FontFamily="{StaticResource IconFont}" FontSize="15" Foreground="{DynamicResource Bar.Foreground}" VerticalAlignment="Center" />
+            <TextBlock x:Name="Count" Text="{Binding CountText}" Style="{StaticResource Bar.Text}" FontSize="12" FontWeight="SemiBold" Margin="6,0,0,0" VerticalAlignment="Center" />
+        </StackPanel>
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding IsEmpty}" Value="True">
+                <Setter TargetName="Count" Property="Visibility" Value="Collapsed" />
+            </DataTrigger>
+        </DataTemplate.Triggers>
+    </DataTemplate>
+
+    <DataTemplate x:Key="RecycleBinWidget.Card" DataType="{x:Type w:RecycleBinWidget}">
+        <StackPanel Width="260">
+            <TextBlock Text="{l:Loc widget.recyclebin.name}" Style="{StaticResource Card.Title}" />
+            <TextBlock Text="{Binding DetailText}" Style="{StaticResource Card.Body}" Margin="0,6,0,14" />
+            <StackPanel Orientation="Horizontal">
+                <Button Style="{StaticResource Card.Button}" Content="{l:Loc bin.open}" Command="{Binding OpenCommand}" Margin="0,0,8,0" />
+                <Button Style="{StaticResource Card.Button}" Content="{l:Loc bin.emptyAction}" Command="{Binding EmptyCommand}"
+                        IsEnabled="{Binding IsEmpty, Converter={StaticResource InverseBool}}" />
+            </StackPanel>
+            <TextBlock Text="{l:Loc bin.confirmNote}" Style="{StaticResource Card.Label}" FontSize="11" Margin="0,10,0,0" TextWrapping="Wrap" TextTrimming="None" />
+        </StackPanel>
+    </DataTemplate>
+
+
+    <DataTemplate x:Key="RadioToggleView" DataType="{x:Type w:RadioToggleViewModel}">
+        <Button Command="{Binding ToggleCommand}" ToolTip="{Binding Label}" Width="30" Height="28"
+                Visibility="{Binding IsAvailable, Converter={StaticResource BoolToVisibility}}">
+            <Button.Style>
+                <Style TargetType="Button" BasedOn="{StaticResource Bar.PlainButton}">
+                    <Setter Property="FontFamily" Value="{StaticResource IconFont}" />
+                    <Setter Property="FontSize" Value="14" />
+                </Style>
+            </Button.Style>
+            <Border x:Name="Plate" Width="28" Height="24" CornerRadius="7" Background="Transparent">
+                <TextBlock x:Name="Glyph" Text="{Binding Glyph}" FontFamily="{StaticResource IconFont}" FontSize="14"
+                           Foreground="{DynamicResource Bar.Secondary}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+        </Button>
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding IsOn}" Value="True">
+                <Setter TargetName="Plate" Property="Background" Value="{DynamicResource Bar.Accent}" />
+                <Setter TargetName="Glyph" Property="Foreground" Value="White" />
+            </DataTrigger>
+        </DataTemplate.Triggers>
+    </DataTemplate>
+    <!-- Keyboard / toggles / brightness ======================================================= -->
+    <DataTemplate x:Key="KeyboardWidget.Tile" DataType="{x:Type w:KeyboardWidget}">
+        <Border CornerRadius="5" BorderThickness="1.2" BorderBrush="{DynamicResource Bar.Secondary}" Padding="5,1" VerticalAlignment="Center"
+                ToolTip="{Binding LayoutName}">
+            <TextBlock Text="{Binding Short}" Style="{StaticResource Bar.Text}" FontSize="11.5" FontWeight="Bold" />
+        </Border>
+    </DataTemplate>
+
+    <DataTemplate x:Key="QuickTogglesWidget.Tile" DataType="{x:Type w:QuickTogglesWidget}">
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+            <ContentPresenter Content="{Binding WiFi}" ContentTemplate="{StaticResource RadioToggleView}" />
+            <ContentPresenter Content="{Binding Bluetooth}" ContentTemplate="{StaticResource RadioToggleView}" Margin="4,0,0,0" />
+            <Button Style="{StaticResource Bar.GlyphButton}" Content="{Binding MoreGlyph}" Command="{Binding OpenQuickSettingsCommand}"
+                    Width="26" Height="28" FontSize="12" ToolTip="{l:Loc control.quickSettings}" />
+        </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate x:Key="BrightnessWidget.Tile" DataType="{x:Type w:BrightnessWidget}">
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" ToolTip="{l:Loc brightness.tip}">
+            <TextBlock Text="&#xE706;" FontFamily="{StaticResource IconFont}" FontSize="15" Foreground="#FFD166" VerticalAlignment="Center" />
+            <TextBlock Text="{Binding PercentText}" Style="{StaticResource Bar.Text}" FontSize="12.5" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center" />
+        </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate x:Key="BrightnessWidget.Card" DataType="{x:Type w:BrightnessWidget}">
+        <StackPanel Width="280">
+            <TextBlock Text="{l:Loc widget.brightness.name}" Style="{StaticResource Card.Title}" Margin="0,0,0,10" />
+            <TextBlock Text="{l:Loc common.loading}" Style="{StaticResource Card.Label}"
+                       Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibility}}" />
+            <TextBlock Text="{l:Loc brightness.unsupported}" Style="{StaticResource Card.Label}" TextWrapping="Wrap" TextTrimming="None">
+                <TextBlock.Visibility>
+                    <MultiBinding Converter="{StaticResource AllFalseToVisibility}">
+                        <Binding Path="IsLoading" />
+                        <Binding Path="IsSupported" />
+                    </MultiBinding>
+                </TextBlock.Visibility>
+            </TextBlock>
+            <ItemsControl ItemsSource="{Binding Displays}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type w:BrightnessRowViewModel}">
+                        <StackPanel Margin="0,0,0,10">
+                            <Grid>
+                                <TextBlock Text="{Binding Name}" Style="{StaticResource Card.Body}" />
+                                <TextBlock Text="{Binding Percent, StringFormat={}{0:0}%}" Style="{StaticResource Card.Label}" HorizontalAlignment="Right" />
+                            </Grid>
+                            <Slider Style="{StaticResource Card.Slider}" Value="{Binding Percent}" Margin="0,4,0,0" />
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+    </DataTemplate>
+
 </ResourceDictionary>

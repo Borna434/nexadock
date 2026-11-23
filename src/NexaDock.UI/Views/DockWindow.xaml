@@ -7,6 +7,7 @@
         xmlns:b="clr-namespace:NexaDock.UI.Behaviors"
         xmlns:c="clr-namespace:NexaDock.UI.Controls"
         xmlns:sys="clr-namespace:System;assembly=System.Runtime"
+        xmlns:l="clr-namespace:NexaDock.UI.Localization"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance vm:DockViewModel}"
         Title="NexaDock"
@@ -107,18 +108,53 @@
             <ItemsControl.ItemContainerStyle>
                 <Style TargetType="ContentPresenter">
                     <Setter Property="c:BarPanel.IsFlexible" Value="{Binding IsFlexible}" />
+                    <Setter Property="Visibility" Value="{Binding IsVisibleOnBar, Converter={StaticResource BoolToVisibility}}" />
                 </Style>
             </ItemsControl.ItemContainerStyle>
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
                     <Border Tag="TileHost" Style="{StaticResource TileHost}" ToolTipService.InitialShowDelay="700">
-                        <ContentPresenter Content="{Binding}" ContentTemplateSelector="{StaticResource TileSelector}" VerticalAlignment="Center" />
+                        <Grid>
+                            <!-- Pulse glow: the tile asks for attention. -->
+                            <Border x:Name="PulseRing" Margin="-10,-1" CornerRadius="{DynamicResource Bar.TileRadius}"
+                                    BorderBrush="{DynamicResource Bar.Accent}" BorderThickness="1.5" Opacity="0"
+                                    IsHitTestVisible="False" />
+                            <ContentPresenter Content="{Binding}" ContentTemplateSelector="{StaticResource TileSelector}" VerticalAlignment="Center" />
+                        </Grid>
                     </Border>
+                    <DataTemplate.Triggers>
+                        <MultiDataTrigger>
+                            <MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding IsPulsing}" Value="True" />
+                                <Condition Binding="{Binding DataContext.ReducedMotion, RelativeSource={RelativeSource AncestorType=Window}}" Value="False" />
+                            </MultiDataTrigger.Conditions>
+                            <MultiDataTrigger.EnterActions>
+                                <BeginStoryboard x:Name="Glow">
+                                    <Storyboard RepeatBehavior="Forever" AutoReverse="True">
+                                        <DoubleAnimation Storyboard.TargetName="PulseRing" Storyboard.TargetProperty="Opacity"
+                                                         From="0.25" To="1" Duration="0:0:0.9">
+                                            <DoubleAnimation.EasingFunction><SineEase EasingMode="EaseInOut" /></DoubleAnimation.EasingFunction>
+                                        </DoubleAnimation>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </MultiDataTrigger.EnterActions>
+                            <MultiDataTrigger.ExitActions>
+                                <StopStoryboard BeginStoryboardName="Glow" />
+                            </MultiDataTrigger.ExitActions>
+                        </MultiDataTrigger>
+                        <MultiDataTrigger>
+                            <MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding IsPulsing}" Value="True" />
+                                <Condition Binding="{Binding DataContext.ReducedMotion, RelativeSource={RelativeSource AncestorType=Window}}" Value="True" />
+                            </MultiDataTrigger.Conditions>
+                            <Setter TargetName="PulseRing" Property="Opacity" Value="1" />
+                        </MultiDataTrigger>
+                    </DataTemplate.Triggers>
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>
 
-        <TextBlock Text="Right-click › Widgets… to add widgets" Foreground="{Binding Brushes.SecondaryForeground}"
+        <TextBlock Text="{l:Loc bar.empty}" Foreground="{Binding Brushes.SecondaryForeground}"
                    FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False">
             <TextBlock.Style>
                 <Style TargetType="TextBlock">

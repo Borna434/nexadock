@@ -7,6 +7,8 @@ using NexaDock.Core;
 using NexaDock.Core.Abstractions;
 using NexaDock.Core.Models;
 using NexaDock.Core.Theming;
+using NexaDock.Core.Profiles;
+using NexaDock.UI.Localization;
 using NexaDock.UI.Theming;
 
 namespace NexaDock.UI.ViewModels;
@@ -77,10 +79,126 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         RefreshMonitors();
         SyncFromSettings(_settings.Current);
         _settings.Changed += OnSettingsChanged;
+        Loc.LanguageChanged += OnLanguageChanged;
     }
 
-    public string Title => $"{ProductInfo.Name} Settings";
+    public string Title => Loc.F("settings.title", ProductInfo.Name);
     public string VersionText => $"{ProductInfo.DisplayTitle} · {ProductInfo.Phase}";
+
+    public IReadOnlyList<LanguageOption> Languages =>
+    [
+        new(AppLanguage.System, "language.system"),
+        new(AppLanguage.English, "language.english"),
+        new(AppLanguage.Croatian, "language.croatian"),
+    ];
+
+    public IReadOnlyList<TemplateOption> Templates =>
+    [
+        new(ProfileTemplate.Work, "profiles.template.work"),
+        new(ProfileTemplate.Gaming, "profiles.template.gaming"),
+        new(ProfileTemplate.Study, "profiles.template.study"),
+        new(ProfileTemplate.Blank, "profiles.template.blank"),
+    ];
+
+    public IReadOnlyList<string> TimeOptions => ProfileItemViewModel.TimeOptions;
+
+    public ObservableCollection<ProfileItemViewModel> Profiles { get; } = [];
+
+    [ObservableProperty] private LanguageOption? _selectedLanguage;
+    [ObservableProperty] private bool _pulseEnabled;
+    [ObservableProperty] private bool _autoSwitchProfiles;
+    [ObservableProperty] private TemplateOption? _selectedTemplate;
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(RemoveProfileCommand), nameof(ActivateProfileCommand))]
+    private ProfileItemViewModel? _selectedProfile;
+
+    partial void OnSelectedLanguageChanged(LanguageOption? value)
+    {
+        if (value is not null)
+        {
+            Apply(s => s with { Language = value.Value });
+        }
+    }
+
+    partial void OnPulseEnabledChanged(bool value) => Apply(s => s with { PulseEnabled = value });
+
+    partial void OnAutoSwitchProfilesChanged(bool value) => Apply(s => s with { AutoSwitchProfiles = value });
+
+    [RelayCommand]
+    private void AddProfile()
+    {
+        var template = SelectedTemplate ?? Templates[0];
+        if (_settings.Current.Profiles.Count >= SettingsLimits.MaxProfiles)
+        {
+            StatusText = Loc.F("profiles.limit", SettingsLimits.MaxProfiles);
+            return;
+        }
+
+        var profile = ProfileTemplates.Create(template.Template, Loc.T(template.LabelKey));
+        Apply(s => s with { Profiles = s.Profiles.Append(profile).ToList() });
+        SelectedProfile = Profiles.FirstOrDefault(p => p.Id == profile.Id);
+        StatusText = Loc.F("profiles.added", profile.Name);
+    }
+
+    private bool CanEditProfile => SelectedProfile is not null;
+
+    [RelayCommand(CanExecute = nameof(CanEditProfile))]
+    private void RemoveProfile()
+    {
+        if (SelectedProfile is not { } item || _settings.Current.Profiles.Count <= 1)
+        {
+            StatusText = Loc.T("profiles.keepOne");
+            return;
+        }
+
+        var id = item.Id;
+        Apply(s =>
+        {
+            var remaining = s.Profiles.Where(p => p.Id != id).ToList();
+            var next = s.ActiveProfileId == id ? ProfileEngine.Activate(s with { Profiles = s.Profiles }, remaining[0].Id) : s;
+            return next with { Profiles = next.Profiles.Where(p => p.Id != id).ToList() };
+        });
+        StatusText = Loc.F("profiles.removed", item.Name);
+    }
+
+    [RelayCommand(CanExecute = nameof(CanEditProfile))]
+    private void ActivateProfile()
+    {
+        if (SelectedProfile is { } item)
+        {
+            var id = item.Id;
+            Apply(s => ProfileEngine.Activate(s, id) with { DefaultProfileId = id });
+        }
+    }
+
+    private void UpdateProfile(DockProfile profile) =>
+        Apply(s => s with { Profiles = s.Profiles.Select(p => p.Id == profile.Id ? profile with { Widgets = p.Widgets } : p).ToList() });
+
+    private void SyncProfiles(DockSettings s)
+    {
+        var selected = SelectedProfile?.Id;
+        if (Profiles.Count == s.Profiles.Count && Profiles.Select(p => p.Id).SequenceEqual(s.Profiles.Select(p => p.Id)))
+        {
+            for (var i = 0; i < s.Profiles.Count; i++)
+            {
+                if (!Profiles[i].Profile.Equals(s.Profiles[i]) || Profiles[i].IsActive != (s.Profiles[i].Id == s.ActiveProfileId))
+                {
+                    Profiles[i].Load(s.Profiles[i], s.Profiles[i].Id == s.ActiveProfileId);
+                }
+            }
+
+            return;
+        }
+
+        Profiles.Clear();
+        foreach (var p in s.Profiles)
+        {
+            Profiles.Add(new ProfileItemViewModel(p, p.Id == s.ActiveProfileId, UpdateProfile));
+        }
+
+        SelectedProfile = Profiles.FirstOrDefault(p => p.Id == selected) ?? Profiles.FirstOrDefault(p => p.IsActive);
+    }
     public string BackdropDescription => _backdrop.Capabilities.Description;
     public string DataDirectory => _dataDirectory;
 
@@ -157,7 +275,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         }
         catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException or System.IO.IOException)
         {
-            StatusText = $"Could not change startup: {ex.Message}";
+            StatusText = Loc.F("settings.startupFailed", ex.Message);
         }
     }
 
@@ -177,7 +295,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         try
         {
             Monitors.Clear();
-            Monitors.Add(new MonitorOption(null, "Primary display (follows Windows)"));
+            Monitors.Add(new MonitorOption(null, Loc.T("position.primary")));
             var preferred = _settings.Current.MonitorDeviceName;
             var list = _monitors.GetMonitors();
             foreach (var m in list)
@@ -188,7 +306,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
             if (preferred is not null && list.All(m => !string.Equals(m.DeviceName, preferred, StringComparison.OrdinalIgnoreCase)))
             {
                 // Keep the disconnected choice visible so it is not silently lost.
-                Monitors.Add(new MonitorOption(preferred, $"{preferred} (disconnected — using primary)"));
+                Monitors.Add(new MonitorOption(preferred, Loc.F("position.disconnected", preferred)));
             }
 
             SelectedMonitor = Monitors.FirstOrDefault(m => string.Equals(m.DeviceName, preferred, StringComparison.OrdinalIgnoreCase)) ?? Monitors[0];
@@ -221,8 +339,8 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         current.AddRange(added);
         Apply(s => s with { Shortcuts = current, ShortcutsInitialized = true });
         StatusText = added.Count == files.Count
-            ? $"Pinned {added.Count} app{(added.Count == 1 ? string.Empty : "s")}."
-            : $"Pinned {added.Count}; the bar holds at most {SettingsLimits.MaxShortcuts} pinned apps.";
+            ? Loc.F("pinned.added", added.Count)
+            : Loc.F("pinned.addedLimit", added.Count, SettingsLimits.MaxShortcuts);
         SelectedShortcut = Shortcuts.LastOrDefault();
     }
 
@@ -239,7 +357,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         var index = Shortcuts.IndexOf(item);
         var list = _settings.Current.Shortcuts.Where(s => s.Id != item.Shortcut.Id).ToList();
         Apply(s => s with { Shortcuts = list, ShortcutsInitialized = true });
-        StatusText = $"Unpinned {item.Name}.";
+        StatusText = Loc.F("pinned.removed", item.Name);
         SelectedShortcut = Shortcuts.Count == 0 ? null : Shortcuts[Math.Clamp(index, 0, Shortcuts.Count - 1)];
     }
 
@@ -275,7 +393,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     {
         var defaults = _catalog.GetDefaultShortcuts();
         Apply(s => s with { Shortcuts = defaults, ShortcutsInitialized = true });
-        StatusText = $"Restored {defaults.Count} default pinned apps.";
+        StatusText = Loc.F("pinned.restored", defaults.Count);
     }
 
     // ---- General ---------------------------------------------------------------------------------
@@ -296,7 +414,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
             ReducedMotion = d.ReducedMotion,
         });
         RefreshMonitors();
-        StatusText = "Appearance and position reset. Widgets and pinned apps were kept.";
+        StatusText = Loc.T("settings.resetDone");
     }
 
     [RelayCommand]
@@ -338,6 +456,10 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
             ReplaceTaskbar = s.ReplaceTaskbar;
             HideInFullscreen = s.HideInFullscreen;
             LaunchAtStartup = s.LaunchAtStartup;
+            PulseEnabled = s.PulseEnabled;
+            AutoSwitchProfiles = s.AutoSwitchProfiles;
+            SelectedLanguage = Languages.FirstOrDefault(l => l.Value == s.Language) ?? Languages[0];
+            SyncProfiles(s);
             if (!string.Equals(WeatherCity.Trim(), s.WeatherCity, StringComparison.Ordinal))
             {
                 WeatherCity = s.WeatherCity;
@@ -361,7 +483,34 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         }
     }
 
-    public void Dispose() => _settings.Changed -= OnSettingsChanged;
+    private void OnLanguageChanged(object? sender, EventArgs e)
+    {
+        OnPropertyChanged(nameof(Title));
+        OnPropertyChanged(nameof(Languages));
+        OnPropertyChanged(nameof(Templates));
+        _syncing = true;
+        try
+        {
+            SelectedLanguage = Languages.FirstOrDefault(l => l.Value == _settings.Current.Language);
+            SelectedTemplate = null;
+        }
+        finally
+        {
+            _syncing = false;
+        }
+
+        RefreshMonitors();
+        foreach (var p in Profiles)
+        {
+            p.Load(p.Profile, p.IsActive);
+        }
+    }
+
+    public void Dispose()
+    {
+        _settings.Changed -= OnSettingsChanged;
+        Loc.LanguageChanged -= OnLanguageChanged;
+    }
 }
 
 /// <summary>Where local data lives; supplied by the composition root.</summary>

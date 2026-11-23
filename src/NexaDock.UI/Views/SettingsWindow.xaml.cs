@@ -32,8 +32,8 @@ public partial class SettingsWindow : Window
     {
         var dialog = new OpenFileDialog
         {
-            Title = "Add shortcuts to the dock",
-            Filter = "Apps and shortcuts (*.exe;*.lnk;*.url;*.bat;*.cmd)|*.exe;*.lnk;*.url;*.bat;*.cmd|All files (*.*)|*.*",
+            Title = Localization.Loc.T("pinned.dialogTitle"),
+            Filter = Localization.Loc.T("pinned.dialogFilter"),
             Multiselect = true,
             DereferenceLinks = false, // keep .lnk files so their icon and arguments are preserved
             CheckFileExists = true,

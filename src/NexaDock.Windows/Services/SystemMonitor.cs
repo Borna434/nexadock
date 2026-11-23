@@ -17,7 +17,23 @@ public sealed class SystemMonitor : ISystemMonitor
     private readonly Dictionary<int, (string Name, TimeSpan Cpu)> _lastCpu = new();
     private DateTime _lastCpuSample = DateTime.MinValue;
 
+    private SystemSnapshot? _lastSnapshot;
+    private DateTime _lastSnapshotAt;
+
     public SystemSnapshot Sample()
+    {
+        // Several widgets sample; a CPU delta over a few milliseconds would be meaningless.
+        if (_lastSnapshot is not null && DateTime.UtcNow - _lastSnapshotAt < TimeSpan.FromSeconds(1.5))
+        {
+            return _lastSnapshot;
+        }
+
+        _lastSnapshotAt = DateTime.UtcNow;
+        _lastSnapshot = SampleNow();
+        return _lastSnapshot;
+    }
+
+    private SystemSnapshot SampleNow()
     {
         var cpu = 0.0;
         if (GetSystemTimes(out var idle, out var kernel, out var user))

@@ -97,7 +97,7 @@ public class SettingsSerializerTests
 
         var restored = SettingsSerializer.Deserialize(SettingsSerializer.Serialize(original));
 
-        Assert.Equal(original, restored);
+        Assert.Equal(SettingsNormalizer.Normalize(original), restored);
     }
 
     [Theory]

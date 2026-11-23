@@ -5,24 +5,26 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:NexaDock.UI.ViewModels"
         xmlns:c="clr-namespace:NexaDock.UI.Converters"
+        xmlns:l="clr-namespace:NexaDock.UI.Localization"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance vm:SettingsViewModel}"
         Title="{Binding Title}"
         ThemeMode="System"
-        Width="780" Height="900"
-        MinWidth="620" MinHeight="520"
+        Width="860" Height="760"
+        MinWidth="700" MinHeight="520"
         WindowStartupLocation="CenterScreen"
         FontFamily="Segoe UI Variable Text, Segoe UI">
 
     <Window.Resources>
         <c:PercentConverter x:Key="Percent" />
+        <c:NotNullToVisibilityConverter x:Key="NotNullToVisibility" />
         <c:BoolToVisibilityConverter x:Key="BoolToVisibility" />
         <c:BoolToVisibilityConverter x:Key="InverseBoolToVisibility" Invert="True" />
 
         <Style x:Key="SectionTitle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="20" />
+            <Setter Property="FontSize" Value="18" />
             <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Margin" Value="0,26,0,10" />
+            <Setter Property="Margin" Value="0,18,0,8" />
         </Style>
 
         <Style x:Key="Card" TargetType="Border">
@@ -53,7 +55,19 @@
             <Setter Property="Opacity" Value="0.85" />
         </Style>
 
-        <!-- Theme swatch card -->
+        <Style x:Key="Toggle" TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}">
+            <Setter Property="Content" Value="" />
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="HorizontalAlignment" Value="Right" />
+        </Style>
+
+        <Style x:Key="Page" TargetType="ScrollViewer">
+            <Setter Property="VerticalScrollBarVisibility" Value="Auto" />
+            <Setter Property="Padding" Value="4,0,16,16" />
+            <Setter Property="PanningMode" Value="VerticalOnly" />
+        </Style>
+
         <Style x:Key="ThemeCard" TargetType="RadioButton">
             <Setter Property="GroupName" Value="Theme" />
             <Setter Property="Margin" Value="0,0,8,8" />
@@ -61,10 +75,10 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="RadioButton">
-                        <Border x:Name="Outer" Width="106" CornerRadius="10" BorderThickness="2"
+                        <Border x:Name="Outer" Width="112" CornerRadius="10" BorderThickness="2"
                                 BorderBrush="Transparent" Padding="3" Background="Transparent">
                             <StackPanel>
-                                <Border Height="58" CornerRadius="7" Background="{Binding Preview}">
+                                <Border Height="54" CornerRadius="7" Background="{Binding Preview}">
                                     <Grid>
                                         <Border CornerRadius="7" BorderThickness="1" BorderBrush="#55FFFFFF">
                                             <Border.Background>
@@ -78,8 +92,7 @@
                                                    VerticalAlignment="Center" Foreground="{Binding PreviewForeground}" />
                                     </Grid>
                                 </Border>
-                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="13" Margin="4,6,4,0" />
-                                <TextBlock Text="{Binding Description}" FontSize="11" Opacity="0.7" Margin="4,0,4,4" TextWrapping="Wrap" />
+                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="13" Margin="4,6,4,4" />
                             </StackPanel>
                         </Border>
                         <ControlTemplate.Triggers>
@@ -94,337 +107,453 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <Style x:Key="Day" TargetType="ToggleButton" BasedOn="{StaticResource {x:Type ToggleButton}}">
+            <Setter Property="MinWidth" Value="40" />
+            <Setter Property="Margin" Value="0,0,4,0" />
+            <Setter Property="Padding" Value="6,4" />
+        </Style>
     </Window.Resources>
 
     <Grid>
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" Padding="28,8,28,16">
-            <StackPanel MaxWidth="820">
-
-                <!-- Header -->
-                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                    <Image x:Name="HeaderIcon" Width="40" Height="40" Margin="0,0,14,0" RenderOptions.BitmapScalingMode="HighQuality" />
-                    <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="{Binding Title}" FontSize="26" FontWeight="SemiBold" />
-                        <TextBlock Text="{Binding VersionText}" Style="{StaticResource Hint}" />
-                    </StackPanel>
-                </StackPanel>
-
-                <!-- Appearance -->
-                <TextBlock Text="Appearance" Style="{StaticResource SectionTitle}" />
-
-                <Border Style="{StaticResource Card}">
-                    <StackPanel>
-                        <TextBlock Text="Theme" Style="{StaticResource Label}" Margin="0,0,0,10" />
-                        <ItemsControl ItemsSource="{Binding Themes}">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <WrapPanel />
-                                </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate DataType="{x:Type vm:ThemeOptionViewModel}">
-                                    <RadioButton Style="{StaticResource ThemeCard}"
-                                                 IsChecked="{Binding IsSelected, Mode=TwoWay}"
-                                                 AutomationProperties.Name="{Binding Name}"
-                                                 Command="{Binding DataContext.SelectThemeCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                 CommandParameter="{Binding}" />
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </StackPanel>
-                </Border>
-
-                <Border Style="{StaticResource Card}">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <StackPanel>
-                            <TextBlock Text="Size" Style="{StaticResource Label}" />
-                            <TextBlock Text="Tile and icon size preset" Style="{StaticResource Hint}" />
-                        </StackPanel>
-                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                            <RadioButton GroupName="Size" Content="Small" IsChecked="{Binding IsSmall}" Margin="0,0,14,0" MinWidth="0" />
-                            <RadioButton GroupName="Size" Content="Medium" IsChecked="{Binding IsMedium}" Margin="0,0,14,0" MinWidth="0" />
-                            <RadioButton GroupName="Size" Content="Large" IsChecked="{Binding IsLarge}" MinWidth="0" />
-                        </StackPanel>
-                    </Grid>
-                </Border>
-
-                <Border Style="{StaticResource Card}">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="200" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
-
-                        <StackPanel Grid.Row="0" Grid.ColumnSpan="2" Margin="0,4">
-                            <TextBlock Text="Full width" Style="{StaticResource Label}" />
-                            <TextBlock Text="Span the whole screen like a taskbar, or shrink to fit the widgets" Style="{StaticResource Hint}" />
-                        </StackPanel>
-                        <CheckBox Grid.Row="0" Grid.Column="2" IsChecked="{Binding FullWidth}" VerticalAlignment="Center" HorizontalAlignment="Right"
-                                  Content="" MinWidth="0" AutomationProperties.Name="Full width" />
-
-                        <StackPanel Grid.Row="1" Margin="0,12,0,4">
-                            <TextBlock Text="Tile spacing" Style="{StaticResource Label}" />
-                        </StackPanel>
-                        <Slider Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" Margin="0,8,0,0"
-                                Minimum="{Binding MinSpacing}" Maximum="{Binding MaxSpacing}"
-                                Value="{Binding Spacing}" IsSnapToTickEnabled="True" TickFrequency="1"
-                                AutomationProperties.Name="Icon spacing" />
-                        <TextBlock Grid.Row="1" Grid.Column="2" Style="{StaticResource ValueText}" Margin="0,8,0,0" Text="{Binding Spacing, StringFormat={}{0:0} px}" />
-
-                        <StackPanel Grid.Row="2" Margin="0,12,0,4">
-                            <TextBlock Text="Glass opacity" Style="{StaticResource Label}" />
-                            <TextBlock Text="Strength of the tint layer" Style="{StaticResource Hint}" />
-                        </StackPanel>
-                        <Slider Grid.Row="2" Grid.Column="1" VerticalAlignment="Center" Margin="0,8,0,0"
-                                Minimum="{Binding MinOpacity}" Maximum="{Binding MaxOpacity}"
-                                Value="{Binding Opacity}" IsSnapToTickEnabled="True" TickFrequency="0.01"
-                                AutomationProperties.Name="Glass opacity" />
-                        <TextBlock Grid.Row="2" Grid.Column="2" Style="{StaticResource ValueText}" Margin="0,8,0,0" Text="{Binding Opacity, Converter={StaticResource Percent}}" />
-                    </Grid>
-                </Border>
-
-                <Border Style="{StaticResource Card}">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <StackPanel>
-                            <TextBlock Text="Reduce motion" Style="{StaticResource Label}" />
-                            <TextBlock Text="Turn off hover lift and scale animations" Style="{StaticResource Hint}" />
-                        </StackPanel>
-                        <CheckBox Grid.Column="1" IsChecked="{Binding ReducedMotion}" VerticalAlignment="Center"
-                                  Content="" MinWidth="0" AutomationProperties.Name="Reduce motion" />
-                    </Grid>
-                </Border>
-
-                <Border Style="{StaticResource Card}">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <StackPanel>
-                            <TextBlock Text="24-hour clock" Style="{StaticResource Label}" />
-                            <TextBlock Text="Off shows 12-hour time with AM/PM" Style="{StaticResource Hint}" />
-                        </StackPanel>
-                        <CheckBox Grid.Column="1" IsChecked="{Binding Use24HourClock}" VerticalAlignment="Center"
-                                  Content="" MinWidth="0" AutomationProperties.Name="24-hour clock" />
-                    </Grid>
-                </Border>
-
-                <!-- Widgets -->
-                <TextBlock Text="Widgets" Style="{StaticResource SectionTitle}" />
-
-                <Border Style="{StaticResource Card}">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <StackPanel>
-                            <TextBlock Text="Bar layout" Style="{StaticResource Label}" />
-                            <TextBlock Text="Add or remove widgets. Drag tiles on the bar to reorder; right-click a tile to remove it." Style="{StaticResource Hint}" />
-                        </StackPanel>
-                        <Button Grid.Column="1" Content="Manage widgets…" Command="{Binding OpenWidgetPickerCommand}"
-                                Style="{DynamicResource AccentButtonStyle}" VerticalAlignment="Center" />
-                    </Grid>
-                </Border>
-
-                <Border Style="{StaticResource Card}">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="240" />
-                        </Grid.ColumnDefinitions>
-                        <StackPanel>
-                            <TextBlock Text="Weather city" Style="{StaticResource Label}" />
-                            <TextBlock Text="Only the city name is sent to Open-Meteo (free, no account)" Style="{StaticResource Hint}" />
-                        </StackPanel>
-                        <TextBox Grid.Column="1" VerticalAlignment="Center" Text="{Binding WeatherCity, UpdateSourceTrigger=LostFocus}"
-                                 AutomationProperties.Name="Weather city" KeyDown="OnCityKeyDown" />
-                    </Grid>
-                </Border>
-
-                <!-- Position -->
-                <TextBlock Text="Position" Style="{StaticResource SectionTitle}" />
-
-                <Border Style="{StaticResource Card}">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <StackPanel>
-                            <TextBlock Text="Screen edge" Style="{StaticResource Label}" />
-                            <TextBlock Text="Tip: you can also drag the bar by an empty spot to another edge or display" Style="{StaticResource Hint}" />
-                        </StackPanel>
-                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                            <RadioButton GroupName="Edge" Content="Bottom" IsChecked="{Binding IsBottom}" Margin="0,0,14,0" MinWidth="0" />
-                            <RadioButton GroupName="Edge" Content="Top" IsChecked="{Binding IsTop}" MinWidth="0" />
-                        </StackPanel>
-                    </Grid>
-                </Border>
-
-                <Border Style="{StaticResource Card}">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="200" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
-                        <StackPanel>
-                            <TextBlock Text="Display" Style="{StaticResource Label}" />
-                            <TextBlock Text="Falls back to the primary display if disconnected" Style="{StaticResource Hint}" />
-                        </StackPanel>
-                        <ComboBox Grid.Column="1" VerticalAlignment="Center" ItemsSource="{Binding Monitors}"
-                                  SelectedItem="{Binding SelectedMonitor}" DisplayMemberPath="Label"
-                                  AutomationProperties.Name="Display" />
-                        <Button Grid.Column="2" Margin="8,0,0,0" Content="Refresh" Command="{Binding RefreshMonitorsCommand}" VerticalAlignment="Center" />
-
-                        <StackPanel Grid.Row="1" Margin="0,14,0,0">
-                            <TextBlock Text="Distance from edge" Style="{StaticResource Label}" />
-                        </StackPanel>
-                        <Slider Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" Margin="0,14,0,0"
-                                Minimum="{Binding MinEdgeOffset}" Maximum="{Binding MaxEdgeOffset}"
-                                Value="{Binding EdgeOffset}" IsSnapToTickEnabled="True" TickFrequency="1"
-                                AutomationProperties.Name="Distance from edge" />
-                        <TextBlock Grid.Row="1" Grid.Column="2" Style="{StaticResource ValueText}" Margin="0,14,0,0" Text="{Binding EdgeOffset, StringFormat={}{0:0} px}" />
-                    </Grid>
-                </Border>
-
-                <!-- Behaviour -->
-                <TextBlock Text="Behavior" Style="{StaticResource SectionTitle}" />
-
-                <Border Style="{StaticResource Card}">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <StackPanel Margin="0,0,16,0">
-                            <TextBlock Text="Replace the Windows taskbar" Style="{StaticResource Label}" />
-                            <TextBlock Style="{StaticResource Hint}"
-                                       Text="Hides the taskbar while NexaDock runs and reserves space so maximized windows stop above the bar. Quitting NexaDock brings the taskbar back exactly as it was. The Windows key still opens Start." />
-                        </StackPanel>
-                        <CheckBox Grid.Column="1" IsChecked="{Binding ReplaceTaskbar}" VerticalAlignment="Center"
-                                  Content="" MinWidth="0" AutomationProperties.Name="Replace the Windows taskbar" />
-                    </Grid>
-                </Border>
-
-                <Border Style="{StaticResource Card}">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <StackPanel>
-                            <TextBlock Text="Hide during full-screen apps" Style="{StaticResource Label}" />
-                            <TextBlock Text="Games, videos and presentations get the whole screen" Style="{StaticResource Hint}" />
-                        </StackPanel>
-                        <CheckBox Grid.Column="1" IsChecked="{Binding HideInFullscreen}" VerticalAlignment="Center"
-                                  Content="" MinWidth="0" AutomationProperties.Name="Hide during full-screen apps" />
-                    </Grid>
-                </Border>
-
-                <Border Style="{StaticResource Card}">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <StackPanel>
-                            <TextBlock Text="Start with Windows" Style="{StaticResource Label}" />
-                            <TextBlock Text="Launch NexaDock when you sign in" Style="{StaticResource Hint}" />
-                        </StackPanel>
-                        <CheckBox Grid.Column="1" IsChecked="{Binding LaunchAtStartup}" VerticalAlignment="Center"
-                                  Content="" MinWidth="0" AutomationProperties.Name="Start with Windows" />
-                    </Grid>
-                </Border>
-
-                <!-- Pinned apps -->
-                <TextBlock Text="Pinned apps" Style="{StaticResource SectionTitle}" />
-
-                <Border Style="{StaticResource Card}">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <ListBox ItemsSource="{Binding Shortcuts}" SelectedItem="{Binding SelectedShortcut}"
-                                 MinHeight="160" MaxHeight="300" AutomationProperties.Name="Shortcuts"
-                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                            <ListBox.ItemTemplate>
-                                <DataTemplate DataType="{x:Type vm:ShortcutEditorItem}">
-                                    <StackPanel Orientation="Horizontal" Margin="0,2">
-                                        <Image Source="{Binding Icon}" Width="24" Height="24" Margin="0,0,12,0" RenderOptions.BitmapScalingMode="HighQuality" />
-                                        <StackPanel>
-                                            <TextBlock Text="{Binding Name}" FontSize="13" />
-                                            <TextBlock Text="{Binding Target}" FontSize="11" Opacity="0.6" TextTrimming="CharacterEllipsis" MaxWidth="380" />
-                                        </StackPanel>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </ListBox.ItemTemplate>
-                        </ListBox>
-                        <StackPanel Grid.Column="1" Margin="12,0,0,0" MinWidth="150">
-                            <Button Content="Add…" Command="{Binding AddShortcutCommand}" HorizontalAlignment="Stretch" Margin="0,0,0,6"
-                                    Style="{DynamicResource AccentButtonStyle}" />
-                            <Button Content="Remove" Command="{Binding RemoveShortcutCommand}" HorizontalAlignment="Stretch" Margin="0,0,0,6" />
-                            <Button Content="Move up" Command="{Binding MoveUpCommand}" HorizontalAlignment="Stretch" Margin="0,0,0,6" />
-                            <Button Content="Move down" Command="{Binding MoveDownCommand}" HorizontalAlignment="Stretch" Margin="0,0,0,18" />
-                            <Button Content="Restore defaults" Command="{Binding RestoreDefaultShortcutsCommand}" HorizontalAlignment="Stretch" />
-                        </StackPanel>
-                    </Grid>
-                </Border>
-                <TextBlock Text="Add .exe files, shortcuts (.lnk), scripts or documents. Packaged Store apps can be added via their Start menu shortcut."
-                           Style="{StaticResource Hint}" Margin="2,2,0,0" />
-
-                <!-- About -->
-                <TextBlock Text="About" Style="{StaticResource SectionTitle}" />
-                <Border Style="{StaticResource Card}">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <StackPanel>
-                            <TextBlock Text="{Binding BackdropDescription, StringFormat=Surface: {0}}" FontSize="13" TextWrapping="Wrap" />
-                            <TextBlock Text="{Binding DataDirectory, StringFormat=Settings stored in {0}}" Style="{StaticResource Hint}" Margin="0,4,0,0" />
-                        </StackPanel>
-                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                            <Button Content="Open data folder" Command="{Binding OpenDataFolderCommand}" Margin="0,0,8,0" />
-                            <Button Content="Reset appearance" Command="{Binding ResetAppearanceCommand}" />
-                        </StackPanel>
-                    </Grid>
-                </Border>
+        <!-- Header -->
+        <StackPanel Orientation="Horizontal" Margin="28,16,28,8">
+            <Image x:Name="HeaderIcon" Width="36" Height="36" Margin="0,0,14,0" RenderOptions.BitmapScalingMode="HighQuality" />
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock Text="{Binding Title}" FontSize="24" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding VersionText}" Style="{StaticResource Hint}" />
             </StackPanel>
-        </ScrollViewer>
+        </StackPanel>
 
-        <Border Grid.Row="1" Padding="28,12" BorderThickness="0,1,0,0" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
+        <TabControl Grid.Row="1" Margin="24,4,12,0" TabStripPlacement="Left">
+            <!-- ================================================================== Appearance -->
+            <TabItem Header="{l:Loc settings.tab.appearance}">
+                <ScrollViewer Style="{StaticResource Page}">
+                    <StackPanel>
+                        <TextBlock Text="{l:Loc settings.tab.appearance}" Style="{StaticResource SectionTitle}" Margin="0,4,0,8" />
+
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="{l:Loc appearance.style}" Style="{StaticResource Label}" Margin="0,0,0,10" />
+                                <ItemsControl ItemsSource="{Binding Themes}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type vm:ThemeOptionViewModel}">
+                                            <RadioButton Style="{StaticResource ThemeCard}" IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                                         AutomationProperties.Name="{Binding Name}"
+                                                         Command="{Binding DataContext.SelectThemeCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                         CommandParameter="{Binding}" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource Card}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="{l:Loc appearance.language}" Style="{StaticResource Label}" />
+                                    <TextBlock Text="{l:Loc appearance.languageHint}" Style="{StaticResource Hint}" />
+                                </StackPanel>
+                                <ComboBox Grid.Column="1" MinWidth="200" VerticalAlignment="Center" ItemsSource="{Binding Languages}"
+                                          SelectedItem="{Binding SelectedLanguage}" DisplayMemberPath="Label" />
+                            </Grid>
+                        </Border>
+
+                        <Border Style="{StaticResource Card}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="{l:Loc appearance.size}" Style="{StaticResource Label}" />
+                                    <TextBlock Text="{l:Loc appearance.sizeHint}" Style="{StaticResource Hint}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <RadioButton GroupName="Size" Content="S" IsChecked="{Binding IsSmall}" Margin="0,0,14,0" MinWidth="0" />
+                                    <RadioButton GroupName="Size" Content="M" IsChecked="{Binding IsMedium}" Margin="0,0,14,0" MinWidth="0" />
+                                    <RadioButton GroupName="Size" Content="L" IsChecked="{Binding IsLarge}" MinWidth="0" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <Border Style="{StaticResource Card}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="190" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <StackPanel Grid.ColumnSpan="2" Margin="0,4">
+                                    <TextBlock Text="{l:Loc appearance.fullWidth}" Style="{StaticResource Label}" />
+                                    <TextBlock Text="{l:Loc appearance.fullWidthHint}" Style="{StaticResource Hint}" />
+                                </StackPanel>
+                                <CheckBox Grid.Column="2" Style="{StaticResource Toggle}" IsChecked="{Binding FullWidth}" AutomationProperties.Name="{l:Loc appearance.fullWidth}" />
+
+                                <TextBlock Grid.Row="1" Text="{l:Loc appearance.spacing}" Style="{StaticResource Label}" Margin="0,12,0,4" />
+                                <Slider Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" Margin="0,8,0,0"
+                                        Minimum="{Binding MinSpacing}" Maximum="{Binding MaxSpacing}" Value="{Binding Spacing}"
+                                        IsSnapToTickEnabled="True" TickFrequency="1" />
+                                <TextBlock Grid.Row="1" Grid.Column="2" Style="{StaticResource ValueText}" Margin="0,8,0,0" Text="{Binding Spacing, StringFormat={}{0:0} px}" />
+
+                                <StackPanel Grid.Row="2" Margin="0,12,0,4">
+                                    <TextBlock Text="{l:Loc appearance.opacity}" Style="{StaticResource Label}" />
+                                    <TextBlock Text="{l:Loc appearance.opacityHint}" Style="{StaticResource Hint}" />
+                                </StackPanel>
+                                <Slider Grid.Row="2" Grid.Column="1" VerticalAlignment="Center" Margin="0,8,0,0"
+                                        Minimum="{Binding MinOpacity}" Maximum="{Binding MaxOpacity}" Value="{Binding Opacity}"
+                                        IsSnapToTickEnabled="True" TickFrequency="0.01" />
+                                <TextBlock Grid.Row="2" Grid.Column="2" Style="{StaticResource ValueText}" Margin="0,8,0,0" Text="{Binding Opacity, Converter={StaticResource Percent}}" />
+                            </Grid>
+                        </Border>
+
+                        <Border Style="{StaticResource Card}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="{l:Loc appearance.reduceMotion}" Style="{StaticResource Label}" />
+                                    <TextBlock Text="{l:Loc appearance.reduceMotionHint}" Style="{StaticResource Hint}" />
+                                </StackPanel>
+                                <CheckBox Grid.Column="1" Style="{StaticResource Toggle}" IsChecked="{Binding ReducedMotion}" AutomationProperties.Name="{l:Loc appearance.reduceMotion}" />
+                                <StackPanel Grid.Row="1" Margin="0,14,0,0">
+                                    <TextBlock Text="{l:Loc appearance.clock24}" Style="{StaticResource Label}" />
+                                    <TextBlock Text="{l:Loc appearance.clock24Hint}" Style="{StaticResource Hint}" />
+                                </StackPanel>
+                                <CheckBox Grid.Row="1" Grid.Column="1" Style="{StaticResource Toggle}" Margin="0,14,0,0" IsChecked="{Binding Use24HourClock}" AutomationProperties.Name="{l:Loc appearance.clock24}" />
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ======================================================== Widgets & profiles -->
+            <TabItem Header="{l:Loc settings.tab.widgets}">
+                <ScrollViewer Style="{StaticResource Page}">
+                    <StackPanel>
+                        <TextBlock Text="{l:Loc settings.tab.widgets}" Style="{StaticResource SectionTitle}" Margin="0,4,0,8" />
+
+                        <Border Style="{StaticResource Card}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Margin="0,0,16,0">
+                                    <TextBlock Text="{l:Loc widgets.layout}" Style="{StaticResource Label}" />
+                                    <TextBlock Text="{l:Loc widgets.layoutHint}" Style="{StaticResource Hint}" />
+                                </StackPanel>
+                                <Button Grid.Column="1" Content="{l:Loc widgets.manage}" Command="{Binding OpenWidgetPickerCommand}"
+                                        Style="{DynamicResource AccentButtonStyle}" VerticalAlignment="Center" />
+                            </Grid>
+                        </Border>
+
+                        <Border Style="{StaticResource Card}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Margin="0,0,16,0">
+                                    <TextBlock Text="{l:Loc widgets.pulse}" Style="{StaticResource Label}" />
+                                    <TextBlock Text="{l:Loc widgets.pulseHint}" Style="{StaticResource Hint}" />
+                                </StackPanel>
+                                <CheckBox Grid.Column="1" Style="{StaticResource Toggle}" IsChecked="{Binding PulseEnabled}" AutomationProperties.Name="{l:Loc widgets.pulse}" />
+                            </Grid>
+                        </Border>
+
+                        <Border Style="{StaticResource Card}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="240" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Margin="0,0,16,0">
+                                    <TextBlock Text="{l:Loc widgets.weatherCity}" Style="{StaticResource Label}" />
+                                    <TextBlock Text="{l:Loc widgets.weatherCityHint}" Style="{StaticResource Hint}" />
+                                </StackPanel>
+                                <TextBox Grid.Column="1" VerticalAlignment="Center" Text="{Binding WeatherCity, UpdateSourceTrigger=LostFocus}"
+                                         AutomationProperties.Name="{l:Loc widgets.weatherCity}" KeyDown="OnCityKeyDown" />
+                            </Grid>
+                        </Border>
+
+                        <!-- Profiles -->
+                        <TextBlock Text="{l:Loc profiles.title}" Style="{StaticResource SectionTitle}" />
+                        <TextBlock Text="{l:Loc profiles.intro}" Style="{StaticResource Hint}" Margin="0,0,0,10" />
+
+                        <Border Style="{StaticResource Card}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="{l:Loc profiles.auto}" Style="{StaticResource Label}" />
+                                    <TextBlock Text="{l:Loc profiles.autoHint}" Style="{StaticResource Hint}" />
+                                </StackPanel>
+                                <CheckBox Grid.Column="1" Style="{StaticResource Toggle}" IsChecked="{Binding AutoSwitchProfiles}" AutomationProperties.Name="{l:Loc profiles.auto}" />
+                            </Grid>
+                        </Border>
+
+                        <Border Style="{StaticResource Card}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="220" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <!-- List + add/remove -->
+                                <StackPanel Margin="0,0,16,0">
+                                    <ListBox ItemsSource="{Binding Profiles}" SelectedItem="{Binding SelectedProfile}" MinHeight="150" MaxHeight="260"
+                                             AutomationProperties.Name="{l:Loc profiles.title}">
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate DataType="{x:Type vm:ProfileItemViewModel}">
+                                                <StackPanel Margin="0,2">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="SemiBold" />
+                                                        <TextBlock Text="●" Margin="6,0,0,0" FontSize="10" VerticalAlignment="Center"
+                                                                   Foreground="{DynamicResource AccentFillColorDefaultBrush}"
+                                                                   Visibility="{Binding IsActive, Converter={StaticResource BoolToVisibility}}" />
+                                                    </StackPanel>
+                                                    <TextBlock Text="{Binding Summary}" FontSize="11" Opacity="0.65" TextTrimming="CharacterEllipsis" MaxWidth="180" />
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                    </ListBox>
+                                    <ComboBox Margin="0,8,0,6" ItemsSource="{Binding Templates}" SelectedItem="{Binding SelectedTemplate}"
+                                              DisplayMemberPath="Label" HorizontalAlignment="Stretch" AutomationProperties.Name="{l:Loc profiles.template}" />
+                                    <Button Content="{l:Loc profiles.add}" Command="{Binding AddProfileCommand}" HorizontalAlignment="Stretch" Margin="0,0,0,6"
+                                            Style="{DynamicResource AccentButtonStyle}" />
+                                    <Button Content="{l:Loc profiles.remove}" Command="{Binding RemoveProfileCommand}" HorizontalAlignment="Stretch" />
+                                </StackPanel>
+
+                                <!-- Editor -->
+                                <StackPanel Grid.Column="1" DataContext="{Binding SelectedProfile}"
+                                            Visibility="{Binding Converter={StaticResource NotNullToVisibility}}">
+                                    <TextBlock Text="{l:Loc profiles.name}" Style="{StaticResource Hint}" />
+                                    <TextBox Text="{Binding Name, UpdateSourceTrigger=LostFocus}" Margin="0,2,0,6" MaxLength="32" />
+                                    <TextBlock Text="{Binding WidgetCountText}" Style="{StaticResource Hint}" Margin="0,0,0,10" />
+
+                                    <CheckBox Content="{l:Loc profiles.schedule}" IsChecked="{Binding ScheduleEnabled}" Margin="0,0,0,6" />
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8" IsEnabled="{Binding ScheduleEnabled}">
+                                        <TextBlock Text="{l:Loc profiles.from}" Style="{StaticResource Label}" Margin="0,0,8,0" />
+                                        <ComboBox ItemsSource="{Binding DataContext.TimeOptions, RelativeSource={RelativeSource AncestorType=Window}}" SelectedItem="{Binding From}" MinWidth="96" />
+                                        <TextBlock Text="{l:Loc profiles.to}" Style="{StaticResource Label}" Margin="12,0,8,0" />
+                                        <ComboBox ItemsSource="{Binding DataContext.TimeOptions, RelativeSource={RelativeSource AncestorType=Window}}" SelectedItem="{Binding To}" MinWidth="96" />
+                                    </StackPanel>
+                                    <WrapPanel Margin="0,0,0,4" IsEnabled="{Binding ScheduleEnabled}">
+                                        <ToggleButton Style="{StaticResource Day}" Content="{l:Loc day.mon}" IsChecked="{Binding Monday}" />
+                                        <ToggleButton Style="{StaticResource Day}" Content="{l:Loc day.tue}" IsChecked="{Binding Tuesday}" />
+                                        <ToggleButton Style="{StaticResource Day}" Content="{l:Loc day.wed}" IsChecked="{Binding Wednesday}" />
+                                        <ToggleButton Style="{StaticResource Day}" Content="{l:Loc day.thu}" IsChecked="{Binding Thursday}" />
+                                        <ToggleButton Style="{StaticResource Day}" Content="{l:Loc day.fri}" IsChecked="{Binding Friday}" />
+                                        <ToggleButton Style="{StaticResource Day}" Content="{l:Loc day.sat}" IsChecked="{Binding Saturday}" />
+                                        <ToggleButton Style="{StaticResource Day}" Content="{l:Loc day.sun}" IsChecked="{Binding Sunday}" />
+                                    </WrapPanel>
+                                    <TextBlock Text="{l:Loc profiles.daysHint}" Style="{StaticResource Hint}" Margin="0,0,0,10" />
+
+                                    <TextBlock Text="{l:Loc profiles.apps}" Style="{StaticResource Hint}" />
+                                    <TextBox Text="{Binding AppsText, UpdateSourceTrigger=LostFocus}" Margin="0,2,0,2" />
+                                    <TextBlock Text="{l:Loc profiles.appsHint}" Style="{StaticResource Hint}" Margin="0,0,0,10" />
+
+                                    <Button Content="{l:Loc profiles.activate}" HorizontalAlignment="Left"
+                                            Command="{Binding DataContext.ActivateProfileCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ======================================================== Position & behavior -->
+            <TabItem Header="{l:Loc settings.tab.position}">
+                <ScrollViewer Style="{StaticResource Page}">
+                    <StackPanel>
+                        <TextBlock Text="{l:Loc settings.tab.position}" Style="{StaticResource SectionTitle}" Margin="0,4,0,8" />
+
+                        <Border Style="{StaticResource Card}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="{l:Loc position.edge}" Style="{StaticResource Label}" />
+                                    <TextBlock Text="{l:Loc position.edgeHint}" Style="{StaticResource Hint}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <RadioButton GroupName="Edge" Content="{l:Loc position.bottom}" IsChecked="{Binding IsBottom}" Margin="0,0,14,0" MinWidth="0" />
+                                    <RadioButton GroupName="Edge" Content="{l:Loc position.top}" IsChecked="{Binding IsTop}" MinWidth="0" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <Border Style="{StaticResource Card}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="180" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="{l:Loc position.display}" Style="{StaticResource Label}" />
+                                    <TextBlock Text="{l:Loc position.displayHint}" Style="{StaticResource Hint}" />
+                                </StackPanel>
+                                <ComboBox Grid.Column="1" VerticalAlignment="Center" ItemsSource="{Binding Monitors}"
+                                          SelectedItem="{Binding SelectedMonitor}" DisplayMemberPath="Label" />
+                                <Button Grid.Column="2" Margin="8,0,0,0" Content="{l:Loc common.refresh}" Command="{Binding RefreshMonitorsCommand}" VerticalAlignment="Center" />
+
+                                <TextBlock Grid.Row="1" Text="{l:Loc position.offset}" Style="{StaticResource Label}" Margin="0,14,0,0" />
+                                <Slider Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" Margin="0,14,0,0"
+                                        Minimum="{Binding MinEdgeOffset}" Maximum="{Binding MaxEdgeOffset}" Value="{Binding EdgeOffset}"
+                                        IsSnapToTickEnabled="True" TickFrequency="1" />
+                                <TextBlock Grid.Row="1" Grid.Column="2" Style="{StaticResource ValueText}" Margin="0,14,0,0" Text="{Binding EdgeOffset, StringFormat={}{0:0} px}" />
+                            </Grid>
+                        </Border>
+
+                        <TextBlock Text="{l:Loc behavior.title}" Style="{StaticResource SectionTitle}" />
+
+                        <Border Style="{StaticResource Card}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Margin="0,0,16,0">
+                                    <TextBlock Text="{l:Loc behavior.replace}" Style="{StaticResource Label}" />
+                                    <TextBlock Text="{l:Loc behavior.replaceHint}" Style="{StaticResource Hint}" />
+                                </StackPanel>
+                                <CheckBox Grid.Column="1" Style="{StaticResource Toggle}" IsChecked="{Binding ReplaceTaskbar}" AutomationProperties.Name="{l:Loc behavior.replace}" />
+                            </Grid>
+                        </Border>
+
+                        <Border Style="{StaticResource Card}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="{l:Loc behavior.fullscreen}" Style="{StaticResource Label}" />
+                                    <TextBlock Text="{l:Loc behavior.fullscreenHint}" Style="{StaticResource Hint}" />
+                                </StackPanel>
+                                <CheckBox Grid.Column="1" Style="{StaticResource Toggle}" IsChecked="{Binding HideInFullscreen}" AutomationProperties.Name="{l:Loc behavior.fullscreen}" />
+                            </Grid>
+                        </Border>
+
+                        <Border Style="{StaticResource Card}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="{l:Loc behavior.startup}" Style="{StaticResource Label}" />
+                                    <TextBlock Text="{l:Loc behavior.startupHint}" Style="{StaticResource Hint}" />
+                                </StackPanel>
+                                <CheckBox Grid.Column="1" Style="{StaticResource Toggle}" IsChecked="{Binding LaunchAtStartup}" AutomationProperties.Name="{l:Loc behavior.startup}" />
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ================================================================= Pinned apps -->
+            <TabItem Header="{l:Loc settings.tab.pinned}">
+                <ScrollViewer Style="{StaticResource Page}">
+                    <StackPanel>
+                        <TextBlock Text="{l:Loc settings.tab.pinned}" Style="{StaticResource SectionTitle}" Margin="0,4,0,8" />
+                        <Border Style="{StaticResource Card}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <ListBox ItemsSource="{Binding Shortcuts}" SelectedItem="{Binding SelectedShortcut}"
+                                         MinHeight="200" MaxHeight="380" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type vm:ShortcutEditorItem}">
+                                            <StackPanel Orientation="Horizontal" Margin="0,2">
+                                                <Image Source="{Binding Icon}" Width="24" Height="24" Margin="0,0,12,0" RenderOptions.BitmapScalingMode="HighQuality" />
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding Name}" FontSize="13" />
+                                                    <TextBlock Text="{Binding Target}" FontSize="11" Opacity="0.6" TextTrimming="CharacterEllipsis" MaxWidth="340" />
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                                <StackPanel Grid.Column="1" Margin="12,0,0,0" MinWidth="150">
+                                    <Button Content="{l:Loc pinned.add}" Command="{Binding AddShortcutCommand}" HorizontalAlignment="Stretch" Margin="0,0,0,6"
+                                            Style="{DynamicResource AccentButtonStyle}" />
+                                    <Button Content="{l:Loc pinned.remove}" Command="{Binding RemoveShortcutCommand}" HorizontalAlignment="Stretch" Margin="0,0,0,6" />
+                                    <Button Content="{l:Loc pinned.up}" Command="{Binding MoveUpCommand}" HorizontalAlignment="Stretch" Margin="0,0,0,6" />
+                                    <Button Content="{l:Loc pinned.down}" Command="{Binding MoveDownCommand}" HorizontalAlignment="Stretch" Margin="0,0,0,18" />
+                                    <Button Content="{l:Loc pinned.restore}" Command="{Binding RestoreDefaultShortcutsCommand}" HorizontalAlignment="Stretch" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                        <TextBlock Text="{l:Loc pinned.hint}" Style="{StaticResource Hint}" Margin="2,2,0,0" />
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ======================================================================= About -->
+            <TabItem Header="{l:Loc settings.tab.about}">
+                <ScrollViewer Style="{StaticResource Page}">
+                    <StackPanel>
+                        <TextBlock Text="{l:Loc settings.tab.about}" Style="{StaticResource SectionTitle}" Margin="0,4,0,8" />
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="{Binding VersionText}" FontSize="14" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding BackdropDescription}" Style="{StaticResource Hint}" Margin="0,6,0,0" />
+                                <TextBlock Text="{Binding DataDirectory}" Style="{StaticResource Hint}" Margin="0,4,0,12" />
+                                <TextBlock Text="{l:Loc about.privacy}" Style="{StaticResource Hint}" Margin="0,0,0,12" />
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Content="{l:Loc about.openData}" Command="{Binding OpenDataFolderCommand}" Margin="0,0,8,0" />
+                                    <Button Content="{l:Loc about.reset}" Command="{Binding ResetAppearanceCommand}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
+
+        <Border Grid.Row="2" Padding="28,12" BorderThickness="0,1,0,0" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
             <Grid>
-                <TextBlock Text="{Binding StatusText}" VerticalAlignment="Center" Style="{StaticResource Hint}" />
+                <TextBlock Text="{Binding StatusText}" VerticalAlignment="Center" Style="{StaticResource Hint}" Margin="0,0,260,0" />
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <TextBlock Text="Changes apply and save automatically" VerticalAlignment="Center" Style="{StaticResource Hint}" Margin="0,0,14,0" />
-                    <Button Content="Close" MinWidth="96" Click="OnCloseClick" IsCancel="True" />
+                    <TextBlock Text="{l:Loc settings.autosave}" VerticalAlignment="Center" Style="{StaticResource Hint}" Margin="0,0,14,0" />
+                    <Button Content="{l:Loc common.close}" MinWidth="96" Click="OnCloseClick" IsCancel="True" />
                 </StackPanel>
             </Grid>
         </Border>

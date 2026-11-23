@@ -4,6 +4,7 @@ using System.Windows.Media.Imaging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NexaDock.Core.Abstractions;
+using NexaDock.UI.Localization;
 using NexaDock.UI.Views;
 using NexaDock.Windows.Services;
 
@@ -45,7 +46,7 @@ public sealed class AppShell : IAppShell
         var dock = Dock;
         dock.UserHidden = true;
         dock.Hide();
-        NotifyInfo("Bar hidden", "Use the NexaDock tray icon › Show Dock to bring it back.");
+        Notify(Loc.T("notify.hidden.title"), Loc.T("notify.hidden.body"));
     }
 
     public void ShowSettings()
@@ -91,7 +92,7 @@ public sealed class AppShell : IAppShell
     public void NotifyError(string title, string message) =>
         _services.GetRequiredService<TrayIconService>().ShowNotification(title, message, isError: true);
 
-    private void NotifyInfo(string title, string message) =>
+    public void Notify(string title, string message) =>
         _services.GetRequiredService<TrayIconService>().ShowNotification(title, message, isError: false);
 
     public void Exit()

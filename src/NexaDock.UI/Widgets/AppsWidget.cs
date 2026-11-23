@@ -7,6 +7,8 @@ using NexaDock.Core.Abstractions;
 using NexaDock.Core.Models;
 using NexaDock.UI.Theming;
 
+using NexaDock.UI.Localization;
+
 namespace NexaDock.UI.Widgets;
 
 /// <summary>
@@ -189,7 +191,7 @@ public sealed partial class AppsWidget : WidgetViewModel
         var result = _launcher.Launch(shortcut);
         if (!result.Success)
         {
-            _appShell.NotifyError($"Could not open {item.Name}", result.Error ?? "The app could not be started.");
+            _appShell.NotifyError(Loc.F("apps.openFailed", item.Name), result.Error ?? Loc.T("apps.openFailedDetail"));
         }
     }
 
@@ -215,11 +217,11 @@ public sealed partial class AppsWidget : WidgetViewModel
     public IEnumerable<WidgetMenuItem> GetItemMenu(AppItemViewModel item)
     {
         var launchable = item.Shortcut is not null || LaunchableFor(item) is not null;
-        yield return new WidgetMenuItem(item.Windows.Count == 0 ? $"Open {item.Name}" : "New window", () => Launch(item), launchable);
+        yield return new WidgetMenuItem(item.Windows.Count == 0 ? Loc.F("apps.open", item.Name) : Loc.T("apps.newWindow"), () => Launch(item), launchable);
 
         if (item.Shortcut is { } pinned)
         {
-            yield return new WidgetMenuItem("Unpin from bar", () => _settings.Update(s => s with
+            yield return new WidgetMenuItem(Loc.T("apps.unpin"), () => _settings.Update(s => s with
             {
                 Shortcuts = s.Shortcuts.Where(x => x.Id != pinned.Id).ToList(),
                 ShortcutsInitialized = true,
@@ -227,7 +229,7 @@ public sealed partial class AppsWidget : WidgetViewModel
         }
         else if (LaunchableFor(item) is { } candidate)
         {
-            yield return new WidgetMenuItem("Pin to bar", () => _settings.Update(s => s with
+            yield return new WidgetMenuItem(Loc.T("apps.pin"), () => _settings.Update(s => s with
             {
                 Shortcuts = s.Shortcuts.Append(DockShortcut.Create(candidate.Name, candidate.Target)).ToList(),
                 ShortcutsInitialized = true,
@@ -236,7 +238,7 @@ public sealed partial class AppsWidget : WidgetViewModel
 
         if (item.Windows.Count > 0)
         {
-            yield return new WidgetMenuItem(item.Windows.Count == 1 ? "Close window" : $"Close all {item.Windows.Count} windows", () =>
+            yield return new WidgetMenuItem(item.Windows.Count == 1 ? Loc.T("apps.closeWindow") : Loc.F("apps.closeAll", item.Windows.Count), () =>
             {
                 foreach (var w in item.Windows)
                 {

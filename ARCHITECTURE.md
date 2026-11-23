@@ -123,9 +123,79 @@ The taskbar is restored in each of these cases:
   4. Flush the settings.
   5. Dispose the host.
 
+## Phase 3 additions
+
+### New services
+
+| Interface | Implementation | Purpose |
+| --- | --- | --- |
+| `IKeyValueStore` | `SqliteSettingsStore` | Local widget content (to-dos, notes) under `data.*` keys in the same database |
+| `IAudioService` | `CoreAudioService` | Default speaker volume and mute, microphone mute (Core Audio COM) |
+| `IStorageNetworkMonitor` | `StorageNetworkMonitor` | Network byte counters, fixed drives, Recycle Bin (`SHQueryRecycleBin`, `SHEmptyRecycleBin` with the Windows confirmation) |
+| `IKeyboardLayoutService` | `KeyboardLayoutService` | Layout of the window in front; switching via `WM_INPUTLANGCHANGEREQUEST` |
+| `IRadioService` | `WinRtRadioService` | Wi-Fi and Bluetooth through `Windows.Devices.Radios` |
+| `IBrightnessService` | `BrightnessService` | WMI (laptop panels) and DDC/CI through dxva2 (external monitors), always off the UI thread |
+
+`ISystemMonitor.Sample()` returns a cached snapshot for 1.5 s. Both Pulse and the CPU widget
+sample, and a CPU delta measured over a few milliseconds would be meaningless.
+
+### Localization
+
+- **Strings:** `Core/Localization/Strings` holds the English and Croatian dictionaries. Lookups
+  fall back to English, then to the key.
+- **Runtime:** `UI/Localization/Loc` resolves the setting (English, Croatian, or follow Windows),
+  sets the thread cultures, and raises an indexer change. Every `{l:Loc key}` binding is a live
+  binding to `Loc.Instance[key]`, so the whole UI switches without a restart.
+- **Cached text:** view models that cache text override `WidgetViewModel.OnLanguageChanged`.
+- **Tray:** the tray lives in the Windows layer, so the App passes it the translated texts.
+- **Tests:**
+  - both languages have the same keys and the same `{n}` placeholders
+  - every widget, category and weather kind has text
+  - a source scan checks that every key used in XAML or C# exists
+
+### Profiles
+
+- **Storage:** `DockSettings.Profiles` holds named layouts with a `ProfileTrigger` (schedule and
+  trigger apps). `DockSettings.Widgets` stays the single source for the bar.
+  `SettingsNormalizer` mirrors it into the active profile, so editing the bar edits the active
+  profile.
+- **`ProfileEngine.Resolve`:** a trigger app in front wins, then a schedule (overnight windows count
+  toward the previous day), then `DefaultProfileId`.
+- **`ProfileEngine.Activate`:** swaps the layout.
+- **`ProfileCoordinator` (App):** reacts only to changes in the resolved profile, and only after
+  they are stable for 3 s. A manual pick therefore lasts until the next trigger edge.
+
+### Pulse
+
+- **Rules:** `Core/Pulse/PulseRules` turns readings into `PulseAlert`s (unit-tested thresholds).
+- **`PulseCenter` (UI):**
+  - Checks CPU every 2 s, and battery and disk every 30 s. Widgets raise their own alerts (a
+    finished Focus round or timer).
+  - Dismissed alerts stay suppressed until their condition clears.
+  - Opening a widget's card acknowledges its informational alerts.
+- **Display:**
+  - `DockViewModel` sets `IsPulsing` on the owning widgets, and their tile shows an animated accent
+    ring (static with Reduced motion).
+  - The Pulse widget collapses itself (`IsVisibleOnBar`) when there is nothing to report.
+
+### Cards with keyboard input
+
+Cards are non-activating like the bar. When a widget sets `WantsKeyboard` and the user clicks a text
+field:
+
+1. `IDockWindowHost.SetKeyboardInput` removes `WS_EX_NOACTIVATE` and stops answering
+   `WM_MOUSEACTIVATE` with no-activate.
+2. The card is activated and the text box focused.
+3. Closing the card restores the non-activating mode. Esc closes it.
+
+### Overflow
+
+When the widgets don't fit, `BarPanel` hides tiles that would be cut off at the right edge rather
+than clipping them.
+
 ## Tests
 
-`tests/NexaDock.Tests` has 62 tests covering:
+`tests/NexaDock.Tests` has 93 tests covering:
 
 - **Placement:** full width and compact, edges, DPI, monitor bounds vs work area, padding, the
   reserved strip.
@@ -134,3 +204,8 @@ The taskbar is restored in each of these cases:
   and corruption recovery.
 - **Widget layout:** validation, duplicates, caps.
 - **Weather codes:** mapping to icons.
+- **Profiles:** layout mirroring, activation, trigger priority, overnight schedules, trigger cleanup, JSON round trip.
+- **Pulse rules:** battery, storage and CPU thresholds.
+- **Timers:** Pomodoro cycle with long breaks, pause, countdown, stopwatch laps (with a fake TimeProvider).
+- **Local data:** key/value persistence next to settings.
+- **Localization:** both languages complete, placeholders match, and every key used in the source exists.

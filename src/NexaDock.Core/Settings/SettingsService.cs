@@ -28,7 +28,7 @@ public sealed class SettingsService : ISettingsService, IDisposable
         _timer = new Timer(_ => Flush(), null, Timeout.Infinite, Timeout.Infinite);
     }
 
-    public DockSettings Current { get; private set; } = DockSettings.Default;
+    public DockSettings Current { get; private set; } = SettingsNormalizer.Normalize(DockSettings.Default);
 
     public SettingsLoadStatus LoadStatus { get; private set; } = SettingsLoadStatus.NotFound;
 

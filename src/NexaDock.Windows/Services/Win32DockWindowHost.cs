@@ -126,6 +126,32 @@ public sealed class Win32DockWindowHost : IDockWindowHost, IDisposable
         _logger.LogInformation("Removed app bar.");
     }
 
+    private readonly HashSet<IntPtr> _keyboardWindows = new();
+
+    public void SetKeyboardInput(IntPtr hwnd, bool enabled)
+    {
+        if (hwnd == IntPtr.Zero)
+        {
+            return;
+        }
+
+        var ex = GetWindowLongPtr(hwnd, GWL_EXSTYLE).ToInt64();
+        ex = enabled ? ex & ~WS_EX_NOACTIVATE : ex | WS_EX_NOACTIVATE;
+        SetWindowLongPtr(hwnd, GWL_EXSTYLE, new IntPtr(ex));
+
+        if (enabled)
+        {
+            _keyboardWindows.Add(hwnd);
+
+            // The click that asked for typing gave this process foreground rights.
+            SetForegroundWindow(hwnd);
+        }
+        else
+        {
+            _keyboardWindows.Remove(hwnd);
+        }
+    }
+
     public PointerState GetPointer()
     {
         GetCursorPos(out var p);
@@ -237,7 +263,7 @@ public sealed class Win32DockWindowHost : IDockWindowHost, IDisposable
         return PopupWndProc(hwnd, msg, wParam, lParam, ref handled);
     }
 
-    private static IntPtr PopupWndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+    private IntPtr PopupWndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
         switch (msg)
         {
@@ -246,7 +272,7 @@ public sealed class Win32DockWindowHost : IDockWindowHost, IDisposable
                 handled = true;
                 return DefWindowProc(hwnd, msg, new IntPtr(1), lParam);
 
-            case WM_MOUSEACTIVATE:
+            case WM_MOUSEACTIVATE when !_keyboardWindows.Contains(hwnd):
                 handled = true;
                 return new IntPtr(MA_NOACTIVATE);
         }

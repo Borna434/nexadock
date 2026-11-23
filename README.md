@@ -5,8 +5,11 @@ apps, and live widgets in one glass strip, optionally replacing the Windows task
 
 ![NexaDock bar](docs/images/bar-liquid-glass.jpg)
 
-> **Status:** Phase 2 (the bar and widget system). See [ROADMAP.md](ROADMAP.md) for what comes
-> next and [ARCHITECTURE.md](ARCHITECTURE.md) for the design.
+![NexaDock bar in Croatian with Phase 3 widgets](docs/images/bar-phase3-hr.jpg)
+
+> **Status:** Phase 3 (productivity and system widgets, profiles, Pulse, Croatian and English).
+> See [ROADMAP.md](ROADMAP.md) for what comes next and [ARCHITECTURE.md](ARCHITECTURE.md) for the
+> design.
 
 ## What it does
 
@@ -30,6 +33,34 @@ apps, and live widgets in one glass strip, optionally replacing the Windows task
   | Control Center | Network, sound, battery | Opens Quick Settings; the bell opens notifications |
   | Show Desktop | — | Hides or restores all windows |
   | Flexible Space | — | Pushes the following widgets to the far end of the bar |
+  | **Pulse** | Appears only when something needs you | All alerts, with Dismiss |
+  | **Focus** | Pomodoro ring, time left, start/pause | Big ring, skip, reset, focus and break length |
+  | **Timer** | Countdown | Presets (1–60 min), +1/+5 min, start/pause, reset |
+  | **Stopwatch** | Elapsed time | Hundredths of a second, laps |
+  | **To-dos** | Next open task, progress ring | Add (type + Enter), tick off, delete, clear completed |
+  | **Notes** | First line of your note | Multi-line note, saved as you type |
+  | **Volume** | Level; scroll the mouse wheel to change it | Slider, mute, microphone mute, device name |
+  | **Microphone** | Mic state; click to mute or unmute | — |
+  | **Network Speed** | Download and upload rates | 60-second live chart |
+  | **Storage** | Free space on the system drive | All drives with usage bars, Open This PC |
+  | **Recycle Bin** | Item count | Open, Empty (Windows asks for confirmation) |
+  | **Keyboard Layout** | Current layout (HR, EN…); click to switch | — |
+  | **Quick Toggles** | Wi-Fi and Bluetooth on/off, Quick Settings | — |
+  | **Brightness** | Level; scroll the mouse wheel to change it | Slider per display (laptop panel or DDC/CI monitor) |
+
+- **Profiles:** separate widget layouts such as Work, Gaming and Study (built-in templates).
+  - Switch from the bar's right-click menu › **Profile**.
+  - Or switch automatically: an app in front (e.g. `steam.exe`) wins, then a schedule (time window
+    and weekdays, overnight windows supported), otherwise the profile you picked last.
+  - A switch waits until the result has been stable for 3 seconds, so a quick Alt+Tab past a
+    trigger app does not reshuffle the bar.
+- **Pulse:** the bar asks for attention only when needed.
+  - Triggers: battery at or below 15% (critical at 7%), the system drive almost full, CPU busy for
+    half a minute, or a finished Focus round or timer (with a sound and a notification).
+  - The owning tile glows (steady with Reduced motion), and the Pulse capsule shows the alert.
+  - A dismissed alert stays quiet until its condition clears and comes back.
+- **Language:** English or Croatian (Hrvatski), or follow Windows. Switches live everywhere: the
+  bar, cards, menus, Settings, the picker and the tray.
 
 - **Widget picker:** right-click the bar › **Widgets…** to browse by category or search, and add or
   remove widgets. Changes apply instantly.
@@ -106,11 +137,29 @@ or from the crash handler. NexaDock never modifies Windows files.
 
 - **Weather:** only the city name you enter, and its coordinates, are sent to
   [Open-Meteo](https://open-meteo.com) (free, no account).
-- **Everything else is read locally:** the window list, media sessions, CPU, memory and battery.
+- **Everything else is read locally:** the window list, media sessions, CPU, memory, battery,
+  audio devices, network counters, drives and brightness.
+- **To-dos and notes** are stored only in the local database.
 - No telemetry and no account. Settings live in
   `%LOCALAPPDATA%\NexaDock\nexadock.db` (SQLite) and logs in `%LOCALAPPDATA%\NexaDock\logs\`.
 
-## Known limitations (Phase 2)
+## Known limitations (Phase 3)
+
+- **Crowded bars:** when the widgets don't fit on a full-width bar, the tiles that would be cut off
+  at the right end are hidden. Use the S size, fewer widgets or another profile.
+- **Calendar events (Outlook/Google) are not shown yet.** They need an account sign-in (OAuth) and
+  are planned for Phase 4.
+- **Audio output device:** the Volume widget changes the default device but cannot switch to
+  another device. Windows has no documented API for that.
+- **Brightness:**
+  - External monitors need DDC/CI switched on in their own on-screen menu.
+  - Some monitors answer slowly.
+- **Untested on this machine:**
+  - Brightness changes: the widget lists displays, but I did not move the sliders on your monitor.
+  - Toggling the Wi-Fi/Bluetooth radios.
+  - Emptying the Recycle Bin: it deletes data, so I left it for you.
+  - Pulse alerts for battery and disk: there is no battery here and the disk is not full. The rules
+    are unit-tested.
 
 - **Native corners:** with the native blur, the bar uses the DWM corner radius (~8 px). The fully
   rounded pill shape exists only in the translucent fallback.

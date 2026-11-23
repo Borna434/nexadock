@@ -19,6 +19,38 @@ public sealed class BoolToVisibilityConverter : IValueConverter
         value is Visibility v && (v == Visibility.Visible) ^ Invert;
 }
 
+public sealed class NonEmptyToVisibilityConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture) =>
+        string.IsNullOrEmpty(value as string) ? Visibility.Collapsed : Visibility.Visible;
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => Binding.DoNothing;
+}
+
+public sealed class NotNullToVisibilityConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture) =>
+        value is null ? Visibility.Collapsed : Visibility.Visible;
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => Binding.DoNothing;
+}
+
+public sealed class InverseBoolConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture) => value is not true;
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => value is not true;
+}
+
+/// <summary>Visible only when every bound boolean is false.</summary>
+public sealed class AllFalseToVisibilityConverter : IMultiValueConverter
+{
+    public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture) =>
+        values.All(v => v is false) ? Visibility.Visible : Visibility.Collapsed;
+
+    public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture) => [];
+}
+
 /// <summary>Maps 0..100 to a 0..1 scale factor (for progress bars drawn with ScaleTransform).</summary>
 public sealed class PercentToScaleConverter : IValueConverter
 {

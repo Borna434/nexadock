@@ -16,8 +16,12 @@ public static class SettingsNormalizer
         var d = DockSettings.Default;
         var city = (settings.WeatherCity ?? string.Empty).Trim();
 
-        return settings with
+        var normalized = settings with
         {
+            Language = Enum.IsDefined(settings.Language) ? settings.Language : d.Language,
+            FocusMinutes = Math.Clamp(settings.FocusMinutes, SettingsLimits.MinFocusMinutes, SettingsLimits.MaxFocusMinutes),
+            ShortBreakMinutes = Math.Clamp(settings.ShortBreakMinutes, SettingsLimits.MinBreakMinutes, SettingsLimits.MaxBreakMinutes),
+            LongBreakMinutes = Math.Clamp(settings.LongBreakMinutes, SettingsLimits.MinBreakMinutes, SettingsLimits.MaxBreakMinutes),
             SchemaVersion = DockSettings.CurrentSchemaVersion,
             Edge = Enum.IsDefined(settings.Edge) ? settings.Edge : d.Edge,
             Size = Enum.IsDefined(settings.Size) ? settings.Size : d.Size,
@@ -30,6 +34,75 @@ public static class SettingsNormalizer
             Shortcuts = NormalizeShortcuts(settings.Shortcuts),
             Widgets = NormalizeWidgets(settings.Widgets),
         };
+
+        return NormalizeProfiles(normalized);
+    }
+
+    public const string DefaultProfileId = "default";
+
+    /// <summary>
+    /// Guarantees at least one profile, valid active/default IDs, and that the active profile holds
+    /// exactly the current <see cref="DockSettings.Widgets"/> (one source of truth for the bar).
+    /// </summary>
+    private static DockSettings NormalizeProfiles(DockSettings s)
+    {
+        var ids = new HashSet<string>(StringComparer.Ordinal);
+        var profiles = new List<DockProfile>();
+
+        foreach (var p in s.Profiles ?? [])
+        {
+            if (p is null || profiles.Count >= SettingsLimits.MaxProfiles)
+            {
+                continue;
+            }
+
+            var id = string.IsNullOrWhiteSpace(p.Id) || !ids.Add(p.Id) ? NewUniqueId(ids) : p.Id;
+            var name = string.IsNullOrWhiteSpace(p.Name) ? "Profile" : p.Name.Trim();
+            if (name.Length > SettingsLimits.MaxProfileNameLength)
+            {
+                name = name[..SettingsLimits.MaxProfileNameLength];
+            }
+
+            profiles.Add(new DockProfile(id, name, NormalizeWidgets(p.Widgets), NormalizeTrigger(p.Trigger)));
+        }
+
+        if (profiles.Count == 0)
+        {
+            profiles.Add(new DockProfile(DefaultProfileId, "Everyday", s.Widgets, ProfileTrigger.None));
+        }
+
+        var active = profiles.Any(p => p.Id == s.ActiveProfileId) ? s.ActiveProfileId! : profiles[0].Id;
+        var fallback = profiles.Any(p => p.Id == s.DefaultProfileId) ? s.DefaultProfileId! : active;
+
+        var index = profiles.FindIndex(p => p.Id == active);
+        profiles[index] = profiles[index] with { Widgets = s.Widgets };
+
+        return s with { Profiles = profiles, ActiveProfileId = active, DefaultProfileId = fallback };
+    }
+
+    internal static ProfileTrigger NormalizeTrigger(ProfileTrigger? t)
+    {
+        if (t is null)
+        {
+            return ProfileTrigger.None;
+        }
+
+        var days = (t.Days ?? []).Where(Enum.IsDefined).Distinct().OrderBy(x => ((int)x + 6) % 7).ToList();
+        var apps = (t.Apps ?? [])
+            .Select(a => (a ?? string.Empty).Trim())
+            .Select(a => a.Contains('\\') || a.Contains('/') ? Path.GetFileName(a) : a)
+            .Where(a => a.Length > 0)
+            .Select(a => a.ToLowerInvariant())
+            .Distinct()
+            .Take(SettingsLimits.MaxTriggerApps)
+            .ToList();
+
+        return new ProfileTrigger(
+            t.ScheduleEnabled,
+            Math.Clamp(t.FromMinutes, 0, 1439),
+            Math.Clamp(t.ToMinutes, 0, 1439),
+            days,
+            apps);
     }
 
     internal static double Clamp(double value, double min, double max, double fallback) =>

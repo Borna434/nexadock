@@ -65,8 +65,17 @@ public static class SettingsSerializer
                 LaunchAtStartup = ReadBool(root, nameof(DockSettings.LaunchAtStartup)) ?? d.LaunchAtStartup,
                 TaskbarStateBeforeReplace = ReadInt(root, nameof(DockSettings.TaskbarStateBeforeReplace)),
                 WeatherCity = ReadString(root, nameof(DockSettings.WeatherCity)) ?? d.WeatherCity,
+                Language = ReadEnum(root, nameof(DockSettings.Language), d.Language),
+                PulseEnabled = ReadBool(root, nameof(DockSettings.PulseEnabled)) ?? d.PulseEnabled,
+                FocusMinutes = ReadInt(root, nameof(DockSettings.FocusMinutes)) ?? d.FocusMinutes,
+                ShortBreakMinutes = ReadInt(root, nameof(DockSettings.ShortBreakMinutes)) ?? d.ShortBreakMinutes,
+                LongBreakMinutes = ReadInt(root, nameof(DockSettings.LongBreakMinutes)) ?? d.LongBreakMinutes,
                 WidgetsInitialized = ReadBool(root, nameof(DockSettings.WidgetsInitialized)) ?? d.WidgetsInitialized,
                 Widgets = ReadWidgets(root),
+                Profiles = ReadProfiles(root),
+                ActiveProfileId = ReadString(root, nameof(DockSettings.ActiveProfileId)),
+                DefaultProfileId = ReadString(root, nameof(DockSettings.DefaultProfileId)),
+                AutoSwitchProfiles = ReadBool(root, nameof(DockSettings.AutoSwitchProfiles)) ?? d.AutoSwitchProfiles,
                 ShortcutsInitialized = ReadBool(root, nameof(DockSettings.ShortcutsInitialized)) ?? d.ShortcutsInitialized,
                 Shortcuts = ReadShortcuts(root),
             };
@@ -130,7 +139,63 @@ public static class SettingsSerializer
         return fallback;
     }
 
-    private static IReadOnlyList<WidgetPlacement> ReadWidgets(JsonElement root)
+    private static IReadOnlyList<DockProfile> ReadProfiles(JsonElement root)
+    {
+        if (!TryGet(root, nameof(DockSettings.Profiles), out var arr) || arr.ValueKind != JsonValueKind.Array)
+        {
+            return Array.Empty<DockProfile>();
+        }
+
+        var list = new List<DockProfile>();
+        foreach (var item in arr.EnumerateArray())
+        {
+            if (item.ValueKind != JsonValueKind.Object)
+            {
+                continue;
+            }
+
+            var trigger = ProfileTrigger.None;
+            if (TryGet(item, nameof(DockProfile.Trigger), out var t) && t.ValueKind == JsonValueKind.Object)
+            {
+                var days = new List<DayOfWeek>();
+                if (TryGet(t, nameof(ProfileTrigger.Days), out var dayArr) && dayArr.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var day in dayArr.EnumerateArray())
+                    {
+                        if (day.ValueKind == JsonValueKind.String && Enum.TryParse<DayOfWeek>(day.GetString(), true, out var parsed))
+                        {
+                            days.Add(parsed);
+                        }
+                    }
+                }
+
+                var apps = new List<string>();
+                if (TryGet(t, nameof(ProfileTrigger.Apps), out var appArr) && appArr.ValueKind == JsonValueKind.Array)
+                {
+                    apps.AddRange(appArr.EnumerateArray().Where(a => a.ValueKind == JsonValueKind.String).Select(a => a.GetString()!));
+                }
+
+                trigger = new ProfileTrigger(
+                    ReadBool(t, nameof(ProfileTrigger.ScheduleEnabled)) ?? false,
+                    ReadInt(t, nameof(ProfileTrigger.FromMinutes)) ?? ProfileTrigger.None.FromMinutes,
+                    ReadInt(t, nameof(ProfileTrigger.ToMinutes)) ?? ProfileTrigger.None.ToMinutes,
+                    days,
+                    apps);
+            }
+
+            list.Add(new DockProfile(
+                ReadString(item, nameof(DockProfile.Id)) ?? string.Empty,
+                ReadString(item, nameof(DockProfile.Name)) ?? string.Empty,
+                ReadWidgetArray(item),
+                trigger));
+        }
+
+        return list;
+    }
+
+    private static IReadOnlyList<WidgetPlacement> ReadWidgets(JsonElement root) => ReadWidgetArray(root);
+
+    private static IReadOnlyList<WidgetPlacement> ReadWidgetArray(JsonElement root)
     {
         if (!TryGet(root, nameof(DockSettings.Widgets), out var arr) || arr.ValueKind != JsonValueKind.Array)
         {

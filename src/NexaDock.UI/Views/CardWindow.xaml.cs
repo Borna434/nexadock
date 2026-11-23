@@ -118,8 +118,56 @@ public partial class CardWindow : Window
         _outsideClicks ??= _host.ObserveMouseDown(CheckDismiss);
     }
 
+    private bool _keyboard;
+
+    protected override void OnPreviewMouseLeftButtonDown(System.Windows.Input.MouseButtonEventArgs e)
+    {
+        base.OnPreviewMouseLeftButtonDown(e);
+
+        // Typing needs a focusable window: switch on keyboard input only when a text field is clicked.
+        if (!_keyboard && Current?.WantsKeyboard == true && FindTextBox(e.OriginalSource as DependencyObject) is { } box)
+        {
+            _keyboard = true;
+            _host.SetKeyboardInput(_hwnd, true);
+            Activate();
+            box.Focus();
+            System.Windows.Input.Keyboard.Focus(box);
+        }
+    }
+
+    protected override void OnPreviewKeyDown(System.Windows.Input.KeyEventArgs e)
+    {
+        base.OnPreviewKeyDown(e);
+        if (e.Key == System.Windows.Input.Key.Escape)
+        {
+            CloseCard();
+            e.Handled = true;
+        }
+    }
+
+    private static System.Windows.Controls.Primitives.TextBoxBase? FindTextBox(DependencyObject? d)
+    {
+        while (d is not null)
+        {
+            if (d is System.Windows.Controls.Primitives.TextBoxBase t)
+            {
+                return t;
+            }
+
+            d = d is Visual ? VisualTreeHelper.GetParent(d) : LogicalTreeHelper.GetParent(d);
+        }
+
+        return null;
+    }
+
     public void CloseCard()
     {
+        if (_keyboard)
+        {
+            _keyboard = false;
+            _host.SetKeyboardInput(_hwnd, false);
+        }
+
         _outsideClicks?.Dispose();
         _outsideClicks = null;
         if (Current is { } widget)

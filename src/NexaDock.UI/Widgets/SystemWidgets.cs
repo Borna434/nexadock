@@ -6,6 +6,8 @@ using NexaDock.Core.Abstractions;
 using NexaDock.Core.Models;
 using NexaDock.Core.Widgets;
 
+using NexaDock.UI.Localization;
+
 namespace NexaDock.UI.Widgets;
 
 /// <summary>CPU and memory rings; the card lists the busiest apps.</summary>
@@ -50,8 +52,8 @@ public sealed partial class SystemWidget : WidgetViewModel
         Memory = s.MemoryPercent;
         CpuText = $"{s.CpuPercent:0}%";
         MemoryText = $"{s.MemoryPercent:0}%";
-        MemoryDetail = $"{s.MemoryUsedBytes / 1073741824.0:0.0} of {s.MemoryTotalBytes / 1073741824.0:0} GB";
-        Uptime = s.Uptime.TotalDays >= 1 ? $"Up {(int)s.Uptime.TotalDays} d {s.Uptime.Hours} h" : $"Up {s.Uptime.Hours} h {s.Uptime.Minutes} min";
+        MemoryDetail = Loc.F("system.memoryOf", s.MemoryUsedBytes / 1073741824.0, s.MemoryTotalBytes / 1073741824.0);
+        Uptime = s.Uptime.TotalDays >= 1 ? Loc.F("system.uptimeDays", (int)s.Uptime.TotalDays, s.Uptime.Hours) : Loc.F("system.uptimeHours", s.Uptime.Hours, s.Uptime.Minutes);
 
         if (IsCardOpen)
         {
@@ -121,7 +123,7 @@ public sealed partial class ControlCenterWidget : WidgetViewModel
     {
         var online = _monitor.IsNetworkAvailable();
         NetworkGlyph = WidgetCatalog.Glyph(online ? 0xE701 : 0xEB55);
-        NetworkText = online ? "Connected" : "No internet";
+        NetworkText = Loc.T(online ? "control.connected" : "control.offline");
 
         var power = _monitor.GetPower();
         HasBattery = power.HasBattery;

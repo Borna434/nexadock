@@ -6,6 +6,8 @@ using CommunityToolkit.Mvvm.Input;
 using NexaDock.Core.Abstractions;
 using NexaDock.Core.Models;
 
+using NexaDock.UI.Localization;
+
 namespace NexaDock.UI.Widgets;
 
 /// <summary>Shared one-second tick aligned to wall-clock seconds.</summary>
@@ -84,7 +86,7 @@ public sealed partial class ClockWidget : WidgetViewModel
         Date = now.ToString("ddd d MMM", culture);
         LongTime = _use24 ? now.ToString("HH:mm:ss", culture) : now.ToString("h:mm:ss tt", CultureInfo.InvariantCulture);
         LongDate = now.ToString("D", culture);
-        WeekText = $"Week {ISOWeek.GetWeekOfYear(now)} · day {now.DayOfYear} of {(DateTime.IsLeapYear(now.Year) ? 366 : 365)}";
+        WeekText = Loc.F("clock.week", ISOWeek.GetWeekOfYear(now), now.DayOfYear, DateTime.IsLeapYear(now.Year) ? 366 : 365);
         if (Calendar.Today != DateOnly.FromDateTime(now))
         {
             Calendar.GoToToday();
@@ -93,6 +95,12 @@ public sealed partial class ClockWidget : WidgetViewModel
 
     [RelayCommand]
     private void OpenDateTimeSettings() => _shell.OpenDateTimeSettings();
+
+    public override void OnLanguageChanged()
+    {
+        Calendar.GoToToday();
+        Update();
+    }
 
     public override void OnCardOpened() => Calendar.GoToToday();
 
@@ -135,6 +143,12 @@ public sealed partial class CalendarWidget : WidgetViewModel
         {
             Calendar.GoToToday();
         }
+    }
+
+    public override void OnLanguageChanged()
+    {
+        Calendar.GoToToday();
+        Update();
     }
 
     public override void OnCardOpened() => Calendar.GoToToday();
@@ -249,7 +263,7 @@ public sealed partial class DayProgressWidget : WidgetViewModel
         Year = (now - yearStart).TotalHours / ((DateTime.IsLeapYear(now.Year) ? 366 : 365) * 24) * 100;
         DayText = $"{Day:0}%";
         var left = now.Date.AddDays(1) - now;
-        RemainingText = $"{(int)left.TotalHours} h {left.Minutes} min left today";
+        RemainingText = Loc.F("progress.left", (int)left.TotalHours, left.Minutes);
     }
 
     public override void Dispose()

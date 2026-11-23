@@ -1,6 +1,7 @@
 using Microsoft.Data.Sqlite;
 using NexaDock.Core.Abstractions;
 using NexaDock.Core.Models;
+using NexaDock.Core.Settings;
 using NexaDock.Infrastructure.Storage;
 
 namespace NexaDock.Tests;
@@ -41,7 +42,7 @@ public sealed class SqliteSettingsStoreTests : IDisposable
         var loaded = new SqliteSettingsStore(DbPath).Load();
 
         Assert.Equal(SettingsLoadStatus.Loaded, loaded.Status);
-        Assert.Equal(saved, loaded.Settings);
+        Assert.Equal(SettingsNormalizer.Normalize(saved), loaded.Settings);
     }
 
     [Fact]

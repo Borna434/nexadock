@@ -7,6 +7,7 @@ using NexaDock.Core.Abstractions;
 using NexaDock.Core.Layout;
 using NexaDock.Core.Models;
 using NexaDock.Core.Theming;
+using NexaDock.UI.Services;
 using NexaDock.UI.Theming;
 using NexaDock.UI.Widgets;
 
@@ -22,14 +23,47 @@ public sealed partial class DockViewModel : ObservableObject, IDisposable
     private double _scale = 1.0;
     private bool _started;
 
-    public DockViewModel(ISettingsService settings, WidgetFactory factory, IAppShell shell, ILogger<DockViewModel> logger)
+    private readonly PulseCenter _pulse;
+
+    public DockViewModel(ISettingsService settings, WidgetFactory factory, IAppShell shell, PulseCenter pulse, ILogger<DockViewModel> logger)
     {
         _settings = settings;
         _factory = factory;
         _shell = shell;
+        _pulse = pulse;
         _logger = logger;
         _settings.Changed += OnSettingsChanged;
+        _pulse.Changed += (_, _) => UpdatePulseGlow();
+        Localization.Loc.LanguageChanged += (_, _) =>
+        {
+            foreach (var w in Widgets)
+            {
+                w.OnLanguageChanged();
+                w.ApplySettings(_settings.Current);
+            }
+        };
         ApplyAppearance(_settings.Current);
+    }
+
+    public PulseCenter Pulse => _pulse;
+
+    /// <summary>Profiles for the bar's quick menu.</summary>
+    public IReadOnlyList<DockProfile> Profiles => _settings.Current.Profiles;
+
+    public string? ActiveProfileId => _settings.Current.ActiveProfileId;
+
+    /// <summary>Manual choice: becomes the default profile and is applied right away.</summary>
+    public void SelectProfile(string id) =>
+        _settings.Update(s => Core.Profiles.ProfileEngine.Activate(s, id) with { DefaultProfileId = id });
+
+    public void SetAutoSwitch(bool enabled) => _settings.Update(s => s with { AutoSwitchProfiles = enabled });
+
+    private void UpdatePulseGlow()
+    {
+        foreach (var w in Widgets)
+        {
+            w.IsPulsing = w.TypeId != Core.Widgets.WidgetTypes.Pulse && _pulse.IsActiveFor(w.TypeId);
+        }
     }
 
     public ObservableCollection<WidgetViewModel> Widgets { get; } = [];
@@ -210,6 +244,8 @@ public sealed partial class DockViewModel : ObservableObject, IDisposable
                 existing.ApplySettings(s);
             }
         }
+
+        UpdatePulseGlow();
     }
 
     public void Dispose()

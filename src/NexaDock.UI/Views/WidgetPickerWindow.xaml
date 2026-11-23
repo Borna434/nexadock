@@ -4,9 +4,10 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:NexaDock.UI.ViewModels"
+        xmlns:l="clr-namespace:NexaDock.UI.Localization"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance vm:WidgetPickerViewModel}"
-        Title="NexaDock Widgets"
+        Title="{l:Loc picker.title}"
         ThemeMode="System"
         Width="900" Height="660" MinWidth="680" MinHeight="420"
         WindowStartupLocation="CenterScreen"
@@ -24,16 +25,16 @@
         </Grid.ColumnDefinitions>
 
         <StackPanel Grid.ColumnSpan="2">
-            <TextBlock Text="Widgets" FontSize="26" FontWeight="SemiBold" />
-            <TextBlock Text="Pick what lives on your bar. Changes apply instantly; drag tiles on the bar to reorder them."
+            <TextBlock Text="{l:Loc picker.heading}" FontSize="26" FontWeight="SemiBold" />
+            <TextBlock Text="{l:Loc picker.intro}"
                        Opacity="0.72" FontSize="13" Margin="0,2,0,14" TextWrapping="Wrap" />
         </StackPanel>
 
         <TextBox Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,14"
-                 AutomationProperties.Name="Search widgets" Tag="Search widgets" />
+                 AutomationProperties.Name="{l:Loc picker.search}" />
 
         <ListBox Grid.Row="2" ItemsSource="{Binding Categories}" SelectedItem="{Binding SelectedCategory}" Margin="0,0,16,0"
-                 AutomationProperties.Name="Categories" />
+                 DisplayMemberPath="Label" AutomationProperties.Name="{l:Loc picker.categories}" />
 
         <ScrollViewer Grid.Row="2" Grid.Column="1" VerticalScrollBarVisibility="Auto">
             <ItemsControl ItemsSource="{Binding Visible}">
@@ -60,7 +61,7 @@
                                     <TextBlock Text="{Binding Description}" Opacity="0.72" FontSize="12" TextWrapping="Wrap" Margin="0,2,0,10" MinHeight="32" />
                                     <StackPanel Orientation="Horizontal">
                                         <Button x:Name="Action" Content="{Binding ActionText}" Command="{Binding ToggleCommand}" MinWidth="84" />
-                                        <Button Content="Add another" Command="{Binding AddAnotherCommand}" Margin="8,0,0,0" x:Name="Another" Visibility="Collapsed" />
+                                        <Button Content="{l:Loc picker.addAnother}" Command="{Binding AddAnotherCommand}" Margin="8,0,0,0" x:Name="Another" Visibility="Collapsed" />
                                     </StackPanel>
                                 </StackPanel>
                             </Grid>
@@ -86,8 +87,8 @@
         </ScrollViewer>
 
         <Grid Grid.Row="3" Grid.ColumnSpan="2" Margin="0,14,0,0">
-            <Button Content="Restore default layout" Command="{Binding RestoreDefaultLayoutCommand}" HorizontalAlignment="Left" />
-            <Button Content="Done" MinWidth="96" HorizontalAlignment="Right" IsCancel="True" Click="OnDoneClick" Style="{DynamicResource AccentButtonStyle}" />
+            <Button Content="{l:Loc picker.restore}" Command="{Binding RestoreDefaultLayoutCommand}" HorizontalAlignment="Left" />
+            <Button Content="{l:Loc common.done}" MinWidth="96" HorizontalAlignment="Right" IsCancel="True" Click="OnDoneClick" Style="{DynamicResource AccentButtonStyle}" />
         </Grid>
     </Grid>
 </Window>
