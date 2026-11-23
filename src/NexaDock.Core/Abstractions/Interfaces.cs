@@ -89,6 +89,20 @@ public interface IBackdropService
     void SetRoundedCorners(IntPtr hwnd, bool rounded);
 }
 
+/// <summary>The system-wide shortcut that opens the launcher.</summary>
+public interface IGlobalHotkey
+{
+    event EventHandler? Pressed;
+
+    /// <summary>False when another app already uses the combination.</summary>
+    bool Register(LauncherHotkey hotkey);
+
+    /// <summary>Whether the last registration succeeded (false while off or taken).</summary>
+    bool IsRegistered { get; }
+
+    void Unregister();
+}
+
 /// <summary>Copies a small region of the screen (for the refraction rim).</summary>
 public interface IScreenStripCapture
 {
@@ -434,6 +448,9 @@ public interface IAppShell
 
     /// <param name="tab">Settings tab to open ("calendar"); null keeps the last one.</param>
     void ShowSettings(string? tab = null);
+
+    /// <summary>Opens (or closes) the launcher: search apps, files and quick answers.</summary>
+    void ToggleLauncher();
 
     /// <summary>Closes NexaDock cleanly and starts it again (after a restore or an update).</summary>
     void Restart();

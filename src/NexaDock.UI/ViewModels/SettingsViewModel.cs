@@ -230,6 +230,19 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     [ObservableProperty] private double _edgeOffset;
     [ObservableProperty] private bool _reducedMotion;
     [ObservableProperty] private bool _liquidRefraction;
+    [ObservableProperty] private LauncherHotkeyOption? _selectedLauncherHotkey;
+
+    /// <summary>Shortcuts the launcher can use.</summary>
+    public IReadOnlyList<LauncherHotkeyOption> LauncherHotkeys { get; } =
+        Enum.GetValues<LauncherHotkey>().Select(h => new LauncherHotkeyOption(h)).ToList();
+
+    partial void OnSelectedLauncherHotkeyChanged(LauncherHotkeyOption? value)
+    {
+        if (value is not null)
+        {
+            Apply(s => s with { LauncherHotkey = value.Value });
+        }
+    }
     [ObservableProperty] private bool _use24HourClock;
     [ObservableProperty] private bool _replaceTaskbar;
     /// <summary>Update check and install (the About tab).</summary>
@@ -540,6 +553,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
             EdgeOffset = s.EdgeOffset;
             ReducedMotion = s.ReducedMotion;
             LiquidRefraction = s.LiquidRefraction;
+            SelectedLauncherHotkey = LauncherHotkeys.FirstOrDefault(h => h.Value == s.LauncherHotkey);
             Use24HourClock = s.Use24HourClock;
             ReplaceTaskbar = s.ReplaceTaskbar;
             HideInFullscreen = s.HideInFullscreen;
@@ -604,3 +618,14 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
 
 /// <summary>Where local data lives; supplied by the composition root.</summary>
 public sealed record AppDataLocation(string Directory);
+
+public sealed record LauncherHotkeyOption(LauncherHotkey Value)
+{
+    public string Label => Value switch
+    {
+        LauncherHotkey.Off => Loc.T("hotkey.Off"),
+        LauncherHotkey.CtrlAltSpace => Loc.T("hotkey.CtrlAltSpace"),
+        LauncherHotkey.WinShiftSpace => Loc.T("hotkey.WinShiftSpace"),
+        _ => Loc.T("hotkey.AltSpace"),
+    };
+}

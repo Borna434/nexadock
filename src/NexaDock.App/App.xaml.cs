@@ -107,6 +107,11 @@ public partial class App : Application
         services.AddSingleton<NexaDock.Core.Calendar.ICalendarSource, NexaDock.Infrastructure.Calendar.IcsCalendarSource>();
         services.AddSingleton<NexaDock.Core.Calendar.IGoogleCalendarService, NexaDock.Infrastructure.Calendar.GoogleCalendarClient>();
         services.AddSingleton<CalendarFeed>();
+        services.AddSingleton<NexaDock.Core.Launcher.IAppIndex, ShellAppIndex>();
+        services.AddSingleton<NexaDock.Core.Launcher.IFileSearch, WindowsFileSearch>();
+        services.AddSingleton<IGlobalHotkey, GlobalHotkeyService>();
+        services.AddSingleton<LauncherViewModel>();
+        services.AddSingleton<LauncherWindow>();
         services.AddSingleton<NexaDock.Core.Updates.IUpdateSource, NexaDock.Infrastructure.Updates.GitHubUpdateSource>();
         services.AddSingleton<UpdateService>();
         services.AddSingleton<TrayIconHost>();
@@ -175,6 +180,7 @@ public partial class App : Application
         shell.ShowDock();
         _host.Services.GetRequiredService<BarManager>().Start();
         _host.Services.GetRequiredService<UpdateService>().Start();
+        StartLauncherShortcut(settingsService, shell);
         _host.Services.GetRequiredService<TrayIconService>().Show();
         ApplyTrayTexts();
         _host.Services.GetRequiredService<ProfileCoordinator>().Start();
@@ -333,6 +339,21 @@ public partial class App : Application
     {
         _logger?.LogError(e.Exception, "Unhandled UI exception.");
         e.Handled = true; // keep the dock alive; the error is logged
+    }
+
+    /// <summary>The global shortcut opens the launcher; it follows the setting live.</summary>
+    private void StartLauncherShortcut(ISettingsService settings, AppShell shell)
+    {
+        var hotkey = _host!.Services.GetRequiredService<IGlobalHotkey>();
+        hotkey.Pressed += (_, _) => shell.ToggleLauncher();
+        hotkey.Register(settings.Current.LauncherHotkey);
+        settings.Changed += (_, args) =>
+        {
+            if (args.Previous.LauncherHotkey != args.Current.LauncherHotkey)
+            {
+                hotkey.Register(args.Current.LauncherHotkey);
+            }
+        };
     }
 
     protected override void OnExit(ExitEventArgs e)

@@ -105,6 +105,9 @@ public sealed record DockSettings
     /// </summary>
     public bool LiquidRefraction { get; init; }
 
+    /// <summary>Shortcut for the launcher (apps, files, calculator, unit conversion, web).</summary>
+    public LauncherHotkey LauncherHotkey { get; init; } = LauncherHotkey.AltSpace;
+
     public bool Use24HourClock { get; init; } = true;
 
     public AppLanguage Language { get; init; } = AppLanguage.System;
@@ -181,6 +184,7 @@ public sealed record DockSettings
         && Opacity.Equals(other.Opacity)
         && ReducedMotion == other.ReducedMotion
         && LiquidRefraction == other.LiquidRefraction
+        && LauncherHotkey == other.LauncherHotkey
         && Use24HourClock == other.Use24HourClock
         && Language == other.Language
         && ReplaceTaskbar == other.ReplaceTaskbar

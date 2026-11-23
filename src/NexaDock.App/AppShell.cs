@@ -103,6 +103,8 @@ public sealed class AppShell : IAppShell
     public void Notify(string title, string message) =>
         _services.GetRequiredService<TrayIconService>().ShowNotification(title, message, isError: false);
 
+    public void ToggleLauncher() => _services.GetRequiredService<LauncherWindow>().Toggle();
+
     public void Restart()
     {
         _logger.LogInformation("Restart requested.");

@@ -26,6 +26,7 @@ public static class SettingsNormalizer
             Edge = Enum.IsDefined(settings.Edge) ? settings.Edge : d.Edge,
             Size = Enum.IsDefined(settings.Size) ? settings.Size : d.Size,
             Theme = Enum.IsDefined(settings.Theme) ? settings.Theme : d.Theme,
+            LauncherHotkey = Enum.IsDefined(settings.LauncherHotkey) ? settings.LauncherHotkey : d.LauncherHotkey,
             MonitorDeviceName = string.IsNullOrWhiteSpace(settings.MonitorDeviceName) ? null : settings.MonitorDeviceName.Trim(),
             Spacing = Clamp(settings.Spacing, SettingsLimits.MinSpacing, SettingsLimits.MaxSpacing, d.Spacing),
             Opacity = Clamp(settings.Opacity, SettingsLimits.MinOpacity, SettingsLimits.MaxOpacity, d.Opacity),

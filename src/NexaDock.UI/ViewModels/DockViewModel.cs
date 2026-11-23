@@ -188,6 +188,9 @@ public sealed partial class DockViewModel : ObservableObject, IDisposable
     private void OpenSettings() => _shell.ShowSettings();
 
     [RelayCommand]
+    private void OpenLauncher() => _shell.ToggleLauncher();
+
+    [RelayCommand]
     private void OpenWidgets() => _shell.ShowWidgetPicker(Target.Display);
 
     [RelayCommand]

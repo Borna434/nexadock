@@ -748,6 +748,7 @@ public partial class DockWindow : Window
             menu.Items.Add(profiles);
         }
 
+        menu.Items.Add(Item(Loc.T("menu.search"), () => _viewModel.OpenLauncherCommand.Execute(null)));
         menu.Items.Add(Item(Loc.T("menu.widgets"), () => _viewModel.OpenWidgetsCommand.Execute(null)));
         menu.Items.Add(Item(Loc.T("menu.arrange"), _viewModel.ArrangeWidgets));
         menu.Items.Add(Item(Loc.T("menu.settings"), () => _viewModel.OpenSettingsCommand.Execute(null)));

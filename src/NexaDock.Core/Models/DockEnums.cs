@@ -22,6 +22,15 @@ public enum DockThemeId
     Pearl = 4,
 }
 
+/// <summary>Shortcut that opens the launcher (search for apps, files and quick answers).</summary>
+public enum LauncherHotkey
+{
+    Off = 0,
+    AltSpace = 1,
+    CtrlAltSpace = 2,
+    WinShiftSpace = 3,
+}
+
 /// <summary>How the bar surface is rendered.</summary>
 public enum BackdropKind
 {
