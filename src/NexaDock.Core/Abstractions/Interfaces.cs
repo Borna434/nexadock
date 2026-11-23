@@ -84,6 +84,9 @@ public interface IBackdropService
     bool TryApply(IntPtr hwnd, BackdropOptions options);
 
     void SetDarkMode(IntPtr hwnd, bool dark);
+
+    /// <summary>Rounded window corners (floating bar) or square ones (bar flush with the edges).</summary>
+    void SetRoundedCorners(IntPtr hwnd, bool rounded);
 }
 
 /// <summary>Native window behaviour for the bar and its pop-ups.</summary>

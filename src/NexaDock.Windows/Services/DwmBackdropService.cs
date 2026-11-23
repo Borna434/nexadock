@@ -40,6 +40,17 @@ public sealed class DwmBackdropService : IBackdropService
 
     public BackdropKind PreferredKind { get; }
 
+    public void SetRoundedCorners(IntPtr hwnd, bool rounded)
+    {
+        if (hwnd == IntPtr.Zero)
+        {
+            return;
+        }
+
+        var corner = rounded ? DWMWCP_ROUND : 1 /* DWMWCP_DONOTROUND */;
+        DwmSetWindowAttribute(hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, ref corner, sizeof(int));
+    }
+
     public bool TryApply(IntPtr hwnd, BackdropOptions options)
     {
         if (!Capabilities.SupportsSystemBackdrop || hwnd == IntPtr.Zero)

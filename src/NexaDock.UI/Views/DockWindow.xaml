@@ -97,7 +97,7 @@
         <Border x:Name="Glass" CornerRadius="{Binding CornerRadius}" Background="{Binding Brushes.Tint}" />
         <Border CornerRadius="{Binding CornerRadius}" Background="{Binding Brushes.InnerGlow}" IsHitTestVisible="False" />
         <Border CornerRadius="{Binding CornerRadius}" Background="{Binding Brushes.Sheen}" IsHitTestVisible="False" />
-        <Border CornerRadius="{Binding CornerRadius}" BorderBrush="{Binding Brushes.Rim}" BorderThickness="1" IsHitTestVisible="False" />
+        <Border CornerRadius="{Binding CornerRadius}" BorderBrush="{Binding Brushes.Rim}" BorderThickness="{Binding RimThickness}" IsHitTestVisible="False" />
 
         <ItemsControl x:Name="WidgetHost" ItemsSource="{Binding Widgets}" Margin="{Binding ContentPadding}" Focusable="False">
             <ItemsControl.ItemsPanel>

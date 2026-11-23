@@ -84,7 +84,7 @@ public sealed record DockSettings
     public bool FullWidth { get; init; } = true;
 
     /// <summary>Gap between the bar and the screen edges, in DIPs. 0 = flush like a taskbar.</summary>
-    public double EdgeOffset { get; init; } = 8;
+    public double EdgeOffset { get; init; } = 0;
 
     // ---- Appearance --------------------------------------------------------------------------
     public DockSizePreset Size { get; init; } = DockSizePreset.Medium;

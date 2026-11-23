@@ -102,6 +102,12 @@ public sealed partial class DockViewModel : ObservableObject, IDisposable
     [ObservableProperty] private bool _isFallbackBackdrop;
     [ObservableProperty] private double _spacing = 6;
 
+    /// <summary>Full width with no gap: the bar sits on the screen edge like the Windows taskbar.</summary>
+    [ObservableProperty] private bool _isFlush;
+
+    /// <summary>The rim: all round for a floating bar, one line on the inner side when flush.</summary>
+    [ObservableProperty] private Thickness _rimThickness = new(1);
+
     public BackdropKind Backdrop { get; private set; } = BackdropKind.NativeAcrylic;
 
     /// <summary>Transparent margin (DIPs) around the glass for the fallback drop shadow.</summary>
@@ -206,9 +212,13 @@ public sealed partial class DockViewModel : ObservableObject, IDisposable
         var vertical = (metrics.Height - metrics.TileHeight) / 2;
         ContentPadding = new Thickness(vertical + 1, vertical, vertical + 1, vertical);
         WindowPadding = new Thickness(ShadowPadding);
-        CornerRadius = Backdrop == BackdropKind.NativeAcrylic
-            ? new CornerRadius(8) // matches the DWM rounded-corner clip
-            : new CornerRadius(Math.Round(metrics.Height * 0.36));
+        IsFlush = s.FullWidth && s.EdgeOffset <= 0;
+        RimThickness = !IsFlush ? new Thickness(1) : s.Edge == DockEdge.Top ? new Thickness(0, 0, 0, 1) : new Thickness(0, 1, 0, 0);
+        CornerRadius = IsFlush
+            ? new CornerRadius(0)
+            : Backdrop == BackdropKind.NativeAcrylic
+                ? new CornerRadius(8) // matches the DWM rounded-corner clip
+                : new CornerRadius(Math.Round(metrics.Height * 0.36));
         ReducedMotion = s.ReducedMotion;
 
         var palette = ThemePalettes.Get(s.Theme);

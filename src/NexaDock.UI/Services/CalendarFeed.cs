@@ -150,6 +150,12 @@ public sealed partial class CalendarFeed : ObservableObject
     [RelayCommand]
     private async Task Connect()
     {
+        if (string.IsNullOrWhiteSpace(InputUrl))
+        {
+            InputMessage = Loc.T("calendar.pasteFirst");
+            return;
+        }
+
         if (!CalendarAgenda.TryNormalizeFeedUrl(InputUrl, out var url))
         {
             InputMessage = Loc.T("calendar.invalidUrl");

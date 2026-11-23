@@ -43,6 +43,7 @@ public partial class DockWindow : Window
 
     private IntPtr _hwnd;
     private bool _lastDark;
+    private bool? _lastFlush;
     private bool _repositionQueued;
     private bool _fullscreenHidden;
     private double _lastContentWidth;
@@ -179,6 +180,7 @@ public partial class DockWindow : Window
         }
 
         _host.Attach(_hwnd, isMainBar: true);
+        ApplyTheme(); // corner shape needs the window handle
         _viewModel.Start();
         _contentWatch.Start();
         Reposition();
@@ -228,6 +230,12 @@ public partial class DockWindow : Window
         ThemeResources.Apply(_preview.Resources, _viewModel.CardBrushes, _viewModel.Metrics, _viewModel.Spacing);
         _card.ApplyChrome(_viewModel.IsDarkTheme, _viewModel.ReducedMotion);
         _preview.ApplyChrome(_viewModel.IsDarkTheme);
+
+        if (_hwnd != IntPtr.Zero && _viewModel.Backdrop == BackdropKind.NativeAcrylic && _lastFlush != _viewModel.IsFlush)
+        {
+            _lastFlush = _viewModel.IsFlush;
+            _backdrop.SetRoundedCorners(_hwnd, !_viewModel.IsFlush);
+        }
 
         if (_hwnd != IntPtr.Zero && _viewModel.Backdrop == BackdropKind.NativeAcrylic && _lastDark != _viewModel.IsDarkTheme)
         {
