@@ -123,7 +123,7 @@ public sealed partial class ClaudeWidget : WidgetViewModel
         if (block is not null)
         {
             var left = block.End - now;
-            WindowProgress = Math.Clamp((now - block.Start) / ClaudeUsageCalculator.BlockLength * 100, 0, 100);
+            WindowProgress = Math.Clamp((now - block.Start) / (block.End - block.Start) * 100, 0, 100);
             Headline = ClaudeUsageCalculator.Compact(block.Tokens, culture);
             Subline = Loc.F("claude.resetsIn", Duration(left));
             SessionTokens = ClaudeUsageCalculator.Compact(block.Tokens, culture);

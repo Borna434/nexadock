@@ -12,25 +12,35 @@ public class ClaudeUsageCalculatorTests
         new(Day.AddHours(hours), model, tokens / 2, tokens / 2, 0, 1000, Guid.NewGuid().ToString());
 
     [Fact]
-    public void Block_starts_at_the_full_hour_and_lasts_five_hours()
+    public void Window_resets_five_hours_after_the_first_message_rounded_up_to_the_hour()
     {
-        var blocks = ClaudeUsageCalculator.Blocks([E(9.5), E(10.2), E(13.9)], Day.AddHours(14.5));
+        // As Claude reports it: first message 21:28 → "resets at 3:00".
+        var blocks = ClaudeUsageCalculator.Blocks([E(21 + 28 / 60.0), E(23), E(24.9)], Day.AddHours(26.9));
 
         var b = Assert.Single(blocks);
-        Assert.Equal(Day.AddHours(9), b.Start);
-        Assert.Equal(Day.AddHours(14), b.End);
+        Assert.Equal(Day.AddHours(21 + 28 / 60.0), b.Start);
+        Assert.Equal(Day.AddHours(27), b.End);
         Assert.Equal(3, b.Messages);
-        Assert.False(b.IsActive); // 14:30 is past 14:00
+        Assert.True(b.IsActive); // 02:54 is still before the 03:00 reset
+    }
+
+    [Fact]
+    public void A_window_opened_exactly_on_the_hour_resets_five_hours_later()
+    {
+        Assert.Equal(Day.AddHours(14), ClaudeUsageCalculator.ResetAfter(Day.AddHours(9)));
+        Assert.Equal(Day.AddHours(15), ClaudeUsageCalculator.ResetAfter(Day.AddHours(9.01)));
     }
 
     [Fact]
     public void Message_after_the_window_starts_a_new_block()
     {
-        var blocks = ClaudeUsageCalculator.Blocks([E(9.5), E(14.1), E(15)], Day.AddHours(15.2));
+        // First window 09:30 → resets 15:00; 14:10 still belongs to it, 15:05 opens the next one.
+        var blocks = ClaudeUsageCalculator.Blocks([E(9.5), E(14.1), E(15 + 5 / 60.0)], Day.AddHours(15.2));
 
         Assert.Equal(2, blocks.Count);
-        Assert.Equal(Day.AddHours(14), blocks[1].Start);
-        Assert.Equal(2, blocks[1].Messages);
+        Assert.Equal(2, blocks[0].Messages);
+        Assert.Equal(Day.AddHours(15 + 5 / 60.0), blocks[1].Start);
+        Assert.Equal(Day.AddHours(21), blocks[1].End);
         Assert.True(blocks[1].IsActive);
     }
 

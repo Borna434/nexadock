@@ -207,8 +207,8 @@ than clipping them.
     last line.
   - Entries older than 35 days are dropped.
 - **Calculating (`Core/Usage/ClaudeUsageCalculator`):**
-  - Builds 5-hour windows: each starts at the full hour of its first message and lasts five hours.
-    A message after the window, or after a 5-hour gap, starts a new one.
+  - Builds 5-hour windows like Claude: a window opens with its first message and resets five hours
+    later, rounded up to the next full hour (21:28 → 03:00). A message after the reset opens a new one.
   - Also produces today, the last seven days (local time zone), models, and the busiest window of
     the last 30 days.
   - "Tokens" means input, output and cache writes; cache reads are shown separately.

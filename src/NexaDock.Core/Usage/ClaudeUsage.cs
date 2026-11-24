@@ -60,9 +60,9 @@ public interface IClaudeUsageSource
 }
 
 /// <summary>
-/// Pure aggregation, mirroring how Claude usage windows work: a window starts at the full hour of
-/// the first message and lasts five hours; a message after the window (or after a 5-hour gap)
-/// starts a new one.
+/// Pure aggregation, mirroring how Claude usage windows work: a window opens with the first message
+/// and resets five hours later, rounded up to the next full hour (first message 21:28 → resets at
+/// 03:00, as Claude itself reports); a message after the reset starts a new window.
 /// </summary>
 public static class ClaudeUsageCalculator
 {
@@ -71,7 +71,7 @@ public static class ClaudeUsageCalculator
     public static IReadOnlyList<UsageBlock> Blocks(IEnumerable<ClaudeUsageEntry> entries, DateTimeOffset now)
     {
         var blocks = new List<UsageBlock>();
-        DateTimeOffset start = default, last = default;
+        DateTimeOffset start = default, end = default, last = default;
         long tokens = 0, output = 0, cacheRead = 0;
         var messages = 0;
         var open = false;
@@ -80,18 +80,17 @@ public static class ClaudeUsageCalculator
         {
             if (open)
             {
-                var end = start + BlockLength;
                 blocks.Add(new UsageBlock(start, end, last, tokens, output, cacheRead, messages, now < end && now - last < BlockLength));
             }
         }
 
         foreach (var e in entries.OrderBy(e => e.Timestamp))
         {
-            if (!open || e.Timestamp >= start + BlockLength || e.Timestamp - last >= BlockLength)
+            if (!open || e.Timestamp >= end)
             {
                 Close();
-                var t = e.Timestamp.ToUniversalTime();
-                start = new DateTimeOffset(t.Year, t.Month, t.Day, t.Hour, 0, 0, TimeSpan.Zero);
+                start = e.Timestamp.ToUniversalTime();
+                end = ResetAfter(start);
                 tokens = output = cacheRead = 0;
                 messages = 0;
                 open = true;
@@ -106,6 +105,14 @@ public static class ClaudeUsageCalculator
 
         Close();
         return blocks;
+    }
+
+    /// <summary>Five hours after the window opened, rounded up to the next full hour.</summary>
+    public static DateTimeOffset ResetAfter(DateTimeOffset firstMessage)
+    {
+        var raw = firstMessage.ToUniversalTime() + BlockLength;
+        var hour = new DateTimeOffset(raw.Year, raw.Month, raw.Day, raw.Hour, 0, 0, TimeSpan.Zero);
+        return hour == raw ? hour : hour.AddHours(1);
     }
 
     public static ClaudeUsageSummary Summarize(IReadOnlyList<ClaudeUsageEntry> entries, DateTimeOffset now, TimeZoneInfo zone, bool logsFound = true)
