@@ -26,8 +26,12 @@ public sealed partial class DockViewModel : ObservableObject, IDisposable
 
     private readonly PulseCenter _pulse;
 
-    public DockViewModel(ISettingsService settings, WidgetFactory factory, IAppShell shell, PulseCenter pulse, BarTarget target, ILogger<DockViewModel> logger)
+    private readonly WallpaperAccent _wallpaper;
+
+    public DockViewModel(ISettingsService settings, WidgetFactory factory, IAppShell shell, PulseCenter pulse, BarTarget target, WallpaperAccent wallpaper, ILogger<DockViewModel> logger)
     {
+        _wallpaper = wallpaper;
+        _wallpaper.Changed += OnWallpaperChanged;
         _settings = settings;
         _factory = factory;
         _shell = shell;
@@ -48,6 +52,8 @@ public sealed partial class DockViewModel : ObservableObject, IDisposable
     private IReadOnlyList<WidgetPlacement> Layout(DockSettings s) => BarLayouts.Get(s, Target.Display);
 
     private void OnPulseChanged(object? sender, EventArgs e) => UpdatePulseGlow();
+
+    private void OnWallpaperChanged(object? sender, EventArgs e) => ApplyAppearance(_settings.Current);
 
     private void OnLanguageChanged(object? sender, EventArgs e)
     {
@@ -229,6 +235,13 @@ public sealed partial class DockViewModel : ObservableObject, IDisposable
         ReducedMotion = s.ReducedMotion;
 
         var palette = ThemePalettes.Get(s.Theme);
+
+        // The wallpaper's colour as accent and glow, so the glass matches what is behind it.
+        if (s.AccentFromWallpaper && _wallpaper.Accent is { } accent)
+        {
+            var hex = $"#{accent.R:X2}{accent.G:X2}{accent.B:X2}";
+            palette = palette with { Accent = hex, Glow = hex };
+        }
         Brushes = GlassBrushes.Create(palette, s.Opacity, Backdrop);
         CardBrushes = GlassBrushes.Create(palette, Math.Max(s.Opacity + 0.2, 0.7), Backdrop);
         OnPropertyChanged(nameof(IsDarkTheme));
@@ -294,6 +307,7 @@ public sealed partial class DockViewModel : ObservableObject, IDisposable
     {
         _settings.Changed -= OnSettingsChanged;
         _pulse.Changed -= OnPulseChanged;
+        _wallpaper.Changed -= OnWallpaperChanged;
         Localization.Loc.LanguageChanged -= OnLanguageChanged;
         foreach (var w in Widgets)
         {

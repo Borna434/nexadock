@@ -60,6 +60,7 @@ public static class SettingsSerializer
                 EdgeOffset = ReadDouble(root, nameof(DockSettings.EdgeOffset)) ?? d.EdgeOffset,
                 ReducedMotion = ReadBool(root, nameof(DockSettings.ReducedMotion)) ?? d.ReducedMotion,
                 LiquidRefraction = ReadBool(root, nameof(DockSettings.LiquidRefraction)) ?? d.LiquidRefraction,
+                AccentFromWallpaper = ReadBool(root, nameof(DockSettings.AccentFromWallpaper)) ?? d.AccentFromWallpaper,
                 LauncherHotkey = ReadEnum(root, nameof(DockSettings.LauncherHotkey), d.LauncherHotkey),
                 ClipboardHistory = ReadBool(root, nameof(DockSettings.ClipboardHistory)) ?? d.ClipboardHistory,
                 ClipboardHotkey = ReadBool(root, nameof(DockSettings.ClipboardHotkey)) ?? d.ClipboardHotkey,

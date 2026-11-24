@@ -231,6 +231,9 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     [ObservableProperty] private double _edgeOffset;
     [ObservableProperty] private bool _reducedMotion;
     [ObservableProperty] private bool _liquidRefraction;
+    [ObservableProperty] private bool _accentFromWallpaper;
+
+    partial void OnAccentFromWallpaperChanged(bool value) => Apply(s => s with { AccentFromWallpaper = value });
     [ObservableProperty] private bool _clipboardHistory;
     [ObservableProperty] private bool _clipboardHotkey;
 
@@ -560,6 +563,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
             EdgeOffset = s.EdgeOffset;
             ReducedMotion = s.ReducedMotion;
             LiquidRefraction = s.LiquidRefraction;
+            AccentFromWallpaper = s.AccentFromWallpaper;
             ClipboardHistory = s.ClipboardHistory;
             ClipboardHotkey = s.ClipboardHotkey;
             SelectedLauncherHotkey = LauncherHotkeys.FirstOrDefault(h => h.Value == s.LauncherHotkey);

@@ -105,6 +105,7 @@ public partial class App : Application
         services.AddSingleton<IRadioService, WinRtRadioService>();
         services.AddSingleton<IBrightnessService, BrightnessService>();
         services.AddSingleton<PulseCenter>();
+        services.AddSingleton<WallpaperAccent>();
         services.AddSingleton<NexaDock.Core.Calendar.ICalendarSource, NexaDock.Infrastructure.Calendar.IcsCalendarSource>();
         services.AddSingleton<NexaDock.Core.Calendar.IGoogleCalendarService, NexaDock.Infrastructure.Calendar.GoogleCalendarClient>();
         services.AddSingleton<CalendarFeed>();
@@ -175,6 +176,10 @@ public partial class App : Application
                 Dispatcher.BeginInvoke(() => LocalizeDefaultProfile(settingsService));
             }
         };
+
+        var wallpaper = _host.Services.GetRequiredService<WallpaperAccent>();
+        wallpaper.SetEnabled(settingsService.Current.AccentFromWallpaper);
+        settingsService.Changed += (_, a) => wallpaper.SetEnabled(a.Current.AccentFromWallpaper);
 
         _host.Services.GetRequiredService<TaskbarCoordinator>().Start();
         _host.Services.GetRequiredService<PulseCenter>().Start();

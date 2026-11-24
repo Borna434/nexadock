@@ -105,6 +105,9 @@ public sealed record DockSettings
     /// </summary>
     public bool LiquidRefraction { get; init; }
 
+    /// <summary>Take the accent colour from the desktop wallpaper instead of the style.</summary>
+    public bool AccentFromWallpaper { get; init; } = true;
+
     /// <summary>Shortcut for the launcher (apps, files, calculator, unit conversion, web).</summary>
     public LauncherHotkey LauncherHotkey { get; init; } = LauncherHotkey.AltSpace;
 
@@ -190,6 +193,7 @@ public sealed record DockSettings
         && Opacity.Equals(other.Opacity)
         && ReducedMotion == other.ReducedMotion
         && LiquidRefraction == other.LiquidRefraction
+        && AccentFromWallpaper == other.AccentFromWallpaper
         && LauncherHotkey == other.LauncherHotkey
         && ClipboardHistory == other.ClipboardHistory
         && ClipboardHotkey == other.ClipboardHotkey
