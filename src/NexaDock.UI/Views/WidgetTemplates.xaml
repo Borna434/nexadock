@@ -533,16 +533,20 @@
     <!-- Control center ======================================================================= -->
     <DataTemplate x:Key="ControlCenterWidget.Tile" DataType="{x:Type w:ControlCenterWidget}">
         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-            <StackPanel Orientation="Horizontal" ToolTip="{l:Loc control.quickSettings}" Background="Transparent">
-                <TextBlock Text="{Binding NetworkGlyph}" FontFamily="{StaticResource IconFont}" FontSize="15" Foreground="{DynamicResource Bar.Foreground}"
-                           VerticalAlignment="Center" ToolTip="{Binding NetworkText}" />
-                <TextBlock Text="{Binding VolumeGlyph}" FontFamily="{StaticResource IconFont}" FontSize="15" Foreground="{DynamicResource Bar.Foreground}"
-                           VerticalAlignment="Center" Margin="10,0,0,0" />
-                <StackPanel Orientation="Horizontal" Margin="10,0,0,0" Visibility="{Binding HasBattery, Converter={StaticResource BoolToVisibility}}">
+            <!-- Each icon opens its own Windows flyout. -->
+            <Button Style="{StaticResource Bar.GlyphButton}" Content="{Binding NetworkGlyph}" Command="{Binding OpenNetworkCommand}"
+                    ToolTip="{Binding NetworkText}" Width="30" Height="28" FontSize="15" />
+            <Button Style="{StaticResource Bar.GlyphButton}" Content="{Binding VolumeGlyph}" Command="{Binding OpenSoundCommand}"
+                    ToolTip="{Binding VolumeText}" Width="30" Height="28" FontSize="15" />
+            <Button Style="{StaticResource Bar.PlainButton}" Command="{Binding OpenQuickSettingsCommand}" ToolTip="{Binding BatteryText}"
+                    Height="28" Padding="6,0" Visibility="{Binding HasBattery, Converter={StaticResource BoolToVisibility}}">
+                <StackPanel Orientation="Horizontal">
                     <TextBlock Text="{Binding BatteryGlyph}" FontFamily="{StaticResource IconFont}" FontSize="15" Foreground="{DynamicResource Bar.Foreground}" VerticalAlignment="Center" />
                     <TextBlock Text="{Binding BatteryText}" Style="{StaticResource Bar.SubText}" Margin="4,0,0,0" VerticalAlignment="Center" />
                 </StackPanel>
-            </StackPanel>
+            </Button>
+            <Button Style="{StaticResource Bar.GlyphButton}" Content="&#xE713;" Command="{Binding OpenQuickSettingsCommand}"
+                    ToolTip="{l:Loc control.quickSettings}" Width="28" Height="28" FontSize="13" />
             <Rectangle Width="1" Height="18" Fill="{DynamicResource Bar.Separator}" Margin="10,0,4,0" />
             <Button Style="{StaticResource Bar.GlyphButton}" Content="{Binding BellGlyph}" Command="{Binding OpenNotificationsCommand}"
                     ToolTip="{l:Loc control.notifications}" Width="28" Height="28" />

@@ -64,7 +64,7 @@ public sealed class ShellIconProvider : IIconProvider
             }
             finally
             {
-                System.Runtime.InteropServices.Marshal.FinalReleaseComObject(factory);
+                NexaDock.Windows.Interop.ComRelease.Release(factory, final: true);
             }
         }
         catch (Exception ex) when (ex is System.Runtime.InteropServices.COMException or FileNotFoundException or ArgumentException)

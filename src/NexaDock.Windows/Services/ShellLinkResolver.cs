@@ -28,7 +28,7 @@ public static class ShellLinkResolver
         {
             if (link is not null)
             {
-                Marshal.FinalReleaseComObject(link);
+                NexaDock.Windows.Interop.ComRelease.Release(link, final: true);
             }
         }
     }

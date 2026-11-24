@@ -185,14 +185,9 @@ public partial class App : Application
         _host.Services.GetRequiredService<PulseCenter>().Start();
 
         var shell = _host.Services.GetRequiredService<AppShell>();
-        shell.ShowDock();
-        _host.Services.GetRequiredService<BarManager>().Start();
-        _host.Services.GetRequiredService<UpdateService>().Start();
-        StartLauncherShortcut(settingsService, shell);
-        _host.Services.GetRequiredService<TrayIconService>().Show();
-        ApplyTrayTexts();
-        _host.Services.GetRequiredService<ProfileCoordinator>().Start();
 
+        // Listen for --exit, --settings and "show" first: even if something below fails, the
+        // installer can still close this instance cleanly (and restore the taskbar).
         _showSignal = new EventWaitHandle(false, EventResetMode.AutoReset, ProductInfo.ShowDockEventName);
         _showSignalRegistration = ThreadPool.RegisterWaitForSingleObject(
             _showSignal,
@@ -204,7 +199,7 @@ public partial class App : Application
         _settingsSignal = new EventWaitHandle(false, EventResetMode.AutoReset, ProductInfo.ShowSettingsEventName);
         _settingsSignalRegistration = ThreadPool.RegisterWaitForSingleObject(
             _settingsSignal,
-            (_, _) => Dispatcher.BeginInvoke(shell.ShowSettings),
+            (_, _) => Dispatcher.BeginInvoke(() => shell.ShowSettings()),
             null,
             Timeout.Infinite,
             executeOnlyOnce: false);
@@ -217,6 +212,14 @@ public partial class App : Application
             null,
             Timeout.Infinite,
             executeOnlyOnce: true);
+
+        shell.ShowDock();
+        _host.Services.GetRequiredService<BarManager>().Start();
+        _host.Services.GetRequiredService<UpdateService>().Start();
+        StartLauncherShortcut(settingsService, shell);
+        _host.Services.GetRequiredService<TrayIconService>().Show();
+        ApplyTrayTexts();
+        _host.Services.GetRequiredService<ProfileCoordinator>().Start();
 
         if (e.Args.Contains("--settings", StringComparer.OrdinalIgnoreCase))
         {

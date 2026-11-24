@@ -125,7 +125,7 @@ public sealed class ShortcutCatalog : IShortcutCatalog
             var hr = SHCreateItemFromParsingName(target, IntPtr.Zero, ref _imageFactoryIid, out var item);
             if (item is not null)
             {
-                System.Runtime.InteropServices.Marshal.FinalReleaseComObject(item);
+                NexaDock.Windows.Interop.ComRelease.Release(item, final: true);
             }
 
             return hr >= 0;

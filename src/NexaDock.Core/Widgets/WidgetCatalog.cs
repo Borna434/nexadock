@@ -83,7 +83,7 @@ public static class WidgetCatalog
         new(WidgetTypes.System, "CPU & Memory", WidgetCategory.System,
             "Processor and memory load as rings; opens the busiest apps.", Glyph(0xE9D9)),
         new(WidgetTypes.ControlCenter, "Control Center", WidgetCategory.System,
-            "Network, sound and battery at a glance; opens Quick Settings and notifications.", Glyph(0xE713)),
+            "Network, sound and battery icons, each opening its own Windows flyout; scroll for volume.", Glyph(0xE713)),
         new(WidgetTypes.NowPlaying, "Now Playing", WidgetCategory.Media,
             "Cover art, title and controls for whatever is playing.", Glyph(0xE8D6)),
         new(WidgetTypes.Weather, "Weather", WidgetCategory.Weather,

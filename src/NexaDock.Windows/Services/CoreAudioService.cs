@@ -255,17 +255,11 @@ public sealed class CoreAudioService : IAudioService
         }
         finally
         {
-            Marshal.ReleaseComObject(store);
+            NexaDock.Windows.Interop.ComRelease.Release(store);
         }
     }
 
-    private static void Release(object? com)
-    {
-        if (com is not null && Marshal.IsComObject(com))
-        {
-            Marshal.ReleaseComObject(com);
-        }
-    }
+    private static void Release(object? com) => NexaDock.Windows.Interop.ComRelease.Release(com);
 
     [ComImport]
     [Guid("BCDE0395-E52F-467C-8E3D-C4579291692E")]

@@ -87,25 +87,47 @@ public sealed partial class SystemWidget : WidgetViewModel
     }
 }
 
-/// <summary>Network, volume and battery glyphs; opens Quick Settings and the notification center.</summary>
+/// <summary>
+/// The system icons, each with its own Windows flyout like on the taskbar: network (Wi-Fi list),
+/// sound (output and volume; scroll to change the volume), battery (Quick Settings) and
+/// notifications.
+/// </summary>
 public sealed partial class ControlCenterWidget : WidgetViewModel
 {
     private readonly ISystemMonitor _monitor;
     private readonly IShellCommands _shell;
+    private readonly IAudioService _audio;
     private readonly DispatcherTimer _timer;
 
-    public ControlCenterWidget(WidgetPlacement placement, ISystemMonitor monitor, IShellCommands shell)
+    public ControlCenterWidget(WidgetPlacement placement, ISystemMonitor monitor, IShellCommands shell, IAudioService audio)
         : base(placement)
     {
         _monitor = monitor;
         _shell = shell;
+        _audio = audio;
         _timer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromSeconds(5) };
         _timer.Tick += (_, _) => Update();
     }
 
-    public string VolumeGlyph { get; } = WidgetCatalog.Glyph(0xE767);
-
     public string BellGlyph { get; } = WidgetCatalog.Glyph(0xEA8F);
+
+    [ObservableProperty] private string _volumeGlyph = WidgetCatalog.Glyph(0xE767);
+    [ObservableProperty] private string _volumeText = string.Empty;
+
+    public override bool HandlesWheel => true;
+
+    /// <summary>Mouse wheel over the icons changes the volume, as on the Windows taskbar.</summary>
+    public override void OnWheel(int delta)
+    {
+        var speaker = _audio.GetSpeaker();
+        if (!speaker.Available)
+        {
+            return;
+        }
+
+        _audio.SetSpeakerVolume(Math.Clamp(speaker.Volume + Math.Sign(delta) * 0.02, 0, 1));
+        UpdateVolume();
+    }
 
     [ObservableProperty] private string _networkGlyph = WidgetCatalog.Glyph(0xE701);
     [ObservableProperty] private string _networkText = string.Empty;
@@ -125,6 +147,8 @@ public sealed partial class ControlCenterWidget : WidgetViewModel
         NetworkGlyph = WidgetCatalog.Glyph(online ? 0xE701 : 0xEB55);
         NetworkText = Loc.T(online ? "control.connected" : "control.offline");
 
+        UpdateVolume();
+
         var power = _monitor.GetPower();
         HasBattery = power.HasBattery;
         if (power.HasBattery)
@@ -134,7 +158,27 @@ public sealed partial class ControlCenterWidget : WidgetViewModel
         }
     }
 
+    private void UpdateVolume()
+    {
+        var speaker = _audio.GetSpeaker();
+        var level = (int)Math.Round(speaker.Volume * 100);
+        VolumeGlyph = WidgetCatalog.Glyph(!speaker.Available || speaker.Muted ? 0xE74F
+            : level == 0 ? 0xE992
+            : level < 34 ? 0xE993
+            : level < 67 ? 0xE994
+            : 0xE995);
+        VolumeText = !speaker.Available ? Loc.T("control.noAudio")
+            : speaker.Muted ? Loc.T("control.muted")
+            : Loc.F("control.volume", level);
+    }
+
     public override void OnClick() => _shell.OpenQuickSettings();
+
+    [RelayCommand]
+    private void OpenNetwork() => _shell.OpenNetworkFlyout();
+
+    [RelayCommand]
+    private void OpenSound() => _shell.OpenSoundFlyout();
 
     [RelayCommand]
     private void OpenQuickSettings() => _shell.OpenQuickSettings();

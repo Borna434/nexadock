@@ -251,14 +251,7 @@ public sealed class Win32WindowTracker : IWindowTracker, IDisposable
         }
         finally
         {
-            try
-            {
-                Marshal.ReleaseComObject(store);
-            }
-            catch (Exception ex) when (ex is NullReferenceException or ArgumentException or InvalidComObjectException)
-            {
-                // Seen with some windows that close while being read: the store is already gone.
-            }
+            NexaDock.Windows.Interop.ComRelease.Release(store);
         }
     }
 

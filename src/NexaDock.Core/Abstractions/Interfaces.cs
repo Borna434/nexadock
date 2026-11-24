@@ -222,6 +222,12 @@ public interface IShellCommands
 
     void OpenDateTimeSettings();
 
+    /// <summary>Windows' own Wi-Fi list (the network flyout).</summary>
+    void OpenNetworkFlyout();
+
+    /// <summary>Windows' own sound flyout: output device and volume (Win+Ctrl+V).</summary>
+    void OpenSoundFlyout();
+
     /// <summary>Brings a window to the front and presses Ctrl+V in it.</summary>
     void PasteInto(IntPtr window);
 }
