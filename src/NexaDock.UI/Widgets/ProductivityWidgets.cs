@@ -273,7 +273,7 @@ public sealed partial class StopwatchWidget : WidgetViewModel
         : base(placement)
     {
         _timer = new DispatcherTimer(DispatcherPriority.Render) { Interval = TimeSpan.FromMilliseconds(50) };
-        _timer.Tick += (_, _) => Refresh();
+        _timer.Tick += (_, _) => { if (!QuietMode.IsActive) Refresh(); };
     }
 
     public override bool HasCard => true;

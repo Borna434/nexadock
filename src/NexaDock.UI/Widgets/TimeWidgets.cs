@@ -29,7 +29,7 @@ internal static class ClockTicker
             _timer.Tick += (_, _) =>
             {
                 var second = DateTime.Now.Second;
-                if (second != last)
+                if (second != last && !QuietMode.IsActive)
                 {
                     last = second;
                     Tick?.Invoke(null, EventArgs.Empty);

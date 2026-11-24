@@ -24,7 +24,7 @@ public sealed partial class VolumeWidget : WidgetViewModel
     {
         _audio = audio;
         _timer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromSeconds(1) };
-        _timer.Tick += (_, _) => Refresh();
+        _timer.Tick += (_, _) => { if (!QuietMode.IsActive) Refresh(); };
     }
 
     public override bool HasCard => true;
@@ -120,7 +120,7 @@ public sealed partial class MicrophoneWidget : WidgetViewModel
     {
         _audio = audio;
         _timer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromSeconds(1.5) };
-        _timer.Tick += (_, _) => Refresh();
+        _timer.Tick += (_, _) => { if (!QuietMode.IsActive) Refresh(); };
     }
 
     [ObservableProperty] private bool _muted;
@@ -177,7 +177,7 @@ public sealed partial class NetworkWidget : WidgetViewModel
     {
         _monitor = monitor;
         _timer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromSeconds(1) };
-        _timer.Tick += (_, _) => Sample();
+        _timer.Tick += (_, _) => { if (!QuietMode.IsActive) Sample(); };
     }
 
     public override bool HasCard => true;
@@ -273,7 +273,7 @@ public sealed partial class StorageWidget : WidgetViewModel
     {
         _monitor = monitor;
         _timer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromMinutes(1) };
-        _timer.Tick += (_, _) => Refresh();
+        _timer.Tick += (_, _) => { if (!QuietMode.IsActive) Refresh(); };
     }
 
     public override bool HasCard => true;
@@ -335,7 +335,7 @@ public sealed partial class RecycleBinWidget : WidgetViewModel
     {
         _monitor = monitor;
         _timer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromSeconds(10) };
-        _timer.Tick += (_, _) => Refresh();
+        _timer.Tick += (_, _) => { if (!QuietMode.IsActive) Refresh(); };
     }
 
     public override bool HasCard => true;
@@ -403,7 +403,7 @@ public sealed partial class KeyboardWidget : WidgetViewModel
 
         // Layout changes inside the same window raise no window event; poll gently.
         var timer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromSeconds(1) };
-        timer.Tick += (_, _) => Refresh();
+        timer.Tick += (_, _) => { if (!QuietMode.IsActive) Refresh(); };
         timer.Start();
         _poll = timer;
     }
@@ -462,7 +462,7 @@ public sealed partial class QuickTogglesWidget : WidgetViewModel
         WiFi = new RadioToggleViewModel(RadioKind.WiFi, WidgetCatalog.Glyph(0xE701), ToggleAsync);
         Bluetooth = new RadioToggleViewModel(RadioKind.Bluetooth, WidgetCatalog.Glyph(0xE702), ToggleAsync);
         _timer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromSeconds(5) };
-        _timer.Tick += async (_, _) => await RefreshAsync();
+        _timer.Tick += async (_, _) => { if (!QuietMode.IsActive) await RefreshAsync(); };
     }
 
     public RadioToggleViewModel WiFi { get; }

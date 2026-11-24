@@ -26,9 +26,9 @@ public sealed class PulseCenter
         _system = system;
         _storage = storage;
         _fast = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromSeconds(2) };
-        _fast.Tick += (_, _) => CheckCpu();
+        _fast.Tick += (_, _) => { if (!QuietMode.IsActive) CheckCpu(); };
         _slow = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromSeconds(30) };
-        _slow.Tick += (_, _) => CheckSlow();
+        _slow.Tick += (_, _) => { if (!QuietMode.IsActive) CheckSlow(); };
         _settings.Changed += (_, e) =>
         {
             if (!e.Current.PulseEnabled && Alerts.Count > 0)

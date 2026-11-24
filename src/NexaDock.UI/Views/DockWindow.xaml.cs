@@ -14,6 +14,8 @@ using NexaDock.UI.Theming;
 using NexaDock.UI.ViewModels;
 using NexaDock.UI.Widgets;
 
+using NexaDock.UI.Services;
+
 namespace NexaDock.UI.Views;
 
 /// <summary>
@@ -126,7 +128,7 @@ public partial class DockWindow : Window
             HidePreview();
         };
         _contentWatch = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(700) };
-        _contentWatch.Tick += (_, _) => WatchContentWidth();
+        _contentWatch.Tick += (_, _) => { if (!QuietMode.IsActive) WatchContentWidth(); };
 
         _preview.PointerEntered += (_, _) => _previewHideTimer.Stop();
         _preview.PointerLeft += (_, _) => SchedulePreviewHide();
@@ -359,6 +361,11 @@ public partial class DockWindow : Window
         {
             _fullscreenHidden = false;
             Show();
+        }
+
+        if (_target.IsMain)
+        {
+            QuietMode.Set(_fullscreenHidden);
         }
     }
 

@@ -11,6 +11,8 @@ using NexaDock.UI.Theming;
 
 using NexaDock.UI.Localization;
 
+using NexaDock.UI.Services;
+
 namespace NexaDock.UI.Widgets;
 
 public sealed partial class WeatherWidget : WidgetViewModel
@@ -150,7 +152,7 @@ public sealed partial class NowPlayingWidget : WidgetViewModel
         _media = media;
         _audio = audio;
         _progress = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromSeconds(1) };
-        _progress.Tick += (_, _) => UpdateProgress();
+        _progress.Tick += (_, _) => { if (!QuietMode.IsActive) UpdateProgress(); };
     }
 
     public override bool HasCard => HasMedia;

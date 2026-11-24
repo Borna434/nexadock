@@ -38,9 +38,9 @@ public sealed partial class ClaudeWidget : WidgetViewModel
         _source = source;
         _pulse = pulse;
         _refresh = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromSeconds(30) };
-        _refresh.Tick += async (_, _) => await LoadAsync();
+        _refresh.Tick += async (_, _) => { if (!QuietMode.IsActive) await LoadAsync(); };
         _clock = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromSeconds(20) };
-        _clock.Tick += (_, _) => Present();
+        _clock.Tick += (_, _) => { if (!QuietMode.IsActive) Present(); };
     }
 
     public override bool HasCard => true;

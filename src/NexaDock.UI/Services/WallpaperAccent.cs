@@ -28,7 +28,7 @@ public sealed class WallpaperAccent : IDisposable
     {
         _logger = logger;
         _poll = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromMinutes(1) };
-        _poll.Tick += (_, _) => Refresh(onlyIfChanged: true);
+        _poll.Tick += (_, _) => { if (!QuietMode.IsActive) Refresh(onlyIfChanged: true); };
     }
 
     /// <summary>The accent, or null when off or the wallpaper is a plain colour / unreadable.</summary>

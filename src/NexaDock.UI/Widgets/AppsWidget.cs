@@ -9,6 +9,8 @@ using NexaDock.UI.Theming;
 
 using NexaDock.UI.Localization;
 
+using NexaDock.UI.Services;
+
 namespace NexaDock.UI.Widgets;
 
 /// <summary>
@@ -103,7 +105,7 @@ public sealed partial class AppsWidget : WidgetViewModel
             {
                 Interval = TimeSpan.FromSeconds(1.5),
             };
-            _displayWatch.Tick += (_, _) => RebuildIfMoved();
+            _displayWatch.Tick += (_, _) => { if (!QuietMode.IsActive) RebuildIfMoved(); };
             _displayWatch.Start();
         }
 

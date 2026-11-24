@@ -111,7 +111,7 @@ public sealed partial class CalendarFeed : ObservableObject
         _refresh = new DispatcherTimer(DispatcherPriority.Background) { Interval = RefreshEvery };
         _refresh.Tick += async (_, _) => await RefreshAsync();
         _tick = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromSeconds(30) };
-        _tick.Tick += (_, _) => Present();
+        _tick.Tick += (_, _) => { if (!QuietMode.IsActive) Present(); };
         SyncGoogleState();
         RebuildFeedList();
     }

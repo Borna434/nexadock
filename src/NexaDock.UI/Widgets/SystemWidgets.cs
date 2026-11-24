@@ -8,6 +8,8 @@ using NexaDock.Core.Widgets;
 
 using NexaDock.UI.Localization;
 
+using NexaDock.UI.Services;
+
 namespace NexaDock.UI.Widgets;
 
 /// <summary>CPU and memory rings; the card lists the busiest apps.</summary>
@@ -23,7 +25,7 @@ public sealed partial class SystemWidget : WidgetViewModel
         _monitor = monitor;
         _shell = shell;
         _timer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromSeconds(2) };
-        _timer.Tick += (_, _) => Update();
+        _timer.Tick += (_, _) => { if (!QuietMode.IsActive) Update(); };
     }
 
     public override bool HasCard => true;
@@ -106,7 +108,7 @@ public sealed partial class ControlCenterWidget : WidgetViewModel
         _shell = shell;
         _audio = audio;
         _timer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromSeconds(5) };
-        _timer.Tick += (_, _) => Update();
+        _timer.Tick += (_, _) => { if (!QuietMode.IsActive) Update(); };
     }
 
     public string BellGlyph { get; } = WidgetCatalog.Glyph(0xEA8F);
