@@ -336,7 +336,8 @@ public sealed record MediaInfo(
     TimeSpan Position,
     TimeSpan Duration,
     bool CanPrevious,
-    bool CanNext);
+    bool CanNext,
+    bool CanSeek = false);
 
 /// <summary>Whatever app reports playback to Windows (System Media Transport Controls).</summary>
 public interface IMediaService
@@ -353,6 +354,9 @@ public interface IMediaService
     Task NextAsync();
 
     Task PreviousAsync();
+
+    /// <summary>Jumps to a position in the current track.</summary>
+    Task SeekAsync(TimeSpan position);
 }
 
 // ---- Taskbar & startup ----------------------------------------------------------------------------
@@ -403,6 +407,14 @@ public interface IAudioService
     void SetSpeakerMuted(bool muted);
 
     void SetMicrophoneMuted(bool muted);
+
+    /// <summary>
+    /// Volume of the app that plays (matched by name, e.g. "Spotify" or "Chrome"); null when the
+    /// app has no audio session right now.
+    /// </summary>
+    double? GetAppVolume(string appHint);
+
+    void SetAppVolume(string appHint, double volume01);
 }
 
 public sealed record NetworkTotals(long BytesReceived, long BytesSent, string AdapterNames);

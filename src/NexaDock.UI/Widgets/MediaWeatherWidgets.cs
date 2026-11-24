@@ -141,10 +141,14 @@ public sealed partial class NowPlayingWidget : WidgetViewModel
     private MediaInfo? _info;
     private DateTime _positionStamp;
 
-    public NowPlayingWidget(WidgetPlacement placement, IMediaService media)
+    private readonly IAudioService _audio;
+    private bool _settingVolume;
+
+    public NowPlayingWidget(WidgetPlacement placement, IMediaService media, IAudioService audio)
         : base(placement)
     {
         _media = media;
+        _audio = audio;
         _progress = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromSeconds(1) };
         _progress.Tick += (_, _) => UpdateProgress();
     }
@@ -170,6 +174,50 @@ public sealed partial class NowPlayingWidget : WidgetViewModel
     [ObservableProperty] private string _positionText = string.Empty;
     [ObservableProperty] private string _durationText = string.Empty;
     [ObservableProperty] private bool _hasTimeline;
+    [ObservableProperty] private bool _canSeek;
+
+    /// <summary>The playing app's own volume (0–100), when it has an audio session.</summary>
+    [ObservableProperty] private double _appVolume;
+    [ObservableProperty] private bool _hasAppVolume;
+
+    /// <summary>Card background tinted with the album art's colour.</summary>
+    [ObservableProperty] private Brush? _artTint;
+
+    [ObservableProperty] private Brush? _artAccent;
+
+    partial void OnAppVolumeChanged(double value)
+    {
+        if (!_settingVolume && _info is not null)
+        {
+            _audio.SetAppVolume(_info.Source, value / 100);
+        }
+    }
+
+    [RelayCommand]
+    private async Task Seek(double percent)
+    {
+        if (_info is null || !HasTimeline)
+        {
+            return;
+        }
+
+        var target = TimeSpan.FromSeconds(_info.Duration.TotalSeconds * Math.Clamp(percent, 0, 100) / 100);
+        await _media.SeekAsync(target);
+    }
+
+    public override void OnCardOpened() => ReadAppVolume();
+
+    private void ReadAppVolume()
+    {
+        var level = _info is null ? null : _audio.GetAppVolume(_info.Source);
+        HasAppVolume = level is not null;
+        if (level is { } v)
+        {
+            _settingVolume = true;
+            AppVolume = Math.Round(v * 100);
+            _settingVolume = false;
+        }
+    }
 
     public string PlayPauseGlyph => IsPlaying ? PauseGlyph : PlayGlyph;
 
@@ -217,10 +265,46 @@ public sealed partial class NowPlayingWidget : WidgetViewModel
         {
             Art = IconImageExtensions.DecodeImage(info.Thumbnail);
             HasArt = Art is not null;
+            UpdateArtColours(info.Thumbnail);
         }
 
         HasTimeline = info.Duration > TimeSpan.FromSeconds(1);
+        CanSeek = HasTimeline && info.CanSeek;
+        if (IsCardOpen)
+        {
+            ReadAppVolume();
+        }
         UpdateProgress();
+    }
+
+    /// <summary>The card takes on the cover's colour, as music apps do.</summary>
+    private void UpdateArtColours(byte[]? thumbnail)
+    {
+        ArtTint = null;
+        ArtAccent = null;
+        if (IconImageExtensions.DecodeImage(thumbnail, 32) is not System.Windows.Media.Imaging.BitmapSource small)
+        {
+            return;
+        }
+
+        var converted = new System.Windows.Media.Imaging.FormatConvertedBitmap(small, PixelFormats.Bgra32, null, 0);
+        var pixels = new byte[converted.PixelWidth * converted.PixelHeight * 4];
+        converted.CopyPixels(pixels, converted.PixelWidth * 4, 0);
+        if (Core.Theming.ColorExtractor.Dominant(pixels) is not { } dominant)
+        {
+            return;
+        }
+
+        var accent = Core.Theming.ColorExtractor.ToAccent(dominant);
+        var tint = new LinearGradientBrush(
+            Color.FromArgb(0x70, dominant.R, dominant.G, dominant.B),
+            Color.FromArgb(0x00, dominant.R, dominant.G, dominant.B),
+            new System.Windows.Point(0.5, 0), new System.Windows.Point(0.5, 1));
+        tint.Freeze();
+        var accentBrush = new SolidColorBrush(Color.FromRgb(accent.R, accent.G, accent.B));
+        accentBrush.Freeze();
+        ArtTint = tint;
+        ArtAccent = accentBrush;
     }
 
     private void UpdateProgress()

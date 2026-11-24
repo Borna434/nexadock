@@ -33,6 +33,155 @@ public sealed class CoreAudioService : IAudioService
 
     public void SetMicrophoneMuted(bool muted) => WithVolume(ECapture, ECommunications, v => v.SetMute(muted, ref _context));
 
+    public double? GetAppVolume(string appHint)
+    {
+        double? result = null;
+        WithAppSession(appHint, v =>
+        {
+            v.GetMasterVolume(out var level);
+            result = level;
+        });
+        return result;
+    }
+
+    public void SetAppVolume(string appHint, double volume01) =>
+        WithAppSession(appHint, v => v.SetMasterVolume((float)Math.Clamp(volume01, 0, 1), ref _context));
+
+    /// <summary>Finds the audio sessions of the app on the default speaker (all of its processes).</summary>
+    private void WithAppSession(string appHint, Action<ISimpleAudioVolume> action)
+    {
+        var hint = NormalizeHint(appHint);
+        if (hint.Length < 2)
+        {
+            return;
+        }
+
+        IMMDeviceEnumerator? enumerator = null;
+        IMMDevice? device = null;
+        object? managerObject = null;
+        IAudioSessionEnumerator? sessions = null;
+        try
+        {
+            enumerator = (IMMDeviceEnumerator)new MMDeviceEnumeratorComObject();
+            if (enumerator.GetDefaultAudioEndpoint(ERender, EMultimedia, out device) != 0 || device is null
+                || device.Activate(ref _sessionManagerIid, ClsctxAll, IntPtr.Zero, out managerObject) != 0
+                || managerObject is not IAudioSessionManager2 manager
+                || manager.GetSessionEnumerator(out sessions) != 0 || sessions is null)
+            {
+                return;
+            }
+
+            sessions.GetCount(out var count);
+            for (var i = 0; i < count; i++)
+            {
+                if (sessions.GetSession(i, out var control) != 0 || control is null)
+                {
+                    continue;
+                }
+
+                try
+                {
+                    if (control is IAudioSessionControl2 control2 && control2.GetProcessId(out var pid) == 0 && pid != 0
+                        && ProcessMatches(pid, hint) && control is ISimpleAudioVolume volume)
+                    {
+                        action(volume);
+                    }
+                }
+                finally
+                {
+                    Release(control);
+                }
+            }
+        }
+        catch (Exception ex) when (ex is COMException or InvalidCastException)
+        {
+            _logger.LogDebug(ex, "Audio session call failed.");
+        }
+        finally
+        {
+            Release(sessions);
+            Release(managerObject);
+            Release(device);
+            Release(enumerator);
+        }
+    }
+
+    /// <summary>"Spotify.exe", "SpotifyAB.SpotifyMusic_zpdn…!Spotify", "Chrome" → "spotify", "chrome".</summary>
+    private static string NormalizeHint(string hint)
+    {
+        var name = hint.Split('!')[^1].Split('_')[0];
+        if (name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+        {
+            name = name[..^4];
+        }
+
+        var dot = name.LastIndexOf('.');
+        return (dot >= 0 ? name[(dot + 1)..] : name).ToLowerInvariant();
+    }
+
+    private static bool ProcessMatches(uint pid, string hint)
+    {
+        try
+        {
+            using var process = System.Diagnostics.Process.GetProcessById((int)pid);
+            var name = process.ProcessName.ToLowerInvariant();
+            return name == hint || name.Contains(hint, StringComparison.Ordinal) || hint.Contains(name, StringComparison.Ordinal) && name.Length >= 4;
+        }
+        catch (ArgumentException)
+        {
+            return false;
+        }
+    }
+
+    private static Guid _sessionManagerIid = new("77AA99A0-1BD6-484F-8BC7-2C654C9A9B6F");
+
+    [ComImport]
+    [Guid("77AA99A0-1BD6-484F-8BC7-2C654C9A9B6F")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    private interface IAudioSessionManager2
+    {
+        [PreserveSig] int GetAudioSessionControl(IntPtr sessionGuid, uint flags, out IntPtr control);
+        [PreserveSig] int GetSimpleAudioVolume(IntPtr sessionGuid, uint flags, out IntPtr volume);
+        [PreserveSig] int GetSessionEnumerator(out IAudioSessionEnumerator sessions);
+    }
+
+    [ComImport]
+    [Guid("E2F5BB11-0570-40CA-ACDD-3AA01277DEE8")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    private interface IAudioSessionEnumerator
+    {
+        [PreserveSig] int GetCount(out int count);
+        [PreserveSig] int GetSession(int index, [MarshalAs(UnmanagedType.IUnknown)] out object session);
+    }
+
+    [ComImport]
+    [Guid("bfb7ff88-7239-4fc9-8fa2-07c950be9c6d")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    private interface IAudioSessionControl2
+    {
+        [PreserveSig] int GetState(out int state);
+        [PreserveSig] int GetDisplayName(out IntPtr name);
+        [PreserveSig] int SetDisplayName(IntPtr name, IntPtr context);
+        [PreserveSig] int GetIconPath(out IntPtr path);
+        [PreserveSig] int SetIconPath(IntPtr path, IntPtr context);
+        [PreserveSig] int GetGroupingParam(out Guid grouping);
+        [PreserveSig] int SetGroupingParam(IntPtr grouping, IntPtr context);
+        [PreserveSig] int RegisterAudioSessionNotification(IntPtr client);
+        [PreserveSig] int UnregisterAudioSessionNotification(IntPtr client);
+        [PreserveSig] int GetSessionIdentifier(out IntPtr id);
+        [PreserveSig] int GetSessionInstanceIdentifier(out IntPtr id);
+        [PreserveSig] int GetProcessId(out uint pid);
+    }
+
+    [ComImport]
+    [Guid("87CE5498-68D6-44E5-9215-6DA47EF883D8")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    private interface ISimpleAudioVolume
+    {
+        [PreserveSig] int SetMasterVolume(float level, ref Guid context);
+        [PreserveSig] int GetMasterVolume(out float level);
+    }
+
     private AudioEndpointState Read(int flow, int role)
     {
         AudioEndpointState state = new(false, string.Empty, 0, false);

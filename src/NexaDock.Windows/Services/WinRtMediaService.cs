@@ -99,7 +99,8 @@ public sealed class WinRtMediaService : IMediaService, IDisposable
                         timeline?.Position ?? TimeSpan.Zero,
                         timeline is null ? TimeSpan.Zero : timeline.EndTime - timeline.StartTime,
                         controls?.IsPreviousEnabled ?? false,
-                        controls?.IsNextEnabled ?? false);
+                        controls?.IsNextEnabled ?? false,
+                        controls?.IsPlaybackPositionEnabled ?? false);
                 }
             }
         }
@@ -142,6 +143,15 @@ public sealed class WinRtMediaService : IMediaService, IDisposable
         if (_session is not null)
         {
             await _session.TrySkipNextAsync();
+        }
+    }
+
+    public async Task SeekAsync(TimeSpan position)
+    {
+        if (_session is not null)
+        {
+            var start = _session.GetTimelineProperties()?.StartTime ?? TimeSpan.Zero;
+            await _session.TryChangePlaybackPositionAsync((start + position).Ticks);
         }
     }
 
