@@ -61,8 +61,8 @@ public interface IClaudeUsageSource
 
 /// <summary>
 /// Pure aggregation, mirroring how Claude usage windows work: a window opens with the first message
-/// and resets five hours later, rounded up to the next full hour (first message 21:28 → resets at
-/// 03:00, as Claude itself reports); a message after the reset starts a new window.
+/// and resets exactly five hours later (first message 12:20 → resets at 17:20, as Claude itself
+/// reports); a message after the reset starts a new window.
 /// </summary>
 public static class ClaudeUsageCalculator
 {
@@ -107,13 +107,9 @@ public static class ClaudeUsageCalculator
         return blocks;
     }
 
-    /// <summary>Five hours after the window opened, rounded up to the next full hour.</summary>
-    public static DateTimeOffset ResetAfter(DateTimeOffset firstMessage)
-    {
-        var raw = firstMessage.ToUniversalTime() + BlockLength;
-        var hour = new DateTimeOffset(raw.Year, raw.Month, raw.Day, raw.Hour, 0, 0, TimeSpan.Zero);
-        return hour == raw ? hour : hour.AddHours(1);
-    }
+    /// <summary>Exactly five hours after the window opened.</summary>
+    public static DateTimeOffset ResetAfter(DateTimeOffset firstMessage) =>
+        firstMessage.ToUniversalTime() + BlockLength;
 
     public static ClaudeUsageSummary Summarize(IReadOnlyList<ClaudeUsageEntry> entries, DateTimeOffset now, TimeZoneInfo zone, bool logsFound = true)
     {

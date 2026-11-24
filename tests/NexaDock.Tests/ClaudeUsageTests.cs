@@ -9,38 +9,38 @@ public class ClaudeUsageCalculatorTests
     private static readonly DateTimeOffset Day = new(2026, 11, 23, 0, 0, 0, TimeSpan.Zero);
 
     private static ClaudeUsageEntry E(double hours, long tokens = 100, string model = "claude-opus-5-5") =>
-        new(Day.AddHours(hours), model, tokens / 2, tokens / 2, 0, 1000, Guid.NewGuid().ToString());
+        new(Day.AddSeconds(Math.Round(hours * 3600)), model, tokens / 2, tokens / 2, 0, 1000, Guid.NewGuid().ToString());
 
     [Fact]
-    public void Window_resets_five_hours_after_the_first_message_rounded_up_to_the_hour()
+    public void Window_resets_exactly_five_hours_after_the_first_message()
     {
-        // As Claude reports it: first message 21:28 → "resets at 3:00".
-        var blocks = ClaudeUsageCalculator.Blocks([E(21 + 28 / 60.0), E(23), E(24.9)], Day.AddHours(26.9));
+        // As Claude reports it: first message 12:20 → "resets at 17:20".
+        var blocks = ClaudeUsageCalculator.Blocks([E(12 + 20 / 60.0), E(14), E(17.3)], Day.AddHours(17.3));
 
         var b = Assert.Single(blocks);
-        Assert.Equal(Day.AddHours(21 + 28 / 60.0), b.Start);
-        Assert.Equal(Day.AddHours(27), b.End);
+        Assert.Equal(Day.AddHours(12).AddMinutes(20), b.Start);
+        Assert.Equal(Day.AddHours(17).AddMinutes(20), b.End);
         Assert.Equal(3, b.Messages);
-        Assert.True(b.IsActive); // 02:54 is still before the 03:00 reset
+        Assert.True(b.IsActive); // 17:18 is still before the 17:20 reset
     }
 
     [Fact]
-    public void A_window_opened_exactly_on_the_hour_resets_five_hours_later()
+    public void Reset_is_not_rounded()
     {
         Assert.Equal(Day.AddHours(14), ClaudeUsageCalculator.ResetAfter(Day.AddHours(9)));
-        Assert.Equal(Day.AddHours(15), ClaudeUsageCalculator.ResetAfter(Day.AddHours(9.01)));
+        Assert.Equal(Day.AddHours(14.5), ClaudeUsageCalculator.ResetAfter(Day.AddHours(9.5)));
     }
 
     [Fact]
     public void Message_after_the_window_starts_a_new_block()
     {
-        // First window 09:30 → resets 15:00; 14:10 still belongs to it, 15:05 opens the next one.
-        var blocks = ClaudeUsageCalculator.Blocks([E(9.5), E(14.1), E(15 + 5 / 60.0)], Day.AddHours(15.2));
+        // First window 09:30 → resets 14:30; 14:10 still belongs to it, 14:40 opens the next one.
+        var blocks = ClaudeUsageCalculator.Blocks([E(9.5), E(14 + 10 / 60.0), E(14 + 40 / 60.0)], Day.AddHours(15.2));
 
         Assert.Equal(2, blocks.Count);
         Assert.Equal(2, blocks[0].Messages);
-        Assert.Equal(Day.AddHours(15 + 5 / 60.0), blocks[1].Start);
-        Assert.Equal(Day.AddHours(21), blocks[1].End);
+        Assert.Equal(Day.AddHours(14).AddMinutes(40), blocks[1].Start);
+        Assert.Equal(Day.AddHours(19).AddMinutes(40), blocks[1].End);
         Assert.True(blocks[1].IsActive);
     }
 
