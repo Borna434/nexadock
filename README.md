@@ -39,7 +39,7 @@ apps, and live widgets in one glass strip, optionally replacing the Windows task
   | CPU & Memory | Two rings | Busiest apps by CPU and memory, uptime, Task Manager |
   | Weather | Icon and temperature | Conditions, feels-like, humidity, wind, 4-day forecast |
   | Now Playing | Cover art, title, play/pause | Large art, progress, previous/play/next |
-  | Control Center | Network, sound, battery | Opens Quick Settings; the bell opens notifications |
+  | Control Center | Network, sound, battery or power | Each icon opens its own panel: Wi-Fi networks and connections, output device and app mixer, battery and power mode; scroll for volume; the gear opens Quick Settings, the bell notifications |
   | Show Desktop | — | Hides or restores all windows |
   | Flexible Space | — | Pushes the following widgets to the far end of the bar |
   | **Pulse** | Appears only when something needs you | All alerts, with Dismiss |
@@ -274,7 +274,10 @@ Google may then ask for a home page and a privacy policy.
 - **Native corners:** with the native blur, the bar uses the DWM corner radius (~8 px). The fully
   rounded pill shape exists only in the translucent fallback.
 - **Notification icons:** the system's own icons (network, volume, battery) are part of Windows 11's
-  Quick Settings, not of the notification area. Reach them through the Control Center widget.
+  Quick Settings, not of the notification area. The Control Center widget has its own panels for them.
+- **Wi-Fi names need location access:** since Windows 11 24H2, Windows shows network names to apps
+  only when they may use location. The network panel offers a button to allow it. Networks that need
+  a sign-in (eduroam, company Wi-Fi) are joined through Windows' own list.
 - **Untested on hardware:**
   - mixed-DPI and high-DPI displays (both test displays were at 100%)
   - unplugging a monitor while the bar runs

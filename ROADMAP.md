@@ -73,7 +73,10 @@
 
 ## Phase 5: Polish and distribution
 
-- Show the notification area's own flyouts (Wi-Fi, volume, battery) without Quick Settings
+- [x] **System panels:** network (connections, Wi-Fi list, join with a password), sound (output
+      device, app mixer) and battery or power (power mode), each opening above its icon
+- [x] **Game mode:** widgets stop sampling while a full-screen game hides the bar
+- [x] Claude widget: the session resets exactly five hours after the first message
 - Per-display edge and size for extra bars
 - MSIX package and signed releases
 - More calendar sources (Outlook via Microsoft account)
