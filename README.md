@@ -7,8 +7,9 @@ apps, and live widgets in one glass strip, optionally replacing the Windows task
 
 ![NexaDock bar in Croatian with Phase 3 widgets](docs/images/bar-phase3-hr.jpg)
 
-> **Status:** 0.4.0, Phase 4: a real taskbar replacement. Apps centred like Windows 11,
-> notification icons, a bar on every display, Google Calendar, liquid glass, backup and updates.
+> **Status:** 0.5.0. A real taskbar replacement: apps centred like Windows 11, notification icons,
+> a bar on every display, Google Calendar, liquid glass, search (Alt+Space), clipboard history
+> (Win+Alt+V), colours from your wallpaper, backup and automatic updates.
 > See [ROADMAP.md](ROADMAP.md) for what comes next and [ARCHITECTURE.md](ARCHITECTURE.md) for the
 > design.
 

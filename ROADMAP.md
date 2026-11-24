@@ -62,6 +62,15 @@
 - [x] **Updates** from GitHub releases with a SHA-256 check (`tools/package.ps1` builds the package)
 - [x] Sharp app icons at their exact pixel size, with correct alpha (no white halo)
 
+## Phase 4.5: Everyday tools ✅
+
+- [x] **Search** (Alt+Space): apps, files, calculator, unit conversion and the web
+- [x] **Clipboard history** (widget and Win+Alt+V) that skips content marked private
+- [x] **Now Playing:** seek, the playing app's own volume, album-art colours
+- [x] **Accent from the wallpaper**
+- [x] **System icons** with their own Windows flyouts; wheel for volume
+- [x] Automatic releases from version tags; in-app updates verified with SHA-256
+
 ## Phase 5: Polish and distribution
 
 - Show the notification area's own flyouts (Wi-Fi, volume, battery) without Quick Settings
