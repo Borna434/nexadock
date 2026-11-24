@@ -5,7 +5,8 @@
                     xmlns:conv="clr-namespace:NexaDock.UI.Converters"
                     xmlns:b="clr-namespace:NexaDock.UI.Behaviors"
                     xmlns:l="clr-namespace:NexaDock.UI.Localization"
-                    xmlns:svc="clr-namespace:NexaDock.UI.Services">
+                    xmlns:svc="clr-namespace:NexaDock.UI.Services"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
 
     <!-- Shared resources ===================================================================== -->
     <FontFamily x:Key="IconFont">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
@@ -533,19 +534,22 @@
     <!-- Control center ======================================================================= -->
     <DataTemplate x:Key="ControlCenterWidget.Tile" DataType="{x:Type w:ControlCenterWidget}">
         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-            <!-- Each icon opens its own Windows flyout. -->
+            <!-- Network, sound and battery each open their own panel above the icon. -->
             <Button Style="{StaticResource Bar.GlyphButton}" Content="{Binding NetworkGlyph}" Command="{Binding OpenNetworkCommand}"
                     ToolTip="{Binding NetworkText}" Width="30" Height="28" FontSize="15" />
             <Button Style="{StaticResource Bar.GlyphButton}" Content="{Binding VolumeGlyph}" Command="{Binding OpenSoundCommand}"
                     ToolTip="{Binding VolumeText}" Width="30" Height="28" FontSize="15" />
-            <Button Style="{StaticResource Bar.PlainButton}" Command="{Binding OpenQuickSettingsCommand}" ToolTip="{Binding BatteryText}"
+            <Button Style="{StaticResource Bar.PlainButton}" Command="{Binding OpenBatteryCommand}" ToolTip="{l:Loc cc.battery}"
                     Height="28" Padding="6,0" Visibility="{Binding HasBattery, Converter={StaticResource BoolToVisibility}}">
                 <StackPanel Orientation="Horizontal">
                     <TextBlock Text="{Binding BatteryGlyph}" FontFamily="{StaticResource IconFont}" FontSize="15" Foreground="{DynamicResource Bar.Foreground}" VerticalAlignment="Center" />
                     <TextBlock Text="{Binding BatteryText}" Style="{StaticResource Bar.SubText}" Margin="4,0,0,0" VerticalAlignment="Center" />
                 </StackPanel>
             </Button>
-            <Button Style="{StaticResource Bar.GlyphButton}" Content="&#xE713;" Command="{Binding OpenQuickSettingsCommand}"
+            <Button Style="{StaticResource Bar.GlyphButton}" Content="{Binding PowerGlyph}" Command="{Binding OpenBatteryCommand}"
+                    ToolTip="{l:Loc cc.power}" Width="28" Height="28" FontSize="14"
+                    Visibility="{Binding ShowPowerButton, Converter={StaticResource BoolToVisibility}}" />
+            <Button Style="{StaticResource Bar.GlyphButton}" Content="{Binding GearGlyph}" Command="{Binding OpenQuickSettingsCommand}"
                     ToolTip="{l:Loc control.quickSettings}" Width="28" Height="28" FontSize="13" />
             <Rectangle Width="1" Height="18" Fill="{DynamicResource Bar.Separator}" Margin="10,0,4,0" />
             <Button Style="{StaticResource Bar.GlyphButton}" Content="{Binding BellGlyph}" Command="{Binding OpenNotificationsCommand}"
@@ -1569,6 +1573,304 @@
             </ItemsControl>
             <TextBlock Text="{l:Loc clipboard.cardHint}" Style="{StaticResource Card.Label}" FontSize="11" TextWrapping="Wrap" TextTrimming="None" Margin="0,8,0,0" />
         </StackPanel>
+    </DataTemplate>
+
+    <!-- System panels (network, sound, battery) ============================================ -->
+    <Style x:Key="Card.PasswordBox" TargetType="PasswordBox">
+        <Setter Property="Foreground" Value="{DynamicResource Bar.Foreground}" />
+        <Setter Property="CaretBrush" Value="{DynamicResource Bar.Foreground}" />
+        <Setter Property="SelectionBrush" Value="{DynamicResource Bar.Accent}" />
+        <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Padding" Value="8,6" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="PasswordBox">
+                    <Border x:Name="Bd" CornerRadius="8" Background="{DynamicResource Bar.Track}"
+                            BorderBrush="{DynamicResource Bar.TileRim}" BorderThickness="1">
+                        <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource Bar.Accent}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- A pill that lights up in the accent colour while its Tag is True. -->
+    <Style x:Key="Card.Pill" TargetType="Button" BasedOn="{StaticResource Bar.PlainButton}">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bd" CornerRadius="14" Padding="12,5" Background="{DynamicResource Bar.Track}"
+                            BorderBrush="{DynamicResource Bar.TileRim}" BorderThickness="1">
+                        <ContentPresenter x:Name="Content" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                          TextElement.Foreground="{DynamicResource Bar.Foreground}" TextElement.FontSize="12" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Bar.HoverFill}" />
+                        </Trigger>
+                        <Trigger Property="Tag">
+                            <Trigger.Value><sys:Boolean>True</sys:Boolean></Trigger.Value>
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Bar.Accent}" />
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource Bar.Accent}" />
+                            <Setter TargetName="Content" Property="TextElement.Foreground" Value="#FF0B0F18" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- A full-width list row: content stretches, the hover plate lights up without zooming. -->
+    <Style x:Key="Card.RowButton" TargetType="Button" BasedOn="{StaticResource Bar.PlainButton}">
+        <Setter Property="b:HoverMotion.IsEnabled" Value="False" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Grid Background="Transparent">
+                        <Border x:Name="Plate" Opacity="0" CornerRadius="8" Background="{DynamicResource Bar.HoverFill}" />
+                        <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="Stretch" VerticalAlignment="Center" />
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Plate" Property="Opacity" Value="1" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="Card.Section" TargetType="TextBlock" BasedOn="{StaticResource Card.Label}">
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Margin" Value="0,14,0,6" />
+    </Style>
+
+    <Style x:Key="Card.Link" TargetType="Button" BasedOn="{StaticResource Bar.PlainButton}">
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="Padding" Value="6,4" />
+        <Setter Property="Margin" Value="-6,10,0,0" />
+        <Setter Property="Foreground" Value="{DynamicResource Bar.Accent}" />
+        <Setter Property="FontSize" Value="12" />
+    </Style>
+
+    <DataTemplate x:Key="ControlCenterWidget.Card" DataType="{x:Type w:ControlCenterWidget}">
+        <Grid Width="340">
+
+            <!-- Network ................................................................... -->
+            <StackPanel Visibility="{Binding IsNetworkPanel, Converter={StaticResource BoolToVisibility}}">
+                <Grid>
+                    <TextBlock Text="{l:Loc cc.network}" Style="{StaticResource Card.Title}" VerticalAlignment="Center" />
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Visibility="{Binding HasWifi, Converter={StaticResource BoolToVisibility}}">
+                        <Button Style="{StaticResource Bar.GlyphButton}" Content="{Binding RefreshGlyph}" Command="{Binding RescanCommand}"
+                                ToolTip="{l:Loc cc.rescan}" Width="28" Height="28" FontSize="12" Margin="0,0,6,0" />
+                        <Button Style="{StaticResource Card.Pill}" Command="{Binding ToggleWifiCommand}" Tag="{Binding WifiOn}" Content="Wi-Fi" />
+                    </StackPanel>
+                </Grid>
+
+                <ItemsControl ItemsSource="{Binding Connections}" Margin="0,10,0,0">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type w:ConnectionRow}">
+                            <Grid Margin="0,3">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="28" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding Glyph}" FontFamily="{StaticResource IconFont}" FontSize="15" Foreground="{DynamicResource Bar.Accent}" VerticalAlignment="Center" />
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="{Binding Title}" Style="{StaticResource Card.Body}" FontWeight="SemiBold" />
+                                    <TextBlock Text="{Binding Detail}" Style="{StaticResource Card.Label}" FontSize="11" />
+                                </StackPanel>
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <StackPanel Visibility="{Binding HasWifi, Converter={StaticResource BoolToVisibility}}">
+                    <TextBlock Text="{l:Loc cc.wifiNetworks}" Style="{StaticResource Card.Section}" />
+                    <TextBlock Text="{Binding WifiMessage}" Style="{StaticResource Card.Label}" TextWrapping="Wrap" TextTrimming="None"
+                               Visibility="{Binding WifiMessage, Converter={StaticResource NonEmptyToVisibility}}" />
+                    <Button Style="{StaticResource Card.Button}" Content="{l:Loc cc.allowLocation}" Command="{Binding AllowLocationCommand}"
+                            HorizontalAlignment="Left" Margin="0,8,0,0" Visibility="{Binding NeedsLocation, Converter={StaticResource BoolToVisibility}}" />
+                    <ItemsControl ItemsSource="{Binding Networks}" MaxHeight="330">
+                        <ItemsControl.Template>
+                            <ControlTemplate TargetType="ItemsControl">
+                                <ScrollViewer VerticalScrollBarVisibility="Auto"><ItemsPresenter /></ScrollViewer>
+                            </ControlTemplate>
+                        </ItemsControl.Template>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type w:WifiRow}">
+                                <Border x:Name="Row" CornerRadius="8" Margin="0,1" Background="Transparent">
+                                    <StackPanel>
+                                        <Button Style="{StaticResource Card.RowButton}" Command="{Binding ToggleCommand}" Padding="6,6">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="28" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+                                                <Grid VerticalAlignment="Center" HorizontalAlignment="Left">
+                                                    <TextBlock x:Name="Signal" Text="{Binding SignalGlyph}" FontFamily="{StaticResource IconFont}" FontSize="15" Foreground="{DynamicResource Bar.Foreground}" />
+                                                    <TextBlock Text="{Binding LockGlyph}" FontFamily="{StaticResource IconFont}" FontSize="7" Foreground="{DynamicResource Bar.Foreground}"
+                                                               HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-4,-2"
+                                                               Visibility="{Binding IsSecured, Converter={StaticResource BoolToVisibility}}" />
+                                                </Grid>
+                                                <StackPanel Grid.Column="1">
+                                                    <TextBlock Text="{Binding Ssid}" Style="{StaticResource Card.Body}" />
+                                                    <TextBlock Text="{Binding Detail}" Style="{StaticResource Card.Label}" FontSize="11" />
+                                                </StackPanel>
+                                            </Grid>
+                                        </Button>
+                                        <StackPanel Margin="34,0,6,8" Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVisibility}}">
+                                            <PasswordBox x:Name="Pw" Style="{StaticResource Card.PasswordBox}" Margin="0,2,0,8" ToolTip="{l:Loc cc.password}"
+                                                         Visibility="{Binding NeedsPassword, Converter={StaticResource BoolToVisibility}}" />
+                                            <TextBlock Text="{Binding Status}" Style="{StaticResource Card.Label}" FontSize="11" TextWrapping="Wrap" TextTrimming="None" Margin="0,0,0,6"
+                                                       Visibility="{Binding Status, Converter={StaticResource NonEmptyToVisibility}}" />
+                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                                <Button Style="{StaticResource Card.Button}" Content="{l:Loc cc.connect}" Command="{Binding ConnectCommand}"
+                                                        CommandParameter="{Binding ElementName=Pw}" IsDefault="True"
+                                                        Visibility="{Binding IsConnected, Converter={StaticResource InverseBoolToVisibility}}"
+                                                        IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBool}}" />
+                                                <Button Style="{StaticResource Card.Button}" Content="{l:Loc cc.disconnect}" Command="{Binding DisconnectCommand}"
+                                                        Visibility="{Binding IsConnected, Converter={StaticResource BoolToVisibility}}" />
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                                <DataTemplate.Triggers>
+                                    <DataTrigger Binding="{Binding IsConnected}" Value="True">
+                                        <Setter TargetName="Signal" Property="Foreground" Value="{DynamicResource Bar.Accent}" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding IsExpanded}" Value="True">
+                                        <Setter TargetName="Row" Property="Background" Value="{DynamicResource Bar.HoverFill}" />
+                                    </DataTrigger>
+                                </DataTemplate.Triggers>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal">
+                    <Button Style="{StaticResource Card.Link}" Content="{l:Loc cc.moreWifi}" Command="{Binding WifiSettingsCommand}" />
+                    <Button Style="{StaticResource Card.Link}" Content="{l:Loc cc.windowsList}" Command="{Binding WindowsNetworksCommand}" Margin="10,10,0,0"
+                            Visibility="{Binding HasWifi, Converter={StaticResource BoolToVisibility}}" />
+                </StackPanel>
+            </StackPanel>
+
+            <!-- Sound ..................................................................... -->
+            <StackPanel Visibility="{Binding IsSoundPanel, Converter={StaticResource BoolToVisibility}}">
+                <TextBlock Text="{l:Loc cc.sound}" Style="{StaticResource Card.Title}" />
+                <Grid Margin="0,12,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Button Style="{StaticResource Bar.GlyphButton}" Content="{Binding MasterGlyph}" Command="{Binding ToggleMasterMuteCommand}" ToolTip="{l:Loc volume.mute}" />
+                    <Slider Grid.Column="1" Style="{StaticResource Card.Slider}" Value="{Binding MasterVolume}" Margin="8,0" />
+                    <TextBlock Grid.Column="2" Text="{Binding MasterVolume, StringFormat={}{0:0}}" Style="{StaticResource Card.Body}" Width="30" TextAlignment="Right" VerticalAlignment="Center" />
+                </Grid>
+
+                <TextBlock Text="{l:Loc cc.output}" Style="{StaticResource Card.Section}" />
+                <ItemsControl ItemsSource="{Binding Outputs}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type w:OutputRow}">
+                            <Button Style="{StaticResource Card.RowButton}" Command="{Binding SelectCommand}" Padding="6,6" Margin="0,1">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="28" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock x:Name="Icon" Text="{Binding Glyph}" FontFamily="{StaticResource IconFont}" FontSize="15" Foreground="{DynamicResource Bar.Foreground}" VerticalAlignment="Center" />
+                                    <TextBlock Grid.Column="1" Text="{Binding Name}" Style="{StaticResource Card.Body}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock x:Name="Check" Grid.Column="2" Text="&#xE73E;" FontFamily="{StaticResource IconFont}" FontSize="12" Foreground="{DynamicResource Bar.Accent}"
+                                               VerticalAlignment="Center" Visibility="Collapsed" />
+                                </Grid>
+                            </Button>
+                            <DataTemplate.Triggers>
+                                <DataTrigger Binding="{Binding IsDefault}" Value="True">
+                                    <Setter TargetName="Check" Property="Visibility" Value="Visible" />
+                                    <Setter TargetName="Icon" Property="Foreground" Value="{DynamicResource Bar.Accent}" />
+                                </DataTrigger>
+                            </DataTemplate.Triggers>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <TextBlock Text="{l:Loc cc.mixer}" Style="{StaticResource Card.Section}" />
+                <TextBlock Text="{l:Loc cc.noApps}" Style="{StaticResource Card.Label}" Visibility="{Binding HasApps, Converter={StaticResource InverseBoolToVisibility}}" />
+                <ItemsControl ItemsSource="{Binding Apps}" MaxHeight="260">
+                    <ItemsControl.Template>
+                        <ControlTemplate TargetType="ItemsControl">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto"><ItemsPresenter /></ScrollViewer>
+                        </ControlTemplate>
+                    </ItemsControl.Template>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type w:AppAudioRow}">
+                            <Grid Margin="0,3">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="28" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <Image Grid.RowSpan="2" Source="{Binding Icon}" Width="18" Height="18" VerticalAlignment="Center" HorizontalAlignment="Left"
+                                       RenderOptions.BitmapScalingMode="HighQuality" Visibility="{Binding HasIcon, Converter={StaticResource BoolToVisibility}}" />
+                                <TextBlock Grid.RowSpan="2" Text="{Binding FallbackGlyph}" FontFamily="{StaticResource IconFont}" FontSize="14" Foreground="{DynamicResource Bar.Secondary}"
+                                           VerticalAlignment="Center" Visibility="{Binding HasIcon, Converter={StaticResource InverseBoolToVisibility}}" />
+                                <TextBlock Grid.Column="1" Text="{Binding Name}" Style="{StaticResource Card.Label}" FontSize="11" TextTrimming="CharacterEllipsis" />
+                                <Slider Grid.Column="1" Grid.Row="1" Style="{StaticResource Card.Slider}" Value="{Binding Volume}" />
+                                <Button x:Name="Mute" Grid.Column="2" Grid.RowSpan="2" Style="{StaticResource Bar.GlyphButton}" Content="{Binding MuteGlyph}"
+                                        Command="{Binding ToggleMuteCommand}" Width="28" Height="28" FontSize="13" Margin="6,0,0,0" ToolTip="{l:Loc volume.mute}" />
+                            </Grid>
+                            <DataTemplate.Triggers>
+                                <DataTrigger Binding="{Binding Muted}" Value="True">
+                                    <Setter TargetName="Mute" Property="Foreground" Value="#FF6B6F" />
+                                </DataTrigger>
+                            </DataTemplate.Triggers>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <Button Style="{StaticResource Card.Link}" Content="{l:Loc cc.soundSettings}" Command="{Binding SoundSettingsCommand}" />
+            </StackPanel>
+
+            <!-- Battery ................................................................... -->
+            <StackPanel Visibility="{Binding IsBatteryPanel, Converter={StaticResource BoolToVisibility}}">
+                <TextBlock Text="{Binding PowerTitle}" Style="{StaticResource Card.Title}" />
+                <StackPanel Orientation="Horizontal" Margin="0,12,0,0" Visibility="{Binding HasBattery, Converter={StaticResource BoolToVisibility}}">
+                    <TextBlock Text="{Binding BatteryGlyph}" FontFamily="{StaticResource IconFont}" FontSize="26" Foreground="{DynamicResource Bar.Foreground}" VerticalAlignment="Center" />
+                    <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding BatteryPercent, StringFormat={}{0} %}" Style="{StaticResource Card.Body}" FontSize="20" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding BatteryStatus}" Style="{StaticResource Card.Label}" />
+                    </StackPanel>
+                </StackPanel>
+                <TextBlock Text="{l:Loc cc.saverOn}" Style="{StaticResource Card.Label}" Margin="0,8,0,0" Foreground="#FFD166"
+                           Visibility="{Binding SaverOn, Converter={StaticResource BoolToVisibility}}" />
+                <TextBlock Text="{l:Loc cc.powerHint}" Style="{StaticResource Card.Label}" FontSize="11" TextWrapping="Wrap" TextTrimming="None" Margin="0,8,0,0"
+                           Visibility="{Binding HasBattery, Converter={StaticResource InverseBoolToVisibility}}" />
+                <StackPanel Visibility="{Binding HasPowerModes, Converter={StaticResource BoolToVisibility}}">
+                    <TextBlock Text="{l:Loc cc.powerMode}" Style="{StaticResource Card.Section}" />
+                    <UniformGrid Columns="3">
+                        <Button Style="{StaticResource Card.Pill}" Content="{l:Loc cc.modeEfficiency}" Tag="{Binding IsEfficiency}"
+                                Command="{Binding SetPowerModeCommand}" CommandParameter="Efficiency" Margin="0,0,4,0" />
+                        <Button Style="{StaticResource Card.Pill}" Content="{l:Loc cc.modeBalanced}" Tag="{Binding IsBalanced}"
+                                Command="{Binding SetPowerModeCommand}" CommandParameter="Balanced" Margin="2,0" />
+                        <Button Style="{StaticResource Card.Pill}" Content="{l:Loc cc.modePerformance}" Tag="{Binding IsPerformance}"
+                                Command="{Binding SetPowerModeCommand}" CommandParameter="Performance" Margin="4,0,0,0" />
+                    </UniformGrid>
+                </StackPanel>
+                <Button Style="{StaticResource Card.Link}" Content="{l:Loc cc.powerSettings}" Command="{Binding PowerSettingsCommand}" />
+            </StackPanel>
+        </Grid>
     </DataTemplate>
 
 </ResourceDictionary>

@@ -1,4 +1,7 @@
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
 using NexaDock.Core.Abstractions;
@@ -46,6 +49,229 @@ public sealed class CoreAudioService : IAudioService
 
     public void SetAppVolume(string appHint, double volume01) =>
         WithAppSession(appHint, v => v.SetMasterVolume((float)Math.Clamp(volume01, 0, 1), ref _context));
+
+    public IReadOnlyList<AudioDeviceInfo> GetOutputDevices()
+    {
+        var result = new List<AudioDeviceInfo>();
+        IMMDeviceEnumerator? enumerator = null;
+        IMMDeviceCollection? collection = null;
+        try
+        {
+            enumerator = (IMMDeviceEnumerator)new MMDeviceEnumeratorComObject();
+            string? defaultId = null;
+            if (enumerator.GetDefaultAudioEndpoint(ERender, EMultimedia, out var current) == 0 && current is not null)
+            {
+                current.GetId(out defaultId);
+                Release(current);
+            }
+
+            if (enumerator.EnumAudioEndpoints(ERender, DeviceStateActive, out collection) != 0 || collection is null)
+            {
+                return result;
+            }
+
+            collection.GetCount(out var count);
+            for (uint i = 0; i < count; i++)
+            {
+                if (collection.Item(i, out var device) != 0 || device is null)
+                {
+                    continue;
+                }
+
+                try
+                {
+                    if (device.GetId(out var id) == 0 && !string.IsNullOrEmpty(id))
+                    {
+                        result.Add(new AudioDeviceInfo(id, FriendlyName(device), string.Equals(id, defaultId, StringComparison.OrdinalIgnoreCase)));
+                    }
+                }
+                finally
+                {
+                    Release(device);
+                }
+            }
+        }
+        catch (Exception ex) when (ex is COMException or InvalidCastException)
+        {
+            _logger.LogDebug(ex, "Listing audio outputs failed.");
+        }
+        finally
+        {
+            Release(collection);
+            Release(enumerator);
+        }
+
+        return result.OrderBy(d => d.Name, StringComparer.CurrentCultureIgnoreCase).ToList();
+    }
+
+    public bool SetDefaultOutput(string deviceId)
+    {
+        object? policy = null;
+        try
+        {
+            // IPolicyConfig is not in the SDK, but it is what the Windows sound flyout itself uses.
+            policy = new PolicyConfigComObject();
+            var config = (IPolicyConfig)policy;
+            var ok = true;
+            foreach (var role in new[] { 0, EMultimedia, ECommunications })
+            {
+                ok &= config.SetDefaultEndpoint(deviceId, role) == 0;
+            }
+
+            return ok;
+        }
+        catch (Exception ex) when (ex is COMException or InvalidCastException)
+        {
+            _logger.LogWarning(ex, "Switching the audio output failed.");
+            return false;
+        }
+        finally
+        {
+            Release(policy);
+        }
+    }
+
+    public IReadOnlyList<AudioAppSession> GetAppSessions()
+    {
+        var rows = new Dictionary<string, AudioAppSession>(StringComparer.Ordinal);
+        ForEachSession((pid, state, volume) =>
+        {
+            volume.GetMasterVolume(out var level);
+            volume.GetMute(out var muted);
+            var playing = state == 1;
+            AudioAppSession row;
+            if (pid == 0)
+            {
+                row = new AudioAppSession(AudioAppSession.SystemSoundsKey, string.Empty, null, level, muted, playing);
+            }
+            else if (Describe(pid) is { } app)
+            {
+                row = new AudioAppSession(app.Key, app.Name, app.Path, level, muted, playing);
+            }
+            else
+            {
+                return;
+            }
+
+            // One row per app: browsers play from several processes.
+            if (!rows.TryGetValue(row.Key, out var existing))
+            {
+                rows[row.Key] = row;
+            }
+            else if (row.IsPlaying && !existing.IsPlaying)
+            {
+                rows[row.Key] = existing with { IsPlaying = true, Volume = row.Volume, Muted = row.Muted };
+            }
+        });
+
+        return rows.Values
+            .OrderBy(r => r.IsSystemSounds ? 1 : 0)
+            .ThenByDescending(r => r.IsPlaying)
+            .ThenBy(r => r.Name, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
+    }
+
+    public void SetSessionVolume(string key, double volume01) =>
+        ForEachSession((pid, _, volume) =>
+        {
+            if (SessionKey(pid) == key)
+            {
+                volume.SetMasterVolume((float)Math.Clamp(volume01, 0, 1), ref _context);
+            }
+        });
+
+    public void SetSessionMuted(string key, bool muted) =>
+        ForEachSession((pid, _, volume) =>
+        {
+            if (SessionKey(pid) == key)
+            {
+                volume.SetMute(muted, ref _context);
+            }
+        });
+
+    private static string? SessionKey(uint pid) => pid == 0 ? AudioAppSession.SystemSoundsKey : Describe(pid)?.Key;
+
+    private static (string Key, string Name, string? Path)? Describe(uint pid)
+    {
+        try
+        {
+            using var process = Process.GetProcessById((int)pid);
+            var key = process.ProcessName.ToLowerInvariant();
+            string? path = null;
+            var name = process.ProcessName;
+            try
+            {
+                path = process.MainModule?.FileName;
+                if (path is not null && FileVersionInfo.GetVersionInfo(path).FileDescription is { Length: > 0 } description)
+                {
+                    name = description;
+                }
+            }
+            catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
+            {
+                // an elevated or protected process: keep the process name
+            }
+
+            return (key, name, path);
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
+        {
+            return null; // the process has just ended
+        }
+    }
+
+    private void ForEachSession(Action<uint, int, ISimpleAudioVolume> action)
+    {
+        IMMDeviceEnumerator? enumerator = null;
+        IMMDevice? device = null;
+        object? managerObject = null;
+        IAudioSessionEnumerator? sessions = null;
+        try
+        {
+            enumerator = (IMMDeviceEnumerator)new MMDeviceEnumeratorComObject();
+            if (enumerator.GetDefaultAudioEndpoint(ERender, EMultimedia, out device) != 0 || device is null
+                || device.Activate(ref _sessionManagerIid, ClsctxAll, IntPtr.Zero, out managerObject) != 0
+                || managerObject is not IAudioSessionManager2 manager
+                || manager.GetSessionEnumerator(out sessions) != 0 || sessions is null)
+            {
+                return;
+            }
+
+            sessions.GetCount(out var count);
+            for (var i = 0; i < count; i++)
+            {
+                if (sessions.GetSession(i, out var control) != 0 || control is null)
+                {
+                    continue;
+                }
+
+                try
+                {
+                    if (control is IAudioSessionControl2 control2 && control2.GetProcessId(out var pid) == 0
+                        && control2.GetState(out var state) == 0 && state != 2 // 2 = expired
+                        && control is ISimpleAudioVolume volume)
+                    {
+                        action(pid, state, volume);
+                    }
+                }
+                finally
+                {
+                    Release(control);
+                }
+            }
+        }
+        catch (Exception ex) when (ex is COMException or InvalidCastException)
+        {
+            _logger.LogDebug(ex, "Audio session call failed.");
+        }
+        finally
+        {
+            Release(sessions);
+            Release(managerObject);
+            Release(device);
+            Release(enumerator);
+        }
+    }
 
     /// <summary>Finds the audio sessions of the app on the default speaker (all of its processes).</summary>
     private void WithAppSession(string appHint, Action<ISimpleAudioVolume> action)
@@ -180,6 +406,44 @@ public sealed class CoreAudioService : IAudioService
     {
         [PreserveSig] int SetMasterVolume(float level, ref Guid context);
         [PreserveSig] int GetMasterVolume(out float level);
+        [PreserveSig] int SetMute([MarshalAs(UnmanagedType.Bool)] bool mute, ref Guid context);
+        [PreserveSig] int GetMute([MarshalAs(UnmanagedType.Bool)] out bool mute);
+    }
+
+    private const int DeviceStateActive = 1;
+
+    [ComImport]
+    [Guid("870af99c-171d-4f9e-af0d-e63df40c2bc9")]
+    private class PolicyConfigComObject
+    {
+    }
+
+    [ComImport]
+    [Guid("f8679f50-850a-41cf-9c72-430f290290c8")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    private interface IPolicyConfig
+    {
+        [PreserveSig] int GetMixFormat(IntPtr deviceId, IntPtr format);
+        [PreserveSig] int GetDeviceFormat(IntPtr deviceId, int defaultFormat, IntPtr format);
+        [PreserveSig] int ResetDeviceFormat(IntPtr deviceId);
+        [PreserveSig] int SetDeviceFormat(IntPtr deviceId, IntPtr endpointFormat, IntPtr mixFormat);
+        [PreserveSig] int GetProcessingPeriod(IntPtr deviceId, int defaultPeriod, IntPtr defaultTime, IntPtr minimumTime);
+        [PreserveSig] int SetProcessingPeriod(IntPtr deviceId, IntPtr period);
+        [PreserveSig] int GetShareMode(IntPtr deviceId, IntPtr mode);
+        [PreserveSig] int SetShareMode(IntPtr deviceId, IntPtr mode);
+        [PreserveSig] int GetPropertyValue(IntPtr deviceId, IntPtr key, IntPtr value);
+        [PreserveSig] int SetPropertyValue(IntPtr deviceId, IntPtr key, IntPtr value);
+        [PreserveSig] int SetDefaultEndpoint([MarshalAs(UnmanagedType.LPWStr)] string deviceId, int role);
+        [PreserveSig] int SetEndpointVisibility(IntPtr deviceId, int visible);
+    }
+
+    [ComImport]
+    [Guid("0BD7A1BE-7A1A-44DB-8397-CC5392387B5E")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    private interface IMMDeviceCollection
+    {
+        [PreserveSig] int GetCount(out uint count);
+        [PreserveSig] int Item(uint index, out IMMDevice device);
     }
 
     private AudioEndpointState Read(int flow, int role)
@@ -272,7 +536,7 @@ public sealed class CoreAudioService : IAudioService
     [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
     private interface IMMDeviceEnumerator
     {
-        [PreserveSig] int EnumAudioEndpoints(int dataFlow, int stateMask, out IntPtr devices);
+        [PreserveSig] int EnumAudioEndpoints(int dataFlow, int stateMask, out IMMDeviceCollection devices);
         [PreserveSig] int GetDefaultAudioEndpoint(int dataFlow, int role, out IMMDevice endpoint);
     }
 
@@ -283,6 +547,8 @@ public sealed class CoreAudioService : IAudioService
     {
         [PreserveSig] int Activate(ref Guid iid, int clsCtx, IntPtr activationParams, [MarshalAs(UnmanagedType.IUnknown)] out object anInterface);
         [PreserveSig] int OpenPropertyStore(int stgmAccess, out IPropertyStore properties);
+        [PreserveSig] int GetId([MarshalAs(UnmanagedType.LPWStr)] out string id);
+        [PreserveSig] int GetState(out int state);
     }
 
     [ComImport]

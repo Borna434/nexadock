@@ -139,6 +139,7 @@ public partial class DockWindow : Window
         _viewModel.LayoutInvalidated += (_, _) => QueueReposition();
         _host.PlacementInvalidated += OnPlacementInvalidated;
         _tracker.Changed += OnWindowsChanged;
+        WidgetViewModel.CardRequested += OnCardRequested;
         Loaded += (_, _) => Dispatcher.BeginInvoke(UpdateFullscreenState, DispatcherPriority.Background);
         DpiChanged += (_, _) => QueueReposition();
         IsVisibleChanged += (_, _) =>
@@ -218,6 +219,7 @@ public partial class DockWindow : Window
         (_stripCapture as IDisposable)?.Dispose();
         _host.PlacementInvalidated -= OnPlacementInvalidated;
         _tracker.Changed -= OnWindowsChanged;
+        WidgetViewModel.CardRequested -= OnCardRequested;
         _contentWatch.Stop();
         if (!_target.IsMain)
         {
@@ -378,6 +380,7 @@ public partial class DockWindow : Window
         _pressPoint = e.GetPosition(this);
         _pressTile = FindTile(e.OriginalSource as DependencyObject);
         _pressWidget = _pressTile?.DataContext as WidgetViewModel;
+        _pressedButton = FindAncestor(e.OriginalSource as DependencyObject, fe => fe is System.Windows.Controls.Primitives.ButtonBase);
         _gesture = GestureMode.None;
         _logger.LogDebug("Press at {X:0},{Y:0} on {Target} (source {Source}).",
             _pressPoint.Value.X, _pressPoint.Value.Y, _pressWidget?.GetType().Name ?? "background", e.OriginalSource?.GetType().Name);
@@ -560,6 +563,42 @@ public partial class DockWindow : Window
             }
 
             d = d is Visual ? VisualTreeHelper.GetParent(d) : LogicalTreeHelper.GetParent(d);
+        }
+
+        return false;
+    }
+
+    /// <summary>The button last pressed on the bar: a card a button asks for opens above it.</summary>
+    private FrameworkElement? _pressedButton;
+
+    private void OnCardRequested(object? sender, EventArgs e)
+    {
+        if (sender is not WidgetViewModel widget || !_viewModel.Widgets.Contains(widget))
+        {
+            return;
+        }
+
+        var tile = AllTiles().FirstOrDefault(t => t.DataContext == widget);
+        if (tile is null)
+        {
+            return;
+        }
+
+        var anchor = _pressedButton is not null && IsDescendant(_pressedButton, tile) ? _pressedButton : tile;
+        _card.Open(widget, ScreenRect(anchor), _bounds, _settings.Current.Edge, _monitor?.Bounds ?? _bounds, _monitor?.DpiScale ?? 1);
+    }
+
+    private static bool IsDescendant(DependencyObject d, DependencyObject container)
+    {
+        DependencyObject? current = d;
+        while (current is not null)
+        {
+            if (current == container)
+            {
+                return true;
+            }
+
+            current = current is Visual ? VisualTreeHelper.GetParent(current) : LogicalTreeHelper.GetParent(current);
         }
 
         return false;

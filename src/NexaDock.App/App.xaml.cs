@@ -103,6 +103,8 @@ public partial class App : Application
         services.AddSingleton<IStorageNetworkMonitor, StorageNetworkMonitor>();
         services.AddSingleton<IKeyboardLayoutService, KeyboardLayoutService>();
         services.AddSingleton<IRadioService, WinRtRadioService>();
+        services.AddSingleton<IWifiService, WifiService>();
+        services.AddSingleton<IPowerService, PowerService>();
         services.AddSingleton<IBrightnessService, BrightnessService>();
         services.AddSingleton<PulseCenter>();
         services.AddSingleton<WallpaperAccent>();

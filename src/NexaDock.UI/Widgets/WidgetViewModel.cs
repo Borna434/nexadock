@@ -82,6 +82,14 @@ public abstract partial class WidgetViewModel : ObservableObject, IDisposable
 
     protected void RequestCloseCard() => CloseCardRequested?.Invoke(this, EventArgs.Empty);
 
+    /// <summary>
+    /// A button inside a tile asks for the widget's card (one system icon opens its own panel). The
+    /// bar that shows the widget opens the card above the button that was pressed.
+    /// </summary>
+    public static event EventHandler? CardRequested;
+
+    protected void RequestCard() => CardRequested?.Invoke(this, EventArgs.Empty);
+
     /// <summary>Set by the bar before <see cref="Start"/>.</summary>
     public void SetDisplay(string? display) => Display = display;
 

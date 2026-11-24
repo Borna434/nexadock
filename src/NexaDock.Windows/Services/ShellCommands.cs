@@ -20,6 +20,8 @@ public sealed class ShellCommands : IShellCommands
 
     public void OpenNotificationCenter() => Chord(VK_LWIN, 'N');
 
+    public void OpenSystemUri(string uri) => Start(uri);
+
     public void OpenNetworkFlyout() => Start("ms-availablenetworks:");
 
     public void OpenSoundFlyout() => Chord(VK_LWIN, 0x11 /* VK_CONTROL */, (ushort)'V');

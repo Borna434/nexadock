@@ -228,6 +228,9 @@ public interface IShellCommands
     /// <summary>Windows' own sound flyout: output device and volume (Win+Ctrl+V).</summary>
     void OpenSoundFlyout();
 
+    /// <summary>Opens a Settings page or other system URI (ms-settings:sound, ...).</summary>
+    void OpenSystemUri(string uri);
+
     /// <summary>Brings a window to the front and presses Ctrl+V in it.</summary>
     void PasteInto(IntPtr window);
 }
@@ -421,6 +424,112 @@ public interface IAudioService
     double? GetAppVolume(string appHint);
 
     void SetAppVolume(string appHint, double volume01);
+
+    /// <summary>Active output devices (speakers, headphones, monitors); the default one is marked.</summary>
+    IReadOnlyList<AudioDeviceInfo> GetOutputDevices();
+
+    /// <summary>Makes a device the default output for every role, like the Windows sound flyout.</summary>
+    bool SetDefaultOutput(string deviceId);
+
+    /// <summary>Apps with sound on the default output, one row per app (all of its processes).</summary>
+    IReadOnlyList<AudioAppSession> GetAppSessions();
+
+    void SetSessionVolume(string key, double volume01);
+
+    void SetSessionMuted(string key, bool muted);
+}
+
+public sealed record AudioDeviceInfo(string Id, string Name, bool IsDefault);
+
+/// <param name="Key">Process name (lower case), or <see cref="SystemSoundsKey"/>.</param>
+/// <param name="Name">Friendly app name; empty for Windows' system sounds.</param>
+/// <param name="ExePath">For the app icon; null when unknown.</param>
+public sealed record AudioAppSession(string Key, string Name, string? ExePath, double Volume, bool Muted, bool IsPlaying)
+{
+    public const string SystemSoundsKey = "#system";
+
+    public bool IsSystemSounds => Key == SystemSoundsKey;
+}
+
+public enum WifiSecurity
+{
+    Open,
+    Personal,
+    Enterprise,
+}
+
+/// <param name="ProfileName">The saved Windows profile, or null when the network was never joined.</param>
+public sealed record WifiNetwork(string Ssid, int SignalPercent, WifiSecurity Security, bool IsConnected, string? ProfileName);
+
+public enum WifiAccess
+{
+    Ok,
+
+    /// <summary>No Wi-Fi adapter (a desktop on Ethernet).</summary>
+    NoAdapter,
+
+    /// <summary>Windows hides network names from apps until location access is allowed.</summary>
+    LocationDenied,
+
+    Unavailable,
+}
+
+public sealed record WifiScan(WifiAccess Access, IReadOnlyList<WifiNetwork> Networks);
+
+public enum ConnectionKind
+{
+    Ethernet,
+    Wifi,
+    Other,
+}
+
+/// <summary>A network connection that is up and has a gateway.</summary>
+public sealed record ConnectionInfo(ConnectionKind Kind, string Name, string Adapter, long SpeedBitsPerSecond, string? Address);
+
+public enum WifiConnectResult
+{
+    Connected,
+    NeedsPassword,
+    Failed,
+    Unsupported,
+}
+
+/// <summary>Wi-Fi networks through the Native Wifi API, plus a summary of active connections.</summary>
+public interface IWifiService
+{
+    IReadOnlyList<ConnectionInfo> GetConnections();
+
+    /// <summary>Networks in range, strongest first; <paramref name="rescan"/> asks the adapter for a fresh scan.</summary>
+    Task<WifiScan> GetNetworksAsync(bool rescan);
+
+    /// <summary>
+    /// Joins a network: saved networks use their profile; new ones need <paramref name="password"/>
+    /// (personal) or nothing (open). Waits until Windows reports the connection or gives up.
+    /// </summary>
+    Task<WifiConnectResult> ConnectAsync(WifiNetwork network, string? password);
+
+    Task DisconnectAsync();
+}
+
+public enum PowerMode
+{
+    Efficiency,
+    Balanced,
+    Performance,
+}
+
+/// <param name="Remaining">Estimated time on battery; null while charging or unknown.</param>
+public sealed record BatteryDetails(bool HasBattery, int Percent, bool IsCharging, bool PluggedIn, TimeSpan? Remaining, bool SaverOn);
+
+/// <summary>Battery details and the Windows power mode (efficiency, balanced, performance).</summary>
+public interface IPowerService
+{
+    BatteryDetails GetBattery();
+
+    /// <summary>Null when the active power plan has no power modes (a custom plan).</summary>
+    PowerMode? GetMode();
+
+    bool SetMode(PowerMode mode);
 }
 
 public sealed record NetworkTotals(long BytesReceived, long BytesSent, string AdapterNames);

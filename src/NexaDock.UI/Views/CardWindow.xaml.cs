@@ -152,13 +152,13 @@ public partial class CardWindow : Window
         }
     }
 
-    private static System.Windows.Controls.Primitives.TextBoxBase? FindTextBox(DependencyObject? d)
+    private static System.Windows.Controls.Control? FindTextBox(DependencyObject? d)
     {
         while (d is not null)
         {
-            if (d is System.Windows.Controls.Primitives.TextBoxBase t)
+            if (d is System.Windows.Controls.Primitives.TextBoxBase or System.Windows.Controls.PasswordBox)
             {
-                return t;
+                return (System.Windows.Controls.Control)d;
             }
 
             d = d is Visual ? VisualTreeHelper.GetParent(d) : LogicalTreeHelper.GetParent(d);
