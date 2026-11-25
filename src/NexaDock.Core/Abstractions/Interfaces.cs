@@ -192,6 +192,12 @@ public interface IWindowTracker
     /// <summary>Raised on the UI thread when windows open, close, change title or focus moves.</summary>
     event EventHandler? Changed;
 
+    /// <summary>
+    /// The window in front changed its size or position, e.g. a video switching to full screen in
+    /// the same browser window (no window opens or closes, so <see cref="Changed"/> stays silent).
+    /// </summary>
+    event EventHandler? ForegroundMoved;
+
     void Start();
 
     void Activate(IntPtr hwnd);

@@ -63,8 +63,19 @@ public sealed class Win32WindowTracker : IWindowTracker, IDisposable
         };
 
         _poll = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromSeconds(3) };
-        _poll.Tick += (_, _) => Refresh();
+        _poll.Tick += (_, _) =>
+        {
+            Refresh();
+            ForegroundMoved?.Invoke(this, EventArgs.Empty); // fallback if a location event was missed
+        };
         _poll.Start();
+
+        _moveDebounce = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(120) };
+        _moveDebounce.Tick += (_, _) =>
+        {
+            _moveDebounce.Stop();
+            ForegroundMoved?.Invoke(this, EventArgs.Empty);
+        };
 
         const uint flags = WINEVENT_OUTOFCONTEXT | WINEVENT_SKIPOWNPROCESS;
         Hook(EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_FOREGROUND, flags);
@@ -73,6 +84,7 @@ public sealed class Win32WindowTracker : IWindowTracker, IDisposable
         Hook(EVENT_OBJECT_NAMECHANGE, EVENT_OBJECT_NAMECHANGE, flags);
         Hook(EventSystemMoveSizeEnd, EventSystemMoveSizeEnd, flags); // a window dragged to another display
         Hook(EVENT_OBJECT_CLOAKED, EVENT_OBJECT_UNCLOAKED, flags);
+        Hook(EventObjectLocationChange, EventObjectLocationChange, flags);
 
         Refresh();
         _logger.LogInformation("Window tracker started with {Count} hooks.", _hooks.Count);
@@ -87,8 +99,26 @@ public sealed class Win32WindowTracker : IWindowTracker, IDisposable
         }
     }
 
+    private const uint EventObjectLocationChange = 0x800B;
+
+    private DispatcherTimer? _moveDebounce;
+
+    public event EventHandler? ForegroundMoved;
+
     private void OnWinEvent(IntPtr hook, uint eventType, IntPtr hwnd, int idObject, int idChild, uint thread, uint time)
     {
+        if (eventType == EventObjectLocationChange)
+        {
+            // Only the window in front matters (full screen on/off); other windows moving are noise.
+            if (idObject == OBJID_WINDOW && idChild == 0 && hwnd == GetForegroundWindow())
+            {
+                _moveDebounce?.Stop();
+                _moveDebounce?.Start();
+            }
+
+            return;
+        }
+
         if (eventType != EVENT_SYSTEM_FOREGROUND && (idObject != OBJID_WINDOW || idChild != 0))
         {
             return;
@@ -317,9 +347,7 @@ public sealed class Win32WindowTracker : IWindowTracker, IDisposable
             return false;
         }
 
-        // Maximized windows can report a rectangle covering the whole monitor (frameless apps);
-        // they are not full-screen. Real full-screen windows (games, F11, video) are not zoomed.
-        if (IsZoomed(fg) || !GetWindowRect(fg, out var r))
+        if (!GetWindowRect(fg, out var r))
         {
             return false;
         }
@@ -331,12 +359,31 @@ public sealed class Win32WindowTracker : IWindowTracker, IDisposable
             return false;
         }
 
+        // A borderless window exactly the size of the display: browser video and F11, borderless
+        // games. Windows does not always report these as "busy" (YouTube in Chrome, for one).
+        var exact = Math.Abs(r.Left - b.X) <= 1 && Math.Abs(r.Top - b.Y) <= 1
+            && Math.Abs(r.Right - b.Right) <= 1 && Math.Abs(r.Bottom - b.Bottom) <= 1;
+        var style = (long)GetWindowLongPtr(fg, GwlStyle);
+        if (exact && (style & WsCaption) != WsCaption)
+        {
+            return true;
+        }
+
+        // Maximized windows can report a rectangle covering the whole monitor (frameless apps);
+        // they are not full-screen.
+        if (IsZoomed(fg))
+        {
+            return false;
+        }
+
         // Windows' own verdict (what the taskbar uses): a window that merely covers the screen,
         // such as a frameless app sized to the monitor, is not "full screen".
         return SHQueryUserNotificationState(out var state) == 0
             && state is QunsBusy or QunsRunningD3DFullScreen or QunsPresentationMode;
     }
 
+    private const int GwlStyle = -16;
+    private const long WsCaption = 0x00C00000;
     private const int QunsBusy = 2;
     private const int QunsRunningD3DFullScreen = 3;
     private const int QunsPresentationMode = 4;

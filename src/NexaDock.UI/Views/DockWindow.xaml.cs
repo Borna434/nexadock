@@ -139,6 +139,7 @@ public partial class DockWindow : Window
         _viewModel.LayoutInvalidated += (_, _) => QueueReposition();
         _host.PlacementInvalidated += OnPlacementInvalidated;
         _tracker.Changed += OnWindowsChanged;
+        _tracker.ForegroundMoved += OnWindowsChanged;
         WidgetViewModel.CardRequested += OnCardRequested;
         Loaded += (_, _) => Dispatcher.BeginInvoke(UpdateFullscreenState, DispatcherPriority.Background);
         DpiChanged += (_, _) => QueueReposition();
@@ -219,6 +220,7 @@ public partial class DockWindow : Window
         (_stripCapture as IDisposable)?.Dispose();
         _host.PlacementInvalidated -= OnPlacementInvalidated;
         _tracker.Changed -= OnWindowsChanged;
+        _tracker.ForegroundMoved -= OnWindowsChanged;
         WidgetViewModel.CardRequested -= OnCardRequested;
         _contentWatch.Stop();
         if (!_target.IsMain)
@@ -357,11 +359,13 @@ public partial class DockWindow : Window
         if (hide && IsVisible)
         {
             _fullscreenHidden = true;
+            _logger.LogInformation("Bar hidden: an app is full screen.");
             Hide();
         }
         else if (!hide && _fullscreenHidden)
         {
             _fullscreenHidden = false;
+            _logger.LogInformation("Bar shown again: full screen ended.");
             Show();
         }
 
