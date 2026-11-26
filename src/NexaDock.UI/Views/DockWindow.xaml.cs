@@ -110,6 +110,7 @@ public partial class DockWindow : Window
         _viewModel.SetBackdrop(kind);
 
         InitializeComponent();
+        AllowDrop = true; // drag a shortcut from the desktop onto the bar to pin it
         DataContext = _viewModel;
 
         _card = new CardWindow(backdrop, host, kind);
@@ -736,6 +737,44 @@ public partial class DockWindow : Window
         if (_settings.Current.Equals(before))
         {
             Reposition(); // same place: snap back
+        }
+    }
+
+    // ---- Drop to pin ---------------------------------------------------------------------------
+
+    /// <summary>The apps widget a drop at <paramref name="source"/> pins to: the one under it, else this bar's.</summary>
+    private AppsWidget? DropTarget(DependencyObject? source) =>
+        FindTile(source)?.DataContext as AppsWidget ?? _viewModel.Widgets.OfType<AppsWidget>().FirstOrDefault();
+
+    private static string[]? DroppedFiles(DragEventArgs e) =>
+        e.Data.GetDataPresent(DataFormats.FileDrop) ? e.Data.GetData(DataFormats.FileDrop) as string[] : null;
+
+    protected override void OnPreviewDragOver(DragEventArgs e)
+    {
+        base.OnPreviewDragOver(e);
+        if (DroppedFiles(e) is { Length: > 0 } && DropTarget(e.OriginalSource as DependencyObject) is not null)
+        {
+            e.Effects = DragDropEffects.Link;
+            e.Handled = true;
+        }
+    }
+
+    protected override void OnPreviewDragEnter(DragEventArgs e)
+    {
+        base.OnPreviewDragEnter(e);
+        OnPreviewDragOver(e);
+    }
+
+    protected override void OnPreviewDrop(DragEventArgs e)
+    {
+        base.OnPreviewDrop(e);
+        var source = e.OriginalSource as DependencyObject;
+        if (DroppedFiles(e) is { Length: > 0 } files && DropTarget(source) is { } apps)
+        {
+            var before = FindAppItem(source)?.DataContext as AppItemViewModel;
+            apps.PinFiles(files, before);
+            e.Effects = DragDropEffects.Link;
+            e.Handled = true;
         }
     }
 

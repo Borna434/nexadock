@@ -265,6 +265,35 @@ public sealed partial class AppsWidget : WidgetViewModel
     [RelayCommand]
     private void OpenStart() => _shell.OpenStartMenu();
 
+    /// <summary>
+    /// Pins files dropped on the bar (desktop shortcuts, .exe, .url, folders). They go before
+    /// <paramref name="before"/> when it is a pinned app, else after the other pinned apps.
+    /// Paths already pinned are skipped. Returns how many were pinned.
+    /// </summary>
+    public int PinFiles(IEnumerable<string> paths, AppItemViewModel? before = null)
+    {
+        var current = _settings.Current.Shortcuts;
+        var added = paths
+            .Where(p => !string.IsNullOrWhiteSpace(p) && (File.Exists(p) || Directory.Exists(p)))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Where(p => !current.Any(s => string.Equals(s.Target, p, StringComparison.OrdinalIgnoreCase)))
+            .Select(_catalog.CreateFromFile)
+            .ToList();
+        if (added.Count == 0)
+        {
+            return 0;
+        }
+
+        _settings.Update(s =>
+        {
+            var list = s.Shortcuts.ToList();
+            var index = before?.Shortcut is { } anchor ? list.FindIndex(x => x.Id == anchor.Id) : -1;
+            list.InsertRange(index < 0 ? list.Count : index, added);
+            return s with { Shortcuts = list, ShortcutsInitialized = true };
+        });
+        return added.Count;
+    }
+
     /// <summary>Right-click menu for one app.</summary>
     public IEnumerable<WidgetMenuItem> GetItemMenu(AppItemViewModel item)
     {
