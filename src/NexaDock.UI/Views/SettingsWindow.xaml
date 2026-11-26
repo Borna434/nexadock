@@ -705,7 +705,7 @@
             </TabItem>
 
             <!-- ======================================================================= About -->
-            <TabItem Header="{l:Loc settings.tab.about}">
+            <TabItem Header="{l:Loc settings.tab.about}" Tag="about">
                 <ScrollViewer Style="{StaticResource Page}">
                     <StackPanel>
                         <TextBlock Text="{l:Loc settings.tab.about}" Style="{StaticResource SectionTitle}" Margin="0,4,0,8" />

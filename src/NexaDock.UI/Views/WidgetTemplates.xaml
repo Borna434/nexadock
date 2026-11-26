@@ -706,8 +706,12 @@
             <ItemsControl ItemsSource="{Binding Rows}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate DataType="{x:Type w:PulseRow}">
-                        <Border CornerRadius="10" Padding="10,8" Margin="0,0,0,6" Background="{DynamicResource Bar.TileFill}"
+                        <Border x:Name="Row" CornerRadius="10" Padding="10,8" Margin="0,0,0,6" Background="{DynamicResource Bar.TileFill}"
                                 BorderBrush="{DynamicResource Bar.TileRim}" BorderThickness="1">
+                            <!-- A click on the row (not on the dismiss button) opens what the alert is about. -->
+                            <Border.InputBindings>
+                                <MouseBinding MouseAction="LeftClick" Command="{Binding OpenCommand}" />
+                            </Border.InputBindings>
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto" />
@@ -726,6 +730,17 @@
                             <DataTrigger Binding="{Binding IsCritical}" Value="True">
                                 <Setter TargetName="Icon" Property="Foreground" Value="#FF6B6F" />
                             </DataTrigger>
+                            <DataTrigger Binding="{Binding CanOpen}" Value="True">
+                                <Setter TargetName="Row" Property="Cursor" Value="Hand" />
+                            </DataTrigger>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding CanOpen}" Value="True" />
+                                    <Condition Binding="{Binding IsMouseOver, ElementName=Row}" Value="True" />
+                                </MultiDataTrigger.Conditions>
+                                <Setter TargetName="Row" Property="Background" Value="{DynamicResource Bar.HoverFill}" />
+                                <Setter TargetName="Row" Property="BorderBrush" Value="{DynamicResource Bar.Accent}" />
+                            </MultiDataTrigger>
                         </DataTemplate.Triggers>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>

@@ -621,11 +621,13 @@ public sealed partial class BrightnessWidget : WidgetViewModel
 public sealed partial class PulseWidget : WidgetViewModel
 {
     private readonly PulseCenter _pulse;
+    private readonly IAppShell _shell;
 
-    public PulseWidget(WidgetPlacement placement, PulseCenter pulse)
+    public PulseWidget(WidgetPlacement placement, PulseCenter pulse, IAppShell shell)
         : base(placement)
     {
         _pulse = pulse;
+        _shell = shell;
         _pulse.Changed += OnChanged;
         Update();
     }
@@ -648,7 +650,8 @@ public sealed partial class PulseWidget : WidgetViewModel
         Rows.Clear();
         foreach (var a in _pulse.Alerts)
         {
-            Rows.Add(new PulseRow(a.Id, WidgetCatalog.Glyph(a.GlyphCode), Loc.F(a.MessageKey, a.Args.Cast<object>().ToArray()), a.Severity, Dismiss));
+            Rows.Add(new PulseRow(a.Id, WidgetCatalog.Glyph(a.GlyphCode), Loc.F(a.MessageKey, a.Args.Cast<object>().ToArray()), a.Severity, Dismiss,
+                SettingsTabFor(a.Id) is not null ? Open : null));
         }
 
         var top = _pulse.Alerts.FirstOrDefault();
@@ -661,6 +664,23 @@ public sealed partial class PulseWidget : WidgetViewModel
 
     private void Dismiss(string id) => _pulse.Dismiss(id);
 
+    /// <summary>Alerts that are about a setting take you straight to it.</summary>
+    internal static string? SettingsTabFor(string alertId) => alertId switch
+    {
+        "update" => "about",
+        "google-signin" => "calendar",
+        _ => null,
+    };
+
+    private void Open(string id)
+    {
+        if (SettingsTabFor(id) is { } tab)
+        {
+            RequestCloseCard();
+            _shell.ShowSettings(tab);
+        }
+    }
+
     [RelayCommand]
     private void DismissAll() => _pulse.DismissAll();
 
@@ -671,8 +691,14 @@ public sealed partial class PulseWidget : WidgetViewModel
     }
 }
 
-public sealed partial class PulseRow(string id, string glyph, string message, PulseSeverity severity, Action<string> dismiss) : ObservableObject
+public sealed partial class PulseRow(string id, string glyph, string message, PulseSeverity severity, Action<string> dismiss, Action<string>? open = null) : ObservableObject
 {
+    /// <summary>Clicking the row opens what the alert is about (e.g. Settings › About for an update).</summary>
+    public bool CanOpen { get; } = open is not null;
+
+    [RelayCommand]
+    private void Open() => open?.Invoke(Id);
+
     public string Id { get; } = id;
 
     public string Glyph { get; } = glyph;
