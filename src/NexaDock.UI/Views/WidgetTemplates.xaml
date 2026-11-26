@@ -1212,7 +1212,7 @@
     <DataTemplate x:Key="ClaudeWidget.Tile" DataType="{x:Type w:ClaudeWidget}">
         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
             <Grid Width="30" Height="30">
-                <c:RingGauge Value="{Binding WindowProgress}" StrokeThickness="2.5" Track="{DynamicResource Bar.Track}" Fill="{StaticResource SparkleBrush}" />
+                <c:RingGauge Value="{Binding RingValue}" StrokeThickness="2.5" Track="{DynamicResource Bar.Track}" Fill="{StaticResource SparkleBrush}" />
                 <Path Data="{StaticResource SparkleGeometry}" Fill="{StaticResource SparkleBrush}" Stretch="Uniform" Width="15" Height="15" />
             </Grid>
             <StackPanel Margin="8,0,2,0" VerticalAlignment="Center" MaxWidth="150">
@@ -1234,6 +1234,38 @@
             </Grid>
             <TextBlock Text="{Binding StatusText}" Style="{StaticResource Card.Label}" TextWrapping="Wrap" TextTrimming="None" Margin="0,8,0,0"
                        Visibility="{Binding StatusText, Converter={StaticResource NonEmptyToVisibility}}" />
+
+            <!-- Plan limits, as Claude reports them -->
+            <Border CornerRadius="12" Padding="14,12" Margin="0,12,0,0" Background="{DynamicResource Bar.TileFill}"
+                    BorderBrush="{DynamicResource Bar.TileRim}" BorderThickness="1" Visibility="{Binding HasLimits, Converter={StaticResource BoolToVisibility}}">
+                <StackPanel>
+                    <TextBlock Text="{l:Loc claude.limits}" Style="{StaticResource Card.Label}" />
+                    <StackPanel Margin="0,10,0,0" Visibility="{Binding HasFiveHour, Converter={StaticResource BoolToVisibility}}">
+                        <Grid>
+                            <TextBlock Text="{l:Loc claude.fiveHour}" Style="{StaticResource Card.Body}" VerticalAlignment="Bottom" />
+                            <TextBlock Text="{Binding FiveHourText}" Style="{StaticResource Bar.Text}" FontFamily="{StaticResource DisplayFont}" FontSize="24" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                        </Grid>
+                        <Border Style="{StaticResource Card.Progress}" Margin="0,4,0,0">
+                            <Border CornerRadius="3" Background="{StaticResource SparkleBrush}" RenderTransformOrigin="0,0.5">
+                                <Border.RenderTransform><ScaleTransform ScaleX="{Binding FiveHourPercent, Converter={StaticResource PercentToScale}}" /></Border.RenderTransform>
+                            </Border>
+                        </Border>
+                        <TextBlock Text="{Binding FiveHourReset}" Style="{StaticResource Card.Label}" FontSize="11" Margin="0,4,0,0" />
+                    </StackPanel>
+                    <StackPanel Margin="0,10,0,0" Visibility="{Binding HasWeekly, Converter={StaticResource BoolToVisibility}}">
+                        <Grid>
+                            <TextBlock Text="{l:Loc claude.weekly}" Style="{StaticResource Card.Body}" VerticalAlignment="Bottom" />
+                            <TextBlock Text="{Binding WeeklyText}" Style="{StaticResource Bar.Text}" FontFamily="{StaticResource DisplayFont}" FontSize="24" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                        </Grid>
+                        <Border Style="{StaticResource Card.Progress}" Margin="0,4,0,0">
+                            <Border CornerRadius="3" Background="{StaticResource SparkleBrush}" RenderTransformOrigin="0,0.5">
+                                <Border.RenderTransform><ScaleTransform ScaleX="{Binding WeeklyPercent, Converter={StaticResource PercentToScale}}" /></Border.RenderTransform>
+                            </Border>
+                        </Border>
+                        <TextBlock Text="{Binding WeeklyReset}" Style="{StaticResource Card.Label}" FontSize="11" Margin="0,4,0,0" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
 
             <!-- Current 5-hour window -->
             <Border CornerRadius="12" Padding="14,12" Margin="0,12,0,0" Background="{DynamicResource Bar.TileFill}"

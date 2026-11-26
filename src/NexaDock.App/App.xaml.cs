@@ -122,6 +122,7 @@ public partial class App : Application
         services.AddSingleton<UpdateService>();
         services.AddSingleton<TrayIconHost>();
         services.AddSingleton<NexaDock.Core.Usage.IClaudeUsageSource, NexaDock.Infrastructure.Usage.ClaudeLogReader>();
+        services.AddSingleton<NexaDock.Core.Usage.IClaudeLimitsSource, NexaDock.Infrastructure.Usage.ClaudeLimitsClient>();
         services.AddSingleton<ProfileCoordinator>();
         services.AddSingleton<SettingsService>();
         services.AddSingleton<ISettingsService>(sp => sp.GetRequiredService<SettingsService>());

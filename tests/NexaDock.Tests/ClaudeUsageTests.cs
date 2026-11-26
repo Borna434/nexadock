@@ -159,3 +159,28 @@ public sealed class ClaudeLogReaderTests : IDisposable
         }
     }
 }
+
+public class ClaudeLimitsClientTests
+{
+    private static readonly DateTimeOffset Now = new(2026, 11, 26, 20, 0, 0, TimeSpan.Zero);
+
+    [Fact]
+    public void Parses_five_hour_and_weekly_percentages()
+    {
+        var limits = ClaudeLimitsClient.Parse(
+            """{"five_hour":{"utilization":6.0,"resets_at":"2026-11-26T23:50:00+00:00"},"seven_day":{"utilization":77,"resets_at":"2026-11-28T09:00:00Z"},"seven_day_opus":null}""",
+            Now);
+
+        Assert.NotNull(limits);
+        Assert.Equal(6, limits!.FiveHour!.Percent);
+        Assert.Equal(new DateTimeOffset(2026, 11, 26, 23, 50, 0, TimeSpan.Zero), limits.FiveHour.ResetsAt);
+        Assert.Equal(77, limits.Weekly!.Percent);
+    }
+
+    [Fact]
+    public void Missing_limits_give_null()
+    {
+        Assert.Null(ClaudeLimitsClient.Parse("""{"five_hour":null,"seven_day":null}""", Now));
+        Assert.Null(ClaudeLimitsClient.Parse("""{"error":{"type":"authentication_error"}}""", Now));
+    }
+}

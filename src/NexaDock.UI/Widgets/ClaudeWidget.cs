@@ -26,16 +26,19 @@ public sealed partial class ClaudeWidget : WidgetViewModel
     public const long MinimumRecordForPulse = 200_000;
 
     private readonly IClaudeUsageSource _source;
+    private readonly IClaudeLimitsSource _limitsSource;
+    private ClaudePlanLimits? _limits;
     private readonly PulseCenter _pulse;
     private readonly DispatcherTimer _refresh;
     private readonly DispatcherTimer _clock;
     private ClaudeUsageSummary _summary = ClaudeUsageSummary.Empty(false);
     private bool _loading;
 
-    public ClaudeWidget(WidgetPlacement placement, IClaudeUsageSource source, PulseCenter pulse)
+    public ClaudeWidget(WidgetPlacement placement, IClaudeUsageSource source, IClaudeLimitsSource limits, PulseCenter pulse)
         : base(placement)
     {
         _source = source;
+        _limitsSource = limits;
         _pulse = pulse;
         _refresh = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromSeconds(30) };
         _refresh.Tick += async (_, _) => { if (!QuietMode.IsActive) await LoadAsync(); };
@@ -64,6 +67,18 @@ public sealed partial class ClaudeWidget : WidgetViewModel
     [ObservableProperty] private string _weekText = string.Empty;
     [ObservableProperty] private string _statusText = string.Empty;
 
+    // Plan limits as Claude reports them (the same percentages as Claude's own usage screen).
+    [ObservableProperty] private bool _hasLimits;
+    [ObservableProperty] private bool _hasFiveHour;
+    [ObservableProperty] private bool _hasWeekly;
+    [ObservableProperty] private double _fiveHourPercent;
+    [ObservableProperty] private double _weeklyPercent;
+    [ObservableProperty] private string _fiveHourText = string.Empty;
+    [ObservableProperty] private string _weeklyText = string.Empty;
+    [ObservableProperty] private string _fiveHourReset = string.Empty;
+    [ObservableProperty] private string _weeklyReset = string.Empty;
+    [ObservableProperty] private double _ringValue;
+
     public override async void Start()
     {
         Present();
@@ -90,7 +105,9 @@ public sealed partial class ClaudeWidget : WidgetViewModel
         try
         {
             var found = _source.LogsFound;
+            var limitsTask = _limitsSource.GetAsync();
             var entries = found ? await Task.Run(_source.ReadRecent) : [];
+            _limits = await limitsTask;
             _summary = ClaudeUsageCalculator.Summarize(entries, DateTimeOffset.UtcNow, TimeZoneInfo.Local, found);
             Present();
             UpdatePulse();
@@ -113,6 +130,7 @@ public sealed partial class ClaudeWidget : WidgetViewModel
             Subline = Loc.T("claude.noLogs");
             StatusText = Loc.T("claude.noLogsDetail");
             HasSession = false;
+            PresentLimits(now);
             return;
         }
 
@@ -166,6 +184,47 @@ public sealed partial class ClaudeWidget : WidgetViewModel
         {
             Models.Add(new ModelRow(m.Model, $"{ClaudeUsageCalculator.Compact(m.Tokens, culture)} · {Loc.F("claude.messages", m.Messages)}"));
         }
+
+        PresentLimits(now);
+    }
+
+    /// <summary>With the plan limits known, the bar shows them instead of token counts.</summary>
+    private void PresentLimits(DateTimeOffset now)
+    {
+        var five = _limits?.FiveHour;
+        var week = _limits?.Weekly;
+        HasFiveHour = five is not null;
+        HasWeekly = week is not null;
+        HasLimits = HasFiveHour || HasWeekly;
+        FiveHourPercent = five?.Percent ?? 0;
+        WeeklyPercent = week?.Percent ?? 0;
+        FiveHourText = five is null ? "–" : Pct(five.Percent);
+        WeeklyText = week is null ? "–" : Pct(week.Percent);
+        FiveHourReset = Reset(five, now, weekday: false);
+        WeeklyReset = Reset(week, now, weekday: true);
+        RingValue = HasFiveHour ? FiveHourPercent : WindowProgress;
+
+        if (HasLimits)
+        {
+            Headline = Loc.F("claude.barFive", FiveHourText);
+            Subline = Loc.F("claude.barWeek", WeeklyText);
+        }
+    }
+
+    private static string Pct(double p) => p.ToString("0", Loc.Instance.Culture) + "%";
+
+    private static string Reset(PlanLimit? limit, DateTimeOffset now, bool weekday)
+    {
+        if (limit?.ResetsAt is not { } at)
+        {
+            return string.Empty;
+        }
+
+        var local = at.ToLocalTime();
+        var culture = Loc.Instance.Culture;
+        return weekday && at - now > TimeSpan.FromHours(24)
+            ? Loc.F("claude.resetsAt", local.ToString("ddd ", culture) + local.ToString("t", culture))
+            : Loc.F("claude.resetsAtIn", local.ToString("t", culture), Duration(at - now));
     }
 
     private void UpdatePulse()

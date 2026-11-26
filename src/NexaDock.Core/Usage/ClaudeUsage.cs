@@ -183,3 +183,18 @@ public static class ClaudeUsageCalculator
         _ => value.ToString(culture),
     };
 }
+
+/// <summary>One plan limit as Claude reports it: how much is used (0–100) and when it resets.</summary>
+public sealed record PlanLimit(double Percent, DateTimeOffset? ResetsAt);
+
+/// <summary>The Claude plan limits shown in Claude's own usage screen.</summary>
+public sealed record ClaudePlanLimits(PlanLimit? FiveHour, PlanLimit? Weekly, DateTimeOffset FetchedAt);
+
+/// <summary>
+/// Reads the plan limits (5-hour and weekly percentages) from Claude with the sign-in Claude Code
+/// keeps on this PC. Returns null when there is no sign-in, it has expired or the request fails.
+/// </summary>
+public interface IClaudeLimitsSource
+{
+    Task<ClaudePlanLimits?> GetAsync(CancellationToken cancellationToken = default);
+}
