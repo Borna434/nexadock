@@ -808,8 +808,22 @@ public partial class DockWindow : Window
 
         menu.PlacementTarget = this;
         menu.Placement = PlacementMode.MousePoint;
+
+        // The bar never takes focus (WS_EX_NOACTIVATE), so the menu would not see clicks
+        // outside the bar and stay open. Bring the menu's own popup to the foreground: then
+        // a click anywhere else takes focus away and the menu closes.
+        menu.Opened += (_, _) =>
+        {
+            if (PresentationSource.FromVisual(menu) is HwndSource popup)
+            {
+                SetForegroundWindow(popup.Handle);
+            }
+        };
         menu.IsOpen = true;
     }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool SetForegroundWindow(IntPtr hwnd);
 
     private static MenuItem Item(string header, Action action, bool enabled = true)
     {
