@@ -283,9 +283,21 @@ public sealed partial class TrayIconHost : ObservableObject, IDisposable
         }
     }
 
-    /// <summary>Our own tray icon and icons apps asked to hide are left out.</summary>
+    /// <summary>
+    /// Windows' own volume, network and battery icons: the bar has its own controls for these
+    /// (the system group), so showing them here too would put them on the bar twice.
+    /// </summary>
+    private static readonly HashSet<string> DuplicateSystemIcons = new(StringComparer.OrdinalIgnoreCase)
+    {
+        NotificationArea.VOLUME_GUID,
+        NotificationArea.NETWORK_GUID,
+        NotificationArea.POWER_GUID,
+    };
+
+    /// <summary>Our own tray icon, Windows icons the bar already covers and icons apps asked to hide are left out.</summary>
     private bool IsShown(MsNotifyIcon icon) =>
         !icon.IsHidden
+        && !DuplicateSystemIcons.Contains(icon.Identifier ?? string.Empty)
         && !(_ownPath is not null && string.Equals(icon.Path, _ownPath, StringComparison.OrdinalIgnoreCase));
 
     private void Rebuild()
