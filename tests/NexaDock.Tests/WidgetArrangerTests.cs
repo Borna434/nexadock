@@ -50,6 +50,7 @@ public class WidgetArrangerTests
     [InlineData("todos", 2)]     // left side, after Claude, before Now Playing
     [InlineData("volume", 5)]    // right side, before Control Center
     [InlineData("showdesktop", 7)] // after the clock, at the far right
+    [InlineData("power", 0)]       // at the very left edge
     public void New_widgets_land_in_their_logical_place(string type, int expected)
     {
         var layout = Layout("weather", "claude", "nowplaying", "apps", "system", "controlcenter", "clock");

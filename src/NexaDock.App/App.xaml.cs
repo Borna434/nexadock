@@ -26,6 +26,7 @@ public partial class App : Application
     private const string CenteredLayoutKey = "layout.centered.v1";
     private const string TrayAddedKey = "layout.tray.v1";
     private const string ClipboardAddedKey = "layout.clipboard.v1";
+    private const string PowerAddedKey = "layout.power.v1";
 
     private IHost? _host;
     private Mutex? _singleInstance;
@@ -325,6 +326,30 @@ public partial class App : Application
             });
             settings.Flush();
             store.Set(ClipboardAddedKey, "1");
+        }
+
+        // One-time: put the shut-down button at the left end of the main bar.
+        if (store.Get(PowerAddedKey) is null)
+        {
+            static IReadOnlyList<Core.Models.WidgetPlacement> WithPower(IReadOnlyList<Core.Models.WidgetPlacement> widgets)
+            {
+                if (widgets.Any(w => w.TypeId == WidgetTypes.Power))
+                {
+                    return widgets;
+                }
+
+                var list = widgets.ToList();
+                list.Insert(WidgetArranger.InsertIndex(list, WidgetTypes.Power), Core.Models.WidgetPlacement.Create(WidgetTypes.Power));
+                return list;
+            }
+
+            settings.Update(s => s with
+            {
+                Widgets = WithPower(s.Widgets),
+                Profiles = s.Profiles.Select(p => p with { Widgets = WithPower(p.Widgets) }).ToList(),
+            });
+            settings.Flush();
+            store.Set(PowerAddedKey, "1");
         }
 
         // The Run key is the source of truth (the user may disable startup in Task Manager).

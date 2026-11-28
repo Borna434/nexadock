@@ -96,6 +96,16 @@ public sealed class ShowDesktopWidget(WidgetPlacement placement, IShellCommands 
     public override void OnClick() => shell.ToggleDesktop();
 }
 
+/// <summary>A faint power glyph without a plate; one click shuts the computer down.</summary>
+public sealed class PowerWidget(WidgetPlacement placement, IShellCommands shell) : WidgetViewModel(placement)
+{
+    public string Glyph { get; } = WidgetCatalog.Glyph(0xE7E8);
+
+    public override bool HasPlate => false;
+
+    public override void OnClick() => shell.ShutDown();
+}
+
 public sealed class SpacerWidget(WidgetPlacement placement) : WidgetViewModel(placement)
 {
     public override bool IsFlexible => true;

@@ -143,6 +143,7 @@ public sealed class WidgetFactory(IServiceProvider services)
         [WidgetTypes.NowPlaying] = typeof(NowPlayingWidget),
         [WidgetTypes.ControlCenter] = typeof(ControlCenterWidget),
         [WidgetTypes.ShowDesktop] = typeof(ShowDesktopWidget),
+        [WidgetTypes.Power] = typeof(PowerWidget),
         [WidgetTypes.Spacer] = typeof(SpacerWidget),
         [WidgetTypes.Pulse] = typeof(PulseWidget),
         [WidgetTypes.Focus] = typeof(FocusWidget),

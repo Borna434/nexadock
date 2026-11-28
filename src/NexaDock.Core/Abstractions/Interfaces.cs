@@ -224,6 +224,9 @@ public interface IShellCommands
 
     void ToggleDesktop();
 
+    /// <summary>Shuts Windows down, as Start › Power › Shut down does.</summary>
+    void ShutDown();
+
     void OpenTaskManager();
 
     void OpenDateTimeSettings();

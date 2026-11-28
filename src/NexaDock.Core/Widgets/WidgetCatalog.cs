@@ -62,6 +62,9 @@ public static class WidgetTypes
     public const string Agenda = "agenda";
     public const string Tray = "tray";
     public const string Clipboard = "clipboard";
+
+    // Phase 5
+    public const string Power = "power";
 }
 
 public static class WidgetCatalog
@@ -130,6 +133,8 @@ public static class WidgetCatalog
             "Icons of apps running in the background (Discord, Steam…); click, right-click and pin them as on the taskbar.", Glyph(0xE70E)),
         new(WidgetTypes.RecycleBin, "Recycle Bin", WidgetCategory.Apps,
             "What the bin holds; open it or empty it.", Glyph(0xE74D)),
+        new(WidgetTypes.Power, "Shut Down", WidgetCategory.System,
+            "A small power button at the left end: one click shuts the computer down.", Glyph(0xE7E8)),
 
         // AI
         new(WidgetTypes.Claude, "Claude", WidgetCategory.AI,
@@ -164,6 +169,7 @@ public static class WidgetCatalog
     public static IReadOnlyList<WidgetPlacement> DefaultLayout() =>
         WidgetArranger.Arrange(
         [
+            WidgetPlacement.Create(WidgetTypes.Power),
             WidgetPlacement.Create(WidgetTypes.Weather),
             WidgetPlacement.Create(WidgetTypes.NowPlaying),
             WidgetPlacement.Create(WidgetTypes.Apps),

@@ -30,6 +30,24 @@ public sealed class ShellCommands : IShellCommands
 
     public void OpenTaskManager() => Start("taskmgr.exe");
 
+    /// <summary>
+    /// shutdown.exe with no delay. Without /f, apps with unsaved work can still hold the
+    /// shutdown, and Windows shows its usual "these apps are preventing shutdown" screen.
+    /// /hybrid keeps fast startup, like Start › Power › Shut down.
+    /// </summary>
+    public void ShutDown()
+    {
+        _logger.LogInformation("Shut down requested from the bar.");
+        try
+        {
+            Process.Start(new ProcessStartInfo("shutdown.exe", "/s /hybrid /t 0") { UseShellExecute = false, CreateNoWindow = true })?.Dispose();
+        }
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
+        {
+            _logger.LogWarning(ex, "Could not shut down.");
+        }
+    }
+
     public void OpenDateTimeSettings() => Start("ms-settings:dateandtime");
 
     private void Start(string target)

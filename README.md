@@ -41,6 +41,7 @@ apps, and live widgets in one glass strip, optionally replacing the Windows task
   | Now Playing | Cover art, title, play/pause | Large art, progress, previous/play/next |
   | Control Center | Network, sound, battery or power | Each icon opens its own panel: Wi-Fi networks and connections, output device and app mixer, battery and power mode; scroll for volume; the gear opens Quick Settings, the bell notifications |
   | Show Desktop | — | Hides or restores all windows |
+  | Shut Down | Faint power icon at the left end | — (one click shuts the computer down) |
   | Flexible Space | — | Pushes the following widgets to the far end of the bar |
   | **Pulse** | Appears only when something needs you | All alerts, with Dismiss |
   | **Focus** | Pomodoro ring, time left, start/pause | Big ring, skip, reset, focus and break length |

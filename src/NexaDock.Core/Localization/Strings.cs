@@ -248,6 +248,8 @@ public static class Strings
         ["widget.brightness.desc"] = "Display brightness slider (laptop screens and DDC/CI monitors).",
         ["widget.recyclebin.name"] = "Recycle Bin",
         ["widget.recyclebin.desc"] = "What the bin holds; open it or empty it.",
+        ["widget.power.name"] = "Shut Down",
+        ["widget.power.desc"] = "A small power button at the left end: one click shuts the computer down.",
 
         // Settings
         ["settings.title"] = "{0} Settings",
@@ -788,6 +790,8 @@ public static class Strings
         ["widget.brightness.desc"] = "Klizač svjetline zaslona (zasloni prijenosnika i DDC/CI monitori).",
         ["widget.recyclebin.name"] = "Koš za smeće",
         ["widget.recyclebin.desc"] = "Što je u košu; otvorite ga ili ispraznite.",
+        ["widget.power.name"] = "Isključi računalo",
+        ["widget.power.desc"] = "Mali gumb za napajanje na lijevom kraju: jedan klik isključuje računalo.",
 
         // Settings
         ["settings.title"] = "{0} – postavke",

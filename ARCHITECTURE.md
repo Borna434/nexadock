@@ -26,7 +26,7 @@ framework is used.
 | `IBackdropService` | `DwmBackdropService` | DWM acrylic (build 22621+) or a fallback |
 | `IDockWindowHost` | `Win32DockWindowHost` | Non-activating windows, app-bar reservation, display/DPI change events, outside-click hook |
 | `IWindowTracker` | `Win32WindowTracker` | Windows eligible for the taskbar (WinEvent hooks), activate/minimize/close, full-screen detection |
-| `IShellCommands` | `ShellCommands` | Start, Quick Settings, notifications, Show Desktop, Task Manager |
+| `IShellCommands` | `ShellCommands` | Start, Quick Settings, notifications, Show Desktop, Task Manager, shut down |
 | `IIconProvider`, `IAppLauncher`, `IShortcutCatalog` | Shell implementations | Real icons, launching, default pins, pin ↔ window matching |
 | `IThumbnailService` | `DwmThumbnailService` | Live window previews |
 | `ISystemMonitor` | `SystemMonitor` | CPU, memory, top processes, battery, network |
@@ -253,7 +253,7 @@ used to leave an empty glass window.
   - When everything still doesn't fit, tiles are hidden from the outer ends (right side first). The apps are never hidden.
   - `BarPanel` only applies the result.
 - **Widget order (`Core/Widgets/WidgetArranger`):**
-  - Left of the apps: glance and productivity widgets, with Now Playing nearest the apps because its width changes.
+  - Left of the apps: Shut Down at the very edge, then glance and productivity widgets, with Now Playing nearest the apps because its width changes.
   - Right of the apps: Pulse first (it comes and goes), then status, the clock and Show Desktop.
   - Used for the default layout, the profile templates and "Arrange widgets", and to place newly added widgets.
   - Existing layouts were arranged once on upgrade.

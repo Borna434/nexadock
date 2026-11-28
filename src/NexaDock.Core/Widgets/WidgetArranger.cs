@@ -24,6 +24,7 @@ public static class WidgetArranger
 
     private static readonly string[] LeftOrder =
     [
+        WidgetTypes.Power, // at the very left edge, out of the way
         WidgetTypes.Weather,
         WidgetTypes.Agenda,
         WidgetTypes.Claude,

@@ -563,6 +563,19 @@
                    VerticalAlignment="Center" ToolTip="{l:Loc widget.showdesktop.name}" />
     </DataTemplate>
 
+    <!-- Shut down: a faint glyph that only lights up under the pointer. -->
+    <DataTemplate x:Key="PowerWidget.Tile" DataType="{x:Type w:PowerWidget}">
+        <Border x:Name="Hit" Background="Transparent" Padding="6,0" ToolTip="{l:Loc widget.power.name}" ToolTipService.InitialShowDelay="900">
+            <TextBlock x:Name="Icon" Text="{Binding Glyph}" FontFamily="{StaticResource IconFont}" FontSize="12"
+                       Foreground="{DynamicResource Bar.Foreground}" Opacity="0.35" VerticalAlignment="Center" />
+        </Border>
+        <DataTemplate.Triggers>
+            <Trigger SourceName="Hit" Property="IsMouseOver" Value="True">
+                <Setter TargetName="Icon" Property="Opacity" Value="0.9" />
+            </Trigger>
+        </DataTemplate.Triggers>
+    </DataTemplate>
+
     <DataTemplate x:Key="SpacerWidget.Tile" DataType="{x:Type w:SpacerWidget}">
         <Border Background="Transparent" />
     </DataTemplate>
