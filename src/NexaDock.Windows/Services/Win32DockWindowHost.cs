@@ -140,7 +140,7 @@ public sealed class Win32DockWindowHost : IDockWindowHost, IDisposable
     /// our tray window steps below Explorer's for the duration of the call and is raised again
     /// right after; no icon message can arrive in between because both run on this thread.
     /// </summary>
-    private static IDisposable RouteAppBarMessagesToWindows()
+    internal static IDisposable RouteAppBarMessagesToWindows()
     {
         var own = FindOwnTrayWindow();
         if (own == IntPtr.Zero)

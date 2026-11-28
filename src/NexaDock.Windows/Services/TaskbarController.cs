@@ -12,21 +12,34 @@ namespace NexaDock.Windows.Services;
 /// space) and hides its windows. <see cref="Restore"/> puts back the exact previous state.
 /// Nothing on disk outside Windows' own taskbar setting is changed.
 /// </summary>
-public sealed class TaskbarController : ITaskbarController
+/// <remarks>
+/// While notification icons are hosted, NexaDock owns a "Shell_TrayWnd" of its own that sits
+/// first in z-order, so only windows of other processes (Explorer's) are touched here. Explorer
+/// re-shows its taskbar on some shell events, such as Show desktop or minimizing every window;
+/// a WinEvent hook hides it again as soon as it appears.
+/// </remarks>
+public sealed class TaskbarController : ITaskbarController, IDisposable
 {
     private readonly ILogger<TaskbarController> _logger;
+    private readonly WinEventDelegate _onShow;
+    private IntPtr _showHook;
 
-    public TaskbarController(ILogger<TaskbarController> logger) => _logger = logger;
+    public TaskbarController(ILogger<TaskbarController> logger)
+    {
+        _logger = logger;
+        _onShow = OnWindowShown;
+    }
 
     public int GetState()
     {
-        var data = NewData(FindWindow("Shell_TrayWnd", null));
+        using var route = Win32DockWindowHost.RouteAppBarMessagesToWindows();
+        var data = NewData(ExplorerTray());
         return (int)SHAppBarMessage(ABM_GETSTATE, ref data).ToUInt32();
     }
 
     public void Hide()
     {
-        var tray = FindWindow("Shell_TrayWnd", null);
+        var tray = ExplorerTray();
         if (tray == IntPtr.Zero)
         {
             _logger.LogWarning("Taskbar window not found; nothing to hide.");
@@ -41,13 +54,23 @@ public sealed class TaskbarController : ITaskbarController
 
         foreach (var hwnd in TaskbarWindows())
         {
-            ShowWindow(hwnd, SW_HIDE);
+            if (IsWindowVisible(hwnd))
+            {
+                ShowWindow(hwnd, SW_HIDE);
+            }
+        }
+
+        if (_showHook == IntPtr.Zero)
+        {
+            _showHook = SetWinEventHook(EVENT_OBJECT_SHOW, EVENT_OBJECT_SHOW, IntPtr.Zero, _onShow, 0, 0,
+                WINEVENT_OUTOFCONTEXT | WINEVENT_SKIPOWNPROCESS);
         }
     }
 
     public void Restore(int state)
     {
-        var tray = FindWindow("Shell_TrayWnd", null);
+        Unhook();
+        var tray = ExplorerTray();
         if (tray == IntPtr.Zero)
         {
             return;
@@ -62,8 +85,34 @@ public sealed class TaskbarController : ITaskbarController
         _logger.LogInformation("Windows taskbar restored (state {State}).", state);
     }
 
+    public void Dispose() => Unhook();
+
+    private void Unhook()
+    {
+        if (_showHook != IntPtr.Zero)
+        {
+            UnhookWinEvent(_showHook);
+            _showHook = IntPtr.Zero;
+        }
+    }
+
+    private void OnWindowShown(IntPtr hook, uint eventType, IntPtr hwnd, int idObject, int idChild, uint thread, uint time)
+    {
+        if (idObject != OBJID_WINDOW || idChild != 0 || hwnd == IntPtr.Zero)
+        {
+            return;
+        }
+
+        var cls = ClassOf(hwnd);
+        if (cls is "Shell_TrayWnd" or "Shell_SecondaryTrayWnd" && !IsOwn(hwnd))
+        {
+            ShowWindow(hwnd, SW_HIDE);
+        }
+    }
+
     private static void SetState(IntPtr tray, int state)
     {
+        using var route = Win32DockWindowHost.RouteAppBarMessagesToWindows();
         var data = NewData(tray);
         data.lParam = new IntPtr(state);
         SHAppBarMessage(ABM_SETSTATE, ref data);
@@ -71,9 +120,33 @@ public sealed class TaskbarController : ITaskbarController
 
     private static APPBARDATA NewData(IntPtr hwnd) => new() { cbSize = Marshal.SizeOf<APPBARDATA>(), hWnd = hwnd };
 
+    private static bool IsOwn(IntPtr hwnd) =>
+        GetWindowThreadProcessId(hwnd, out var pid) != 0 && pid == Environment.ProcessId;
+
+    private static string ClassOf(IntPtr hwnd)
+    {
+        var sb = new System.Text.StringBuilder(64);
+        return GetClassName(hwnd, sb, sb.Capacity) > 0 ? sb.ToString() : string.Empty;
+    }
+
+    /// <summary>Explorer's primary taskbar, skipping NexaDock's own tray window.</summary>
+    private static IntPtr ExplorerTray()
+    {
+        var h = IntPtr.Zero;
+        while ((h = FindWindowEx(IntPtr.Zero, h, "Shell_TrayWnd", null)) != IntPtr.Zero)
+        {
+            if (!IsOwn(h))
+            {
+                return h;
+            }
+        }
+
+        return IntPtr.Zero;
+    }
+
     private static IEnumerable<IntPtr> TaskbarWindows()
     {
-        var primary = FindWindow("Shell_TrayWnd", null);
+        var primary = ExplorerTray();
         if (primary != IntPtr.Zero)
         {
             yield return primary;
@@ -82,7 +155,10 @@ public sealed class TaskbarController : ITaskbarController
         var secondary = IntPtr.Zero;
         while ((secondary = FindWindowEx(IntPtr.Zero, secondary, "Shell_SecondaryTrayWnd", null)) != IntPtr.Zero)
         {
-            yield return secondary;
+            if (!IsOwn(secondary))
+            {
+                yield return secondary;
+            }
         }
     }
 }

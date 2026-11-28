@@ -283,6 +283,7 @@ used to leave an empty glass window.
   - For each app bar call, our tray window steps below Explorer's and is raised again afterwards.
   - Positions are sent only when they change.
   - Icon hosting starts 1.5 s after the bars settle, so icons that apps re-add at startup are not missed.
+- **Replacing the taskbar:** `TaskbarController` touches only `Shell_TrayWnd` / `Shell_SecondaryTrayWnd` windows of other processes, never our own tray window. Explorer re-shows its taskbar on Show desktop or when every window is minimized, so an `EVENT_OBJECT_SHOW` hook hides it again at once; the 3 s timer stays as a fallback.
 
 ### Calendars
 
